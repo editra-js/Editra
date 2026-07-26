@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Verifies the documented Editra public API and command routing contract.
  * Licensing: MIT License (open source)
  */
@@ -45,5 +44,5 @@ requiredMethods.forEach((method) =>
 requiredCommands.forEach((command) =>
   assert.ok(core.includes(command), `Missing command route ${command}`),
 );
-assert.ok(core.includes('EditraCore.VERSION = "1.15.0"'));
+assert.ok(core.includes('EditraCore.VERSION = "1.16.0"'));
 console.log("Editra core API contract passed.");

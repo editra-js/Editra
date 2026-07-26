@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Initializes and coordinates all feature-focused Editra demonstrations.
  * Licensing: MIT License (open source)
  */
@@ -16,8 +15,24 @@
     <table>
       <tbody>
         <tr><td>Feature</td><td>Status</td><td>Owner</td></tr>
-        <tr><td>Page fidelity</td><td>Ready</td><td>Minsoft</td></tr>
+        <tr><td>Page fidelity</td><td>Ready</td><td>Editra</td></tr>
         <tr><td>Premium theme</td><td>Ready</td><td>Editorial</td></tr>
+      </tbody>
+    </table>`;
+  const flowingTableHTML = `
+    <h2>Cross-page results</h2>
+    <p data-editra-keep-with-next="true">The following table repeats its semantic header whenever export pagination creates another page.</p>
+    <table id="flowing-results-table"
+      data-editra-repeat-header="true"
+      data-editra-allow-row-splitting="true"
+      data-editra-keep-table-together="false">
+      <thead><tr><th>Row</th><th>Pagination behavior</th><th>Status</th></tr></thead>
+      <tbody>
+        ${Array.from(
+          { length: 36 },
+          (_, index) =>
+            `<tr><td>${index + 1}</td><td>Flowing table record ${index + 1}</td><td>${index % 3 ? "Ready" : "Reviewed"}</td></tr>`,
+        ).join("")}
       </tbody>
     </table>`;
   const mediaHTML = `
@@ -46,8 +61,16 @@
   const definitions = {
     full: {
       title: "Full Editra",
-      description: "All default plugins, menus, toolbar controls, page tools, and export commands.",
-      content: "<h1>Complete editing experience</h1><p>Select text, explore every menu, insert content, and switch themes.</p>" + tableHTML,
+      description: "All default plugins, menus, toolbar controls, page tools, flow rules, and export commands.",
+      config: {
+        pagination: {
+          keepParagraphsTogether: false,
+          keepListItemsTogether: true,
+          allowRowSplitting: true,
+          keepCodeBlocksTogether: true,
+        },
+      },
+      content: "<h1 data-editra-keep-with-next='true'>Complete editing experience</h1><p>Select text, explore every menu, insert content, and switch pagination rules.</p>" + tableHTML,
     },
     "hidden-menu": {
       title: "Hidden Menu",
@@ -72,10 +95,10 @@
     },
     media: {
       title: "Image and Video",
-      description: "Resizable image and video elements with local-file and URL insertion controls.",
+      description: "Resizable image and video blocks that move intact when they do not fit on the current page.",
       config: { plugins: ["image", "video"] },
       preload: ["image", "video"],
-      content: mediaHTML,
+      content: "<p>Extra lead-in content demonstrates page-aware media movement.</p>".repeat(12) + mediaHTML,
     },
     multipage: {
       title: "Multipage Document",
@@ -85,13 +108,13 @@
         footer: { pageNumber: "Page {{page}} of {{pages}}" },
       },
       preload: ["table", "image", "video"],
-      content: multipageHTML,
+      content: multipageHTML + flowingTableHTML,
     },
     "header-footer": {
       title: "Headers and Footers",
       description: "Repeated text, current date/time, custom fields, and page numbering.",
       config: {
-        header: { text: "Minsoft — Editra", dateTime: true, fields: { Department: "Editorial" } },
+        header: { text: "Editra Document", dateTime: true, fields: { Department: "Editorial" } },
         footer: { pageNumber: "Page {{page}} of {{pages}}" },
       },
       content: "<h1>Header and footer fidelity</h1><p>Export this document to verify repeated page content.</p><div class='editra-page-break'></div><h2>Second page</h2><p>The header and footer repeat here.</p>",
@@ -117,11 +140,18 @@
     },
     tables: {
       title: "Table Selection and Deletion",
-      description: "Select the table with its corner handle, then press Delete or use the command button.",
+      description: "Compare row splitting, rows kept together, repeated headers, and complete-table flow.",
       config: { plugins: ["table"] },
       preload: ["table"],
-      actions: [["Select table", "selectTable"], ["Delete selected table", "deleteTable"]],
-      content: tableHTML,
+      actions: [
+        ["Allow row splitting", "setTablePagination", { selector: "#flowing-results-table", allowRowSplitting: true, keepRowsTogether: false }],
+        ["Keep rows together", "setTablePagination", { selector: "#flowing-results-table", allowRowSplitting: false, keepRowsTogether: true }],
+        ["Keep table together", "setTablePagination", { selector: "#flowing-results-table", keepTableTogether: true }],
+        ["Allow table to flow", "setTablePagination", { selector: "#flowing-results-table", keepTableTogether: false }],
+        ["Select table", "selectTable"],
+        ["Delete selected table", "deleteTable"],
+      ],
+      content: flowingTableHTML,
     },
     shortcuts: {
       title: "Keyboard Shortcuts",
@@ -152,7 +182,7 @@
       title: "About Editra",
       description: "Project ownership, goals, technology, author, and MIT licensing.",
       config: { showMenuBar: false, toolbar: "bold italic | undo redo" },
-      content: "<h1>About Editra</h1><p>Editra is a Minsoft product authored by Editra Team. Version 1.15.0 is MIT licensed.</p><p><a href='../docs/ABOUT.md'>Read project details</a></p>",
+      content: "<h1>About Editra</h1><p>Editra is a standalone premium WYSIWYG editor authored by Editra Team. Version 1.16.0 is MIT licensed.</p><p><a href='../docs/ABOUT.md'>Read project details</a></p>",
     },
     bold: {
       title: "Bold",
@@ -253,10 +283,14 @@
     },
     "code-view": {
       title: "HTML Code View",
-      description: "Toggle between WYSIWYG and syntax-highlighted HTML with line numbers and indentation.",
+      description: "Compare code blocks that stay together with code blocks allowed to split, then inspect their HTML.",
       config: { plugins: ["codeview"], toolbar: "codeview undo redo" },
-      actions: [["Toggle code view", "toggleCodeView"]],
-      content: "<h2>Source editing</h2><p>Edit this document as highlighted HTML.</p>",
+      actions: [
+        ["Keep first code block together", "setCodeBlockSplitting", { selector: "#kept-code", allowSplitting: false }],
+        ["Allow second code block to split", "setCodeBlockSplitting", { selector: "#split-code", allowSplitting: true }],
+        ["Toggle code view", "toggleCodeView"],
+      ],
+      content: "<h2>Code pagination</h2><pre id='kept-code' data-editra-allow-splitting='false'><code>// This code block stays together.\\nfunction renderDocument() {\\n  return Editra.init({ selector: '#editor' });\\n}</code></pre><pre id='split-code' data-editra-allow-splitting='true'><code>// This longer code block may split across pages.\\nconst pages = document.querySelectorAll('.editra-page-guide');\\npages.forEach((page, index) => console.log(index + 1));</code></pre>",
     },
     productivity: {
       title: "Productivity Tools",
@@ -286,6 +320,43 @@
         toolbar: "bold italic underline | fontFamily fontSize | bulletList numberList | undo redo",
       },
       content: "<p>Share formatted feedback here. Your content remains on this device after saving.</p>",
+    },
+    pagination: {
+      title: "Pagination and Flow Control",
+      description: "Toggle paragraph, list, table, code, forced-break, and keep-with-next behavior.",
+      config: {
+        pagination: {
+          keepParagraphsTogether: false,
+          keepListItemsTogether: false,
+          allowRowSplitting: true,
+          keepRowsTogether: false,
+          keepTableTogether: false,
+          keepCodeBlocksTogether: true,
+          repeatTableHeader: true,
+        },
+      },
+      actions: [
+        ["Keep selected block together", "toggleKeepTogether", { selector: "#pagination-paragraph" }],
+        ["Keep heading with next", "KeepWithNext", { selector: "#pagination-heading", enabled: true }],
+        ["Keep list items together", "setListItemSplitting", { selector: "#pagination-list", allowSplitting: false }],
+        ["Allow list item splitting", "setListItemSplitting", { selector: "#pagination-list", allowSplitting: true }],
+        ["Keep table together", "setTablePagination", { selector: "#pagination-table", keepTableTogether: true }],
+        ["Allow table splitting", "setTablePagination", { selector: "#pagination-table", keepTableTogether: false, allowRowSplitting: true }],
+        ["Insert page break", "InsertPageBreak"],
+      ],
+      content: `
+        <h1 id="pagination-heading">Page-aware flow</h1>
+        <p id="pagination-paragraph">Use Keep Together to move this complete paragraph to the next page whenever the remaining space is too small. Toggle it again to allow normal paragraph flow.</p>
+        <ol id="pagination-list">
+          <li>List item one can be kept intact.</li>
+          <li>List item two demonstrates configurable splitting.</li>
+          <li>List item three remains editable.</li>
+        </ol>
+        <pre data-editra-allow-splitting="false"><code>const rules = { keepCodeBlocksTogether: true };</code></pre>
+        <table id="pagination-table" data-editra-repeat-header="true" data-editra-allow-row-splitting="true">
+          <thead><tr><th>Rule</th><th>Result</th></tr></thead>
+          <tbody><tr><td>Repeat header</td><td>Enabled</td></tr><tr><td>Row splitting</td><td>Allowed</td></tr></tbody>
+        </table>`,
     },
   };
 
@@ -425,6 +496,7 @@
     host.innerHTML = definition.content;
     const editor = await Editra.init({
       selector: host,
+      pagination: {},
       ...definition.config,
     });
     for (const plugin of definition.preload || []) {

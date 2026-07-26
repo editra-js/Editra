@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Provides an optional distribution loader for the canonical Editra core runtime.
  * Licensing: MIT License (open source)
  */

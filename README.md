@@ -1,10 +1,9 @@
 # Editra
 Editra is a premium open‑source WYSIWYG editor for the web, offering Word‑style text editing, pagination control, tables, media embedding, and export to PDF/Word/HTML. Available via npm or CDN, it delivers enterprise‑grade features with a clean, developer‑friendly API.
 
-Editra is Minsoft's premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.15.0 is licensed under the MIT License.
+Editra is a premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.16.0 is licensed under the MIT License.
 
 Author: Editra Team  
-Owner: Minsoft
 
 ## Quick start
 
@@ -42,13 +41,13 @@ import "editra/themes/premium.css";
 await Editra.init({ selector: "#editra-editor" });
 ```
 
-The unscoped npm name is currently owned by another publisher, so Minsoft publication requires package ownership or a scoped package name. A local release archive can be verified with `npm run pack:check`.
+The unscoped npm name is currently owned by another publisher, so publication requires package ownership or a new package name. A local release archive can be verified with `npm run pack:check`.
 
 ### CDN integration
 
 ```html
-<link rel="stylesheet" href="https://cdn.minsoft.com/editra/latest/themes/premium.css">
-<script src="https://cdn.minsoft.com/editra/latest/editra.js"></script>
+<link rel="stylesheet" href="https://cdn.editra.org/latest/themes/premium.css">
+<script src="https://cdn.editra.org/latest/editra.js"></script>
 <script>
   Editra.init({ selector: "#editra-editor" });
 </script>
@@ -86,5 +85,4 @@ npm run pack:check
 
 ## License
 
-[MIT License](LICENSE.md) — © Minsoft. All rights reserved.
->>>>>>> d6e6fa3 (Release Editra 1.15.0 integration and distribution)
+[MIT License](LICENSE.md)

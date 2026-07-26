@@ -1,7 +1,6 @@
-REM © Minsoft. All rights reserved.
-REM Product: Editra (Minsoft product)
+REM Product: Editra
 REM Author: Editra Team
-REM Version: 1.15.0
+REM Version: 1.16.0
 REM Purpose: Starts the local Editra HTTP server on Windows.
 REM Licensing: MIT License (open source)
 @echo off

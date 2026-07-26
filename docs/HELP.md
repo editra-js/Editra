@@ -48,4 +48,4 @@ Use Ctrl/Cmd+Z or Edit → Undo. Applications should also persist `getCode()` re
 
 ## Support
 
-For support, open an issue in the project repository with the Editra version, browser version, minimal initialization configuration, reproduction steps, and console output. General ownership enquiries should be directed to Minsoft through the repository's published support channel.
+For support, open an issue in the project repository with the Editra version, browser version, minimal initialization configuration, reproduction steps, and console output.

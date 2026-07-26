@@ -4,7 +4,7 @@
 
 1. Fork the repository in your Git hosting service.
 2. Clone your fork: `git clone <fork-url>`.
-3. Enter the repository and add the Minsoft repository as `upstream`.
+3. Enter the repository and add the canonical Editra repository as `upstream`.
 4. Run `node tests/automation/verify-project.js` before changing code.
 
 ## Branching strategy
@@ -41,4 +41,4 @@
 3. Include tests and a linked example page.
 4. Update `version.prop` and `RELEASE_NOTES.md` only for an approved release.
 5. Confirm MIT-compatible licensing for new assets or dependencies.
-6. Request review from a Minsoft maintainer.
+6. Request review from an Editra maintainer.

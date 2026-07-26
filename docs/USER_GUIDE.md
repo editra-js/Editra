@@ -1,6 +1,6 @@
 # Editra User Guide
 
-Version 1.15.0
+Version 1.16.0
 
 ## Installation
 
@@ -24,17 +24,17 @@ const editor = await Editra.init({
 });
 ```
 
-The unscoped `editra` name currently belongs to another npm publisher. Until Minsoft obtains that package name, install a locally generated package archive with `npm pack`, or publish this project under a Minsoft-owned scope and replace the import name accordingly.
+The unscoped `editra` name currently belongs to another npm publisher. Until the official package name is available, install a locally generated package archive with `npm pack`, or publish this project under an available scope and replace the import name accordingly.
 
 ### CDN
 
-The Minsoft CDN integration is:
+The Editra CDN integration is:
 
 ```html
 <div id="editra-editor"></div>
 <link rel="stylesheet"
-      href="https://cdn.minsoft.com/editra/latest/themes/premium.css">
-<script src="https://cdn.minsoft.com/editra/latest/editra.js"></script>
+      href="https://cdn.editra.org/latest/themes/premium.css">
+<script src="https://cdn.editra.org/latest/editra.js"></script>
 <script>
   Editra.init({
     selector: "#editra-editor",
@@ -109,6 +109,53 @@ localStorage.setItem("editra.feedback.v1", JSON.stringify([feedback]));
 
 ## Advanced usage
 
+### Pagination and flow control
+
+Pagination is enabled by default. Images, videos, charts, graphs, forms, iframes, objects, embeds, and media frames are indivisible: when a block fits on a page but not in the remaining space, Editra moves the complete block to the next page.
+
+```js
+const editor = await Editra.init({
+  selector: "#editra-editor",
+  pagination: {
+    keepParagraphsTogether: false,
+    keepListItemsTogether: false,
+    allowRowSplitting: true,
+    keepRowsTogether: false,
+    keepTableTogether: false,
+    keepCodeBlocksTogether: true,
+    repeatTableHeader: true
+  }
+});
+```
+
+Apply rules to the current block or a selected element:
+
+```js
+editor.executeCommand("toggleKeepTogether");
+editor.executeCommand("KeepWithNext", { enabled: true });
+editor.executeCommand("InsertPageBreak");
+
+editor.executeCommand("setListItemSplitting", {
+  selector: "#steps",
+  allowSplitting: false
+});
+
+editor.executeCommand("setTablePagination", {
+  selector: "#results",
+  allowRowSplitting: true,
+  keepRowsTogether: false,
+  keepTableTogether: false,
+  repeatHeader: true
+});
+
+editor.executeCommand("setCodeBlockSplitting", {
+  selector: "#sample-code",
+  allowSplitting: false
+});
+```
+
+Tables may flow across pages by default. Use a semantic `<thead>` for the header that should repeat on each exported page. `keepTableTogether` moves a table intact when it fits on one page; tables taller than a page must flow. See [pagination](../examples/pagination.html), [multipage tables](../examples/multipage.html), [media flow](../examples/media.html), [table rules](../examples/tables.html), and [code flow](../examples/code-view.html).
+
 ### Page sizes and orientation
 
 Use Layout → Page Size and Orientation or configure `pageSize` and `orientation`. Fifteen standard sizes and custom CSS dimensions are supported. See [page sizes](../examples/page-sizes.html) and [sized editor](../examples/sized-editor.html).
@@ -163,6 +210,8 @@ Use 100% print scale and disable browser-supplied print headers/footers for best
 | Code Block | Insert a preformatted code block | [Structure](../examples/structure.html) |
 | Horizontal Line | Insert a document divider | [Structure](../examples/structure.html) |
 | Page Break | Lock a page boundary | [Multipage](../examples/multipage.html) |
+| Keep Together | Keep the selected block on one page when it fits | [Pagination](../examples/pagination.html) |
+| Keep With Next | Keep a heading or block with the following block | [Pagination](../examples/pagination.html) |
 | Table of Contents | Generate navigation from H1–H6 | [Structure](../examples/structure.html) |
 | HTML Code View | Edit highlighted source with line numbers | [Code view](../examples/code-view.html) |
 
@@ -227,6 +276,9 @@ Use 100% print scale and disable browser-supplied print headers/footers for best
 | Orientation | Switch portrait/landscape | [Page sizes](../examples/page-sizes.html) |
 | Margins | Apply normal, narrow, moderate, or wide margins | [Margins](../examples/margins.html) |
 | Show / Hide Ruler | Toggle draggable layout controls | [Ruler](../examples/ruler.html) |
+| Keep Together | Toggle indivisible flow for the selected block | [Pagination](../examples/pagination.html) |
+| Keep With Next | Prevent a break between adjacent blocks | [Pagination](../examples/pagination.html) |
+| Insert Page Break | Force subsequent content to the next page | [Pagination](../examples/pagination.html) |
 
 ### Table
 
@@ -268,8 +320,8 @@ See the [paste handling demo](../examples/paste.html) for raw and sanitized HTML
 ## Troubleshooting
 
 - Serve Editra over HTTP; never use `file://`.
-- If `npm install editra` resolves to a different publisher, use the locally packed release or the future Minsoft-scoped package.
-- If the Minsoft CDN returns 404, confirm that the release tree and `latest` alias have been provisioned.
+- If `npm install editra` resolves to a different publisher, use the locally packed release or an official scoped package.
+- If the Editra CDN returns 404, confirm that the release tree and `latest` alias have been provisioned.
 - If feedback is not retained, verify that browser storage is enabled and the page is served from the same origin.
 - Confirm plugin names and relative paths.
 - Use Ctrl/Cmd+V when browser menu paste permission is unavailable.

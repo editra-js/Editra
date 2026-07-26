@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Builds the configurable Editra menu bar and command menus.
  * Licensing: MIT License (open source)
  */
@@ -86,6 +85,10 @@
         ["setPageSize", "Page Size"],
         ["setOrientation", "Orientation"],
         ["setMargin", "Margins"],
+        null,
+        ["toggleKeepTogether", "Keep Together"],
+        ["KeepWithNext", "Keep With Next"],
+        ["InsertPageBreak", "Insert Page Break"],
         null,
         ["toggleRuler", "Show / Hide Ruler"],
       ],

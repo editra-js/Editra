@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Builds the configurable Editra toolbar and its accessible controls.
  * Licensing: MIT License (open source)
  */
@@ -50,6 +49,10 @@
     codeBlock: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>',
     horizontalLine: '<path d="M4 12h16"/>',
     pageBreak: '<path d="M4 7h16M4 17h16M8 12h8M12 9v6"/>',
+    keepTogether:
+      '<path d="M6 4h12v6H6zM6 14h12v6H6zM12 10v4M9 12h6"/>',
+    keepWithNext:
+      '<path d="M5 4h14v6H5zM5 15h14v5H5zM12 10v5M9 12l3 3 3-3"/>',
     toc: '<path d="M4 5h16M4 10h12M4 15h16M4 20h10"/>',
     codeView: '<path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',
     borderColor: '<rect x="4" y="4" width="16" height="16"/><path d="M4 17h16"/>',

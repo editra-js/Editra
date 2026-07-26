@@ -1,7 +1,7 @@
 {
   "name": "editra",
-  "version": "1.15.0",
-  "description": "Minsoft Editra — a premium modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript.",
+  "version": "1.16.0",
+  "description": "Editra — Premium WYSIWYG Editor built with pure HTML, CSS, and JavaScript.",
   "author": "Editra Team",
   "license": "MIT",
   "main": "./editra.js",
@@ -38,7 +38,6 @@
     "rich-text-editor",
     "document-editor",
     "contenteditable",
-    "minsoft",
     "editra"
   ],
   "scripts": {

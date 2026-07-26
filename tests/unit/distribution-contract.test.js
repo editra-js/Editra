@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Verifies Editra package metadata, demo integration actions, feedback persistence, and premium styling.
  * Licensing: MIT License (open source)
  */
@@ -17,12 +16,16 @@ const root = path.resolve(__dirname, "../..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const metadata = JSON.parse(read("package.json"));
 const theme = read("ui/theme-premium.css");
+const documentTheme = read("themes/premium.css");
 const demos = read("examples/demo.js");
 const feedback = read("examples/feedback-form.html");
 const guide = read("docs/USER_GUIDE.md");
+const pagination = read("plugins/pagination.js");
+const tablePlugin = read("plugins/table.js");
+const exportPlugin = read("plugins/export.js");
 
 assert.equal(metadata.name, "editra");
-assert.equal(metadata.version, "1.15.0");
+assert.equal(metadata.version, "1.16.0");
 assert.equal(metadata.license, "MIT");
 assert.equal(metadata.module, "./src/editra.mjs");
 assert(metadata.files.includes("plugins"));
@@ -51,7 +54,27 @@ assert(feedback.includes("data-saved-html"));
 assert(feedback.includes("data-saved-text"));
 
 assert(guide.includes("npm install editra"));
-assert(guide.includes("https://cdn.minsoft.com/editra/latest/editra.js"));
+assert(guide.includes("https://cdn.editra.org/latest/editra.js"));
 assert(guide.includes("../examples/feedback-form.html"));
+assert(guide.includes("../examples/pagination.html"));
+
+[
+  "setPaginationRules",
+  "toggleKeepTogether",
+  "setListItemSplitting",
+  "setTablePagination",
+  "setCodeBlockSplitting",
+  "KeepWithNext",
+  "InsertPageBreak",
+].forEach((command) => {
+  assert(pagination.includes(command), `Missing pagination command ${command}`);
+});
+assert(pagination.includes("requestAnimationFrame"));
+assert(documentTheme.includes("data-editra-keep-table-together"));
+assert(tablePlugin.includes("createTHead"));
+assert(tablePlugin.includes("editraRepeatHeader"));
+assert(exportPlugin.includes("splitTableAcrossPages"));
+assert(exportPlugin.includes("table-header-group"));
+assert(demos.includes('pagination: {}'));
 
 console.log("Editra distribution and end-user integration contract passed.");

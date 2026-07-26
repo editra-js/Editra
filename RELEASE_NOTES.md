@@ -1,5 +1,34 @@
 # Editra Release Notes
 
+## Version 1.16.0
+
+Release date: 2026-07-26
+
+### Features added
+
+- Added page-aware automatic flow for indivisible media, charts, forms, embeds, and explicitly kept blocks.
+- Added paragraph, list-item, table-row, complete-table, and code-block splitting policies.
+- Added `InsertPageBreak`, `KeepWithNext`, `toggleKeepTogether`, and pagination configuration commands.
+- Added multi-page table export segmentation with repeated semantic header rows.
+- Added a dedicated pagination demonstration and pagination behavior throughout all example pages.
+- Added the neutral Editra CDN integration at `https://cdn.editra.org/latest/editra.js`.
+
+### Bugs fixed
+
+- Explicit page breaks now consume the remaining page space and force subsequent content onto the next page.
+- Temporary pagination spacers are excluded from saved and exported document HTML.
+- Large pagination passes are processed in animation-frame batches.
+- Removed former company branding from source headers, documentation, examples, package metadata, and repository files.
+
+### Known issues
+
+- Extremely tall indivisible blocks that exceed one configured page remain scrollable because they cannot fit intact on any page.
+- Browser print engines can make small font-metric adjustments that affect the final row distribution.
+- The unscoped npm package name `editra` remains owned by another publisher.
+- The `cdn.editra.org` endpoint must be provisioned with the packaged release tree before public use.
+
+See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for pagination configuration and distribution guidance.
+
 ## Version 1.15.0
 
 Release date: 2026-07-26
@@ -10,7 +39,7 @@ Release date: 2026-07-26
 - Added a responsive feedback form that stores name, gender, rich HTML, and plain text in localStorage.
 - Added live HTML and plain-text feedback previews plus saved-record rendering.
 - Added npm package metadata, a browser distribution loader, and an ES-module loader.
-- Added documented npm and Minsoft CDN integration paths.
+- Added documented npm and CDN integration paths.
 - Added automated distribution, demo, package-content, and premium-style checks.
 
 ### Bugs fixed
@@ -21,9 +50,9 @@ Release date: 2026-07-26
 
 ### Known issues
 
-- The unscoped npm name `editra` is owned by an existing package and cannot be published by Minsoft without registry ownership or a new scoped package name.
+- The unscoped npm name `editra` is owned by an existing package and requires registry ownership or a new scoped package name.
 - GitHub publication requires a target repository/account and authenticated GitHub tooling.
-- `cdn.minsoft.com` must be configured by Minsoft to serve the packaged release assets.
+- The configured CDN endpoint must serve the packaged release assets.
 
 See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for version 1.15.0 integration and demo guidance.
 

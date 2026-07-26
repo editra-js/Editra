@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Implements the Editra export plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -127,6 +126,78 @@
     }
   }
 
+  function splitTableAcrossPages(
+    core,
+    node,
+    pages,
+    metrics,
+    forcedPage,
+  ) {
+    if (node.nodeType !== Node.ELEMENT_NODE) return false;
+    const table = node.matches("table") ? node : node.querySelector("table");
+    if (
+      !table ||
+      table.dataset.editraKeepTableTogether === "true"
+    ) {
+      return false;
+    }
+
+    const header = table.tHead;
+    const bodyRows = [...table.rows].filter(
+      (row) =>
+        (!header || !header.contains(row)) &&
+        !row.hasAttribute("data-editra-repeated-header"),
+    );
+    if (!bodyRows.length) return false;
+
+    const editorTop = core.editor.getBoundingClientRect().top;
+    const groups = new Map();
+    bodyRows.forEach((row) => {
+      const naturalPage = Math.max(
+        forcedPage,
+        Math.floor(
+          Math.max(0, row.getBoundingClientRect().top - editorTop) /
+            metrics.height,
+        ),
+      );
+      const pageIndex = Math.min(naturalPage, pages.length - 1);
+      if (!groups.has(pageIndex)) groups.set(pageIndex, []);
+      groups.get(pageIndex).push(row);
+    });
+    if (groups.size < 2) return false;
+
+    [...groups.entries()].forEach(([pageIndex, rows], segmentIndex) => {
+      const tableClone = table.cloneNode(false);
+      [...table.children]
+        .filter((child) =>
+          ["CAPTION", "COLGROUP"].includes(child.tagName),
+        )
+        .forEach((child) => {
+          if (child.tagName !== "CAPTION" || segmentIndex === 0) {
+            tableClone.append(child.cloneNode(true));
+          }
+        });
+      if (
+        header &&
+        table.dataset.editraRepeatHeader !== "false"
+      ) {
+        tableClone.append(header.cloneNode(true));
+      }
+      const body = document.createElement("tbody");
+      rows.forEach((row) => body.append(row.cloneNode(true)));
+      tableClone.append(body);
+
+      let segment = tableClone;
+      if (node !== table) {
+        segment = node.cloneNode(false);
+        segment.append(tableClone);
+      }
+      const cleanSegment = cleanClone(segment);
+      if (cleanSegment) pages[pageIndex].push(cleanSegment);
+    });
+    return true;
+  }
+
   function resolvePart(definition, page, pages) {
     if (!definition) return "";
     const values = {
@@ -166,6 +237,17 @@
             forcedPage,
             Math.floor(Math.max(0, node.offsetTop) / metrics.height),
           );
+        }
+        if (
+          splitTableAcrossPages(
+            core,
+            node,
+            pages,
+            metrics,
+            forcedPage,
+          )
+        ) {
+          return;
         }
         const pageIndex = Math.min(naturalPage, pages.length - 1);
         const clone = cleanClone(node);
@@ -212,6 +294,24 @@
       h1,h2,h3,h4,h5,h6 { line-height: 1.2; break-after: avoid; }
       table { border-collapse: collapse; max-width: 100%; } td,th { border: 1px solid #111; }
       img,video,iframe { max-width: 100%; } .editra-page-break { display: none; }
+      img,video,iframe,canvas,svg,form,object,embed,figure,
+      [data-editra-indivisible="true"],[data-editra-keep-together="true"] {
+        break-inside: avoid; page-break-inside: avoid;
+      }
+      [data-editra-keep-with-next="true"] { break-after: avoid; page-break-after: avoid; }
+      [data-editra-keep-paragraphs="true"] p { break-inside: avoid; page-break-inside: avoid; }
+      [data-editra-keep-list-items="true"] li,
+      :is(ul,ol)[data-editra-allow-item-splitting="false"] > li {
+        break-inside: avoid; page-break-inside: avoid;
+      }
+      table[data-editra-keep-table-together="true"],
+      table[data-editra-allow-row-splitting="false"] tr,
+      table[data-editra-keep-rows-together="true"] tr,
+      pre[data-editra-allow-splitting="false"] {
+        break-inside: avoid; page-break-inside: avoid;
+      }
+      table[data-editra-repeat-header="true"] thead { display: table-header-group; }
+      table tfoot { display: table-footer-group; }
       .editra-tab { display: inline-block; min-width: 2.5em; white-space: pre; }
       .editra-tab[data-editra-tab-stop] { min-width: 1px; }
       @media print {

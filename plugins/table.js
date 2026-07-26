@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Implements the Editra table plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -211,11 +210,27 @@
     const table = document.createElement("table");
     table.dataset.editraBorder = "solid";
     table.dataset.editraBorderColor = "#1f1f1f";
-    const body = table.createTBody();
+    table.dataset.editraAllowRowSplitting = "true";
+    table.dataset.editraKeepRowsTogether = "false";
+    table.dataset.editraKeepTableTogether = "false";
+    table.dataset.editraRepeatHeader = "true";
     const safeRows = Math.min(1000, Math.max(1, Number(rows) || 1));
     const safeColumns = Math.min(100, Math.max(1, Number(columns) || 1));
+    const header = table.createTHead().insertRow();
+    for (
+      let columnIndex = 0;
+      columnIndex < safeColumns;
+      columnIndex += 1
+    ) {
+      const cell = document.createElement("th");
+      cell.scope = "col";
+      cell.style.border = "1px solid #1f1f1f";
+      cell.append(document.createElement("br"));
+      header.append(cell);
+    }
+    const body = table.createTBody();
 
-    for (let start = 0; start < safeRows; start += 25) {
+    for (let start = 1; start < safeRows; start += 25) {
       const fragment = document.createDocumentFragment();
       const end = Math.min(start + 25, safeRows);
       for (let rowIndex = start; rowIndex < end; rowIndex += 1) {

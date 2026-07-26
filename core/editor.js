@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Implements the Editra core runtime, initialization, state, history, commands, and plugin loading.
  * Licensing: MIT License (open source)
  */
@@ -154,6 +153,16 @@
         { name: "toc", command: "insertTableOfContents", label: "Table of contents", icon: "toc" },
       ],
     },
+    pagination: {
+      file: "plugins/pagination.js",
+      label: "Pagination",
+      command: "toggleKeepTogether",
+      toolbarItems: [
+        { name: "keepTogether", command: "toggleKeepTogether", label: "Keep block together", icon: "keepTogether" },
+        { name: "keepWithNext", command: "KeepWithNext", label: "Keep with next", icon: "keepWithNext" },
+        { name: "paginationPageBreak", command: "InsertPageBreak", label: "Insert page break", icon: "pageBreak" },
+      ],
+    },
     codeview: {
       file: "plugins/codeview.js",
       label: "HTML code view",
@@ -301,6 +310,17 @@
     updateTableOfContents: "structure",
     insertCodeBlock: "structure",
     structureStressTest: "structure",
+    setPaginationRules: "pagination",
+    toggleKeepTogether: "pagination",
+    setKeepTogether: "pagination",
+    setListItemSplitting: "pagination",
+    setTablePagination: "pagination",
+    setCodeBlockSplitting: "pagination",
+    KeepWithNext: "pagination",
+    keepWithNext: "pagination",
+    InsertPageBreak: "pagination",
+    reflowPagination: "pagination",
+    paginationStressTest: "pagination",
     toggleCodeView: "codeview",
     codeViewStressTest: "codeview",
     pasteHTML: "paste",
@@ -449,6 +469,13 @@ class EditraCore {
       await instance.ensurePlugin("headerfooter");
       await instance.executeCommand("insertFooter", config.footer);
     }
+    if (config.pagination !== undefined) {
+      await instance.ensurePlugin("pagination");
+      await instance.executeCommand(
+        "setPaginationRules",
+        config.pagination,
+      );
+    }
     if (config.collaboration && instance.plugins.has("collaboration")) {
       await instance.ensurePlugin("collaboration");
       await instance.executeCommand(
@@ -566,6 +593,9 @@ class EditraCore {
     if (options.header !== undefined || options.footer !== undefined) {
       configuredPlugins.push("headerfooter");
     }
+    if (options.pagination !== undefined) {
+      configuredPlugins.push("pagination");
+    }
     requested = [...requested, ...SYSTEM_PLUGINS, ...configuredPlugins];
     const disabled = new Set(options.disabledPlugins ?? []);
 
@@ -613,6 +643,15 @@ class EditraCore {
       colorScheme: "light",
       margins: { top: 72, right: 72, bottom: 72, left: 72 },
       printContentOnly: false,
+      pagination: {
+        keepParagraphsTogether: false,
+        keepListItemsTogether: false,
+        allowRowSplitting: true,
+        keepRowsTogether: false,
+        keepTableTogether: false,
+        keepCodeBlocksTogether: true,
+        repeatTableHeader: true,
+      },
       requestUrl: null,
       ...options,
     };
@@ -1808,7 +1847,7 @@ class EditraCore {
     const clone = this.editor.cloneNode(true);
     clone
       .querySelectorAll(
-        ".editra-resize-handle, [data-editra-table-handle]",
+        ".editra-resize-handle, [data-editra-table-handle], [data-editra-ui]",
       )
       .forEach((control) => control.remove());
     clone
@@ -1931,7 +1970,7 @@ class EditraCore {
   }
 }
 
-  EditraCore.VERSION = "1.15.0";
+  EditraCore.VERSION = "1.16.0";
   EditraCore.PRODUCT = "Editra";
   global.EditraCore = EditraCore;
   global.Editra = EditraCore;

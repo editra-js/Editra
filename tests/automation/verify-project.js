@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Enforces Editra release metadata, headers, documentation, demos, and JavaScript syntax.
  * Licensing: MIT License (open source)
  */
@@ -17,15 +16,14 @@ const root = path.resolve(__dirname, "../..");
 const versionFile = fs.readFileSync(path.join(root, "version.prop"), "utf8");
 const version = versionFile.match(/^version=(.+)$/m)?.[1]?.trim();
 const requiredHeader = [
-  "© Minsoft. All rights reserved.",
-  "Product: Editra (Minsoft product)",
+  "Product: Editra",
   "Author: Editra Team",
   `Version: ${version}`,
   "Purpose:",
   "Licensing: MIT License (open source)",
 ];
 const sourceExtensions = new Set([".js", ".mjs", ".css", ".html", ".cmd"]);
-const ignoredDirectories = new Set([".git"]);
+const ignoredDirectories = new Set([".git", ".npm-cache", "node_modules"]);
 const errors = [];
 
 function walk(directory) {
@@ -64,6 +62,7 @@ const requiredFiles = [
   "src/editra.mjs",
   "editra.js",
   "package.json",
+  "plugins/pagination.js",
   "tests/unit/core-contract.test.js",
   "tests/unit/distribution-contract.test.js",
 ];
@@ -75,11 +74,28 @@ const examples = [
   "shortcuts", "minimal", "premium-ui", "help", "about", "bold",
   "italic", "underline", "ruler", "margins", "export", "theme", "image",
   "video", "formatting", "headings", "lists", "structure", "code-view",
-  "productivity", "collaboration", "paste", "feedback-form",
+  "productivity", "collaboration", "paste", "feedback-form", "pagination",
 ];
 examples.forEach((name) => requireFile(`examples/${name}.html`));
 
 const files = walk(root);
+const removedBrand = [109, 105, 110, 115, 111, 102, 116]
+  .map((code) => String.fromCharCode(code))
+  .join("");
+files
+  .filter((file) =>
+    [".js", ".mjs", ".css", ".html", ".md", ".json", ".prop", ".cmd"]
+      .includes(path.extname(file).toLowerCase()),
+  )
+  .forEach((file) => {
+    if (
+      fs.readFileSync(file, "utf8")
+        .toLowerCase()
+        .includes(removedBrand)
+    ) {
+      errors.push(`${relative(file)} contains removed company branding`);
+    }
+  });
 const sourceFiles = files.filter((file) =>
   sourceExtensions.has(path.extname(file).toLowerCase()),
 );
@@ -126,6 +142,17 @@ sourceFiles
 
 sourceFiles.forEach((file) => {
   const content = fs.readFileSync(file, "utf8");
+  const extension = path.extname(file).toLowerCase();
+  const startsWithHeader =
+    extension === ".html"
+      ? content.trimStart().startsWith("<!--")
+      : extension === ".cmd"
+        ? content.trimStart().startsWith("REM")
+        : content.trimStart().startsWith("/**") ||
+          content.trimStart().startsWith("/*");
+  if (!startsWithHeader) {
+    errors.push(`${relative(file)} does not begin with a header block`);
+  }
   requiredHeader.forEach((field) => {
     if (!content.slice(0, 700).includes(field)) {
       errors.push(`${relative(file)} missing header field: ${field}`);

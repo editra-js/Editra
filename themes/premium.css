@@ -1,8 +1,7 @@
 /**
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Provides the public premium Editra document and component theme.
  * Licensing: MIT License (open source)
  */
@@ -806,6 +805,94 @@ body {
   height: 0;
   margin: 2.5em 0;
   border-top: 2px dashed rgba(115, 87, 214, 0.35);
+}
+
+.editra-pagination-enabled .editra-pagination-spacer {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.editra-pagination-enabled .editra-page-break {
+  height: 0;
+  margin: 0;
+  break-after: page;
+  page-break-after: always;
+}
+
+.editra-pagination-enabled [data-editra-indivisible="true"],
+.editra-pagination-enabled [data-editra-keep-together="true"],
+.editra-pagination-enabled[data-editra-keep-paragraphs="true"] p,
+.editra-pagination-enabled[data-editra-keep-code-blocks="true"] pre,
+.editra-pagination-enabled[data-editra-keep-code-blocks="true"] .editra-code-block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.editra-pagination-enabled [data-editra-keep-with-next="true"] {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.editra-pagination-enabled[data-editra-keep-list-items="true"] li,
+.editra-pagination-enabled
+  :is(ul, ol)[data-editra-allow-item-splitting="false"]
+  > li {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.editra-pagination-enabled table[data-editra-keep-table-together="true"] {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.editra-pagination-enabled
+  table[data-editra-allow-row-splitting="false"]
+  tr,
+.editra-pagination-enabled
+  table[data-editra-keep-rows-together="true"]
+  tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.editra-pagination-enabled
+  table[data-editra-repeat-header="true"]
+  thead {
+  display: table-header-group;
+}
+
+.editra-pagination-enabled .editra-repeated-table-header {
+  color: inherit;
+  background: #f1f3f5;
+  font-weight: 700;
+}
+
+.editra-theme-dark
+  .editra-pagination-enabled
+  .editra-repeated-table-header {
+  background: #303741;
+}
+
+.editra-pagination-enabled table tfoot {
+  display: table-footer-group;
+}
+
+.editra-pagination-enabled
+  pre[data-editra-allow-splitting="false"] {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.editra-pagination-enabled .is-editra-oversize-block {
+  max-width: 100%;
+  overflow: auto;
 }
 
 .editra-show-rulers::before {

@@ -1,6 +1,31 @@
 # Editra API Reference
 
-Version 1.15.0
+Version 1.16.0
+
+## Pagination
+
+```js
+await editor.executeCommand("setPaginationRules", {
+  keepParagraphsTogether: false,
+  keepListItemsTogether: false,
+  allowRowSplitting: true,
+  keepRowsTogether: false,
+  keepTableTogether: false,
+  keepCodeBlocksTogether: true,
+  repeatTableHeader: true
+});
+
+editor.executeCommand("toggleKeepTogether", options);
+editor.executeCommand("setKeepTogether", value);
+editor.executeCommand("KeepWithNext", options);
+editor.executeCommand("InsertPageBreak");
+editor.executeCommand("setListItemSplitting", options);
+editor.executeCommand("setTablePagination", options);
+editor.executeCommand("setCodeBlockSplitting", options);
+editor.executeCommand("reflowPagination");
+```
+
+Selector-bearing options are resolved inside the editor surface. Pagination reflow is animation-frame batched and temporary layout spacers are excluded from `getCode()`, `getFormatted()`, and export output.
 
 ## Initialization
 
@@ -90,7 +115,7 @@ editor.executeCommand("setMargin", {
 });
 
 editor.executeCommand("insertFooter", {
-  text: "Minsoft",
+  text: "Editra",
   pageNumber: "Page {{page}} of {{pages}}",
   dateTime: true,
   fields: { Department: "Editorial" }

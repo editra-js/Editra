@@ -2,7 +2,7 @@
 
 ## Project overview
 
-Editra is a premium browser-based WYSIWYG document editor and a Minsoft product. It provides familiar word-processing behavior without a framework dependency.
+Editra is a standalone premium browser-based WYSIWYG document editor. It provides familiar word-processing behavior without a framework dependency.
 
 ## Goals
 
@@ -20,10 +20,9 @@ Editra is a premium browser-based WYSIWYG document editor and a Minsoft product.
 - Optional application-provided collaboration transport
 - Node.js only for the local static server and automated checks
 
-## Ownership and authorship
+## Product and authorship
 
-- Owner: Minsoft
 - Product: Editra
 - Author: Editra Team
-- Current version: 1.15.0
+- Current version: 1.16.0
 - License: MIT

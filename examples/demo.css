@@ -1,8 +1,7 @@
 /*
- * © Minsoft. All rights reserved.
- * Product: Editra (Minsoft product)
+ * Product: Editra
  * Author: Editra Team
- * Version: 1.15.0
+ * Version: 1.16.0
  * Purpose: Provides the shared presentation layer for Editra example pages.
  * Licensing: MIT License (open source)
  */
@@ -86,6 +85,11 @@ body {
   border-radius: 0;
   background: #fff;
   box-shadow: 0 5px 18px rgba(20, 24, 31, 0.08);
+}
+
+.feedback-form {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .demo-output > header {
