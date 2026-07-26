@@ -12,38 +12,56 @@ The intended public package command is:
 npm install editra
 ```
 
-Import the ES-module loader and premium theme, then await initialization:
+Import the ES-module entry and premium theme, then initialize with a selector and options:
 
 ```js
 import Editra from "editra";
 import "editra/themes/premium.css";
 
-const editor = await Editra.init({
-  selector: "#editra-editor",
+const editor = await Editra.init("#editra-editor", {
   theme: "premium"
 });
 ```
 
-The unscoped `editra` name currently belongs to another npm publisher. Until the official package name is available, install a locally generated package archive with `npm pack`, or publish this project under an available scope and replace the import name accordingly.
+CommonJS projects use the same API:
+
+```js
+const Editra = require("editra");
+
+const editor = await Editra.init("#editra-editor", {
+  plugins: ["bold", "italic", "underline"]
+});
+```
+
+The entry also accepts the original configuration-object form: `Editra.init({ selector: "#editra-editor" })`.
+
+The unscoped `editra` name and version `1.0.0` currently belong to another npm publisher. Until registry ownership is resolved, install the locally generated package archive or publish this project under an available package name. Do not treat the unrelated registry package as this project.
 
 ### CDN
 
-The Editra CDN integration is:
+After this package is published under the `editra` name, jsDelivr usage is:
 
 ```html
 <div id="editra-editor"></div>
 <link rel="stylesheet"
-      href="https://cdn.editra.org/latest/themes/premium.css">
-<script src="https://cdn.editra.org/latest/editra.js"></script>
+      href="https://cdn.jsdelivr.net/npm/editra/themes/premium.css">
+<script src="https://cdn.jsdelivr.net/npm/editra/dist/editra.js"></script>
 <script>
-  Editra.init({
-    selector: "#editra-editor",
+  Editra.init("#editra-editor", {
     theme: "premium"
   });
 </script>
 ```
 
-The CDN endpoint must serve the complete release tree—`editra.js`, `core/`, `plugins/`, `ui/`, and `themes/`—from the same `latest/` directory. The loader makes `Editra.init()` immediately callable and loads the runtime before initialization.
+The equivalent unpkg links are:
+
+```html
+<link rel="stylesheet"
+      href="https://unpkg.com/editra/themes/premium.css">
+<script src="https://unpkg.com/editra/dist/editra.js"></script>
+```
+
+Both CDNs must serve the complete npm release tree—`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra@1.0.0/` instead of `/editra/` when deterministic production builds are required.
 
 ### Local files
 
@@ -321,7 +339,7 @@ See the [paste handling demo](../examples/paste.html) for raw and sanitized HTML
 
 - Serve Editra over HTTP; never use `file://`.
 - If `npm install editra` resolves to a different publisher, use the locally packed release or an official scoped package.
-- If the Editra CDN returns 404, confirm that the release tree and `latest` alias have been provisioned.
+- If a jsDelivr or unpkg URL returns 404, confirm that the correct Editra package has been published and includes `dist/editra.js`.
 - If feedback is not retained, verify that browser storage is enabled and the page is served from the same origin.
 - Confirm plugin names and relative paths.
 - Use Ctrl/Cmd+V when browser menu paste permission is unavailable.

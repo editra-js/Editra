@@ -1,31 +1,32 @@
 {
   "name": "editra",
-  "version": "1.16.0",
-  "description": "Editra — Premium WYSIWYG Editor built with pure HTML, CSS, and JavaScript.",
-  "author": "Editra Team",
-  "license": "MIT",
-  "main": "./editra.js",
-  "module": "./src/editra.mjs",
-  "browser": "./editra.js",
-  "unpkg": "./editra.js",
-  "jsdelivr": "./editra.js",
+  "version": "1.0.0",
+  "description": "Premium WYSIWYG Editor for the Web",
+  "main": "index.js",
+  "module": "index.mjs",
+  "browser": "dist/editra.js",
+  "unpkg": "dist/editra.js",
+  "jsdelivr": "dist/editra.js",
   "exports": {
     ".": {
-      "import": "./src/editra.mjs",
-      "default": "./editra.js"
+      "import": "./index.mjs",
+      "require": "./index.js",
+      "default": "./index.js"
     },
+    "./dist/editra.js": "./dist/editra.js",
     "./themes/premium.css": "./themes/premium.css",
     "./core/editor.js": "./core/editor.js",
     "./plugins/*": "./plugins/*",
     "./ui/*": "./ui/*"
   },
   "files": [
-    "editra.js",
+    "index.js",
+    "index.mjs",
+    "dist",
     "core",
     "plugins",
     "ui",
     "themes",
-    "src",
     "docs",
     "examples",
     "README.md",
@@ -33,18 +34,35 @@
     "RELEASE_NOTES.md",
     "version.prop"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/editra-js/Editra.git"
+  },
+  "bugs": {
+    "url": "https://github.com/editra-js/Editra/issues"
+  },
+  "homepage": "https://github.com/editra-js/Editra#readme",
   "keywords": [
     "wysiwyg",
-    "rich-text-editor",
-    "document-editor",
-    "contenteditable",
-    "editra"
+    "editor",
+    "html",
+    "pdf",
+    "word"
   ],
+  "author": "Editra Team",
+  "license": "MIT",
   "scripts": {
-    "test": "node tests/automation/verify-project.js && node tests/unit/core-contract.test.js && node tests/unit/distribution-contract.test.js",
-    "pack:check": "npm pack --dry-run --cache ./.npm-cache"
+    "build": "webpack --config webpack.config.js",
+    "test": "jest --runInBand && node tests/automation/verify-project.js && node tests/unit/core-contract.test.js && node tests/unit/distribution-contract.test.js",
+    "pack:check": "npm pack --dry-run --cache ./.npm-cache",
+    "prepublishOnly": "npm test && npm run build"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "jest": "^30.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^6.0.0"
   }
 }

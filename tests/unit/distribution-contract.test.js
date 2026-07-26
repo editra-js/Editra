@@ -25,9 +25,22 @@ const tablePlugin = read("plugins/table.js");
 const exportPlugin = read("plugins/export.js");
 
 assert.equal(metadata.name, "editra");
-assert.equal(metadata.version, "1.16.0");
+assert.equal(metadata.version, "1.0.0");
+assert.equal(metadata.description, "Premium WYSIWYG Editor for the Web");
 assert.equal(metadata.license, "MIT");
-assert.equal(metadata.module, "./src/editra.mjs");
+assert.equal(metadata.main, "index.js");
+assert.equal(metadata.module, "index.mjs");
+assert.equal(
+  metadata.repository.url,
+  "git+https://github.com/editra-js/Editra.git",
+);
+assert.deepEqual(metadata.keywords, [
+  "wysiwyg",
+  "editor",
+  "html",
+  "pdf",
+  "word",
+]);
 assert(metadata.files.includes("plugins"));
 assert(metadata.files.includes("themes"));
 
@@ -54,7 +67,8 @@ assert(feedback.includes("data-saved-html"));
 assert(feedback.includes("data-saved-text"));
 
 assert(guide.includes("npm install editra"));
-assert(guide.includes("https://cdn.editra.org/latest/editra.js"));
+assert(guide.includes("https://cdn.jsdelivr.net/npm/editra/dist/editra.js"));
+assert(guide.includes("https://unpkg.com/editra/dist/editra.js"));
 assert(guide.includes("../examples/feedback-form.html"));
 assert(guide.includes("../examples/pagination.html"));
 

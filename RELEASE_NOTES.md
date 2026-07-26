@@ -11,7 +11,10 @@ Release date: 2026-07-26
 - Added `InsertPageBreak`, `KeepWithNext`, `toggleKeepTogether`, and pagination configuration commands.
 - Added multi-page table export segmentation with repeated semantic header rows.
 - Added a dedicated pagination demonstration and pagination behavior throughout all example pages.
-- Added the neutral Editra CDN integration at `https://cdn.editra.org/latest/editra.js`.
+- Added npm CDN integration paths for jsDelivr and unpkg.
+- Added package release `1.0.0` with CommonJS and native ES-module entry points.
+- Added a Webpack UMD build at `dist/editra.js` for npm-backed CDNs.
+- Added Jest entry tests and verified installation from the generated package archive.
 
 ### Bugs fixed
 
@@ -25,7 +28,7 @@ Release date: 2026-07-26
 - Extremely tall indivisible blocks that exceed one configured page remain scrollable because they cannot fit intact on any page.
 - Browser print engines can make small font-metric adjustments that affect the final row distribution.
 - The unscoped npm package name `editra` remains owned by another publisher.
-- The `cdn.editra.org` endpoint must be provisioned with the packaged release tree before public use.
+- The jsDelivr and unpkg paths require publication of this package under an available npm name.
 
 See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for pagination configuration and distribution guidance.
 

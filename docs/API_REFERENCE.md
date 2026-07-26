@@ -29,6 +29,18 @@ Selector-bearing options are resolved inside the editor surface. Pagination refl
 
 ## Initialization
 
+Package entry (`import Editra from "editra"` or `require("editra")`):
+
+```js
+const editor = await Editra.init("#editra-editor", {
+  plugins: ["bold", "italic", "table"],
+  toolbar: "bold italic | table undo redo",
+  showMenuBar: true
+});
+```
+
+Direct `core/editor.js` integrations and existing applications may continue using the configuration-object form:
+
 ```js
 const editor = await Editra.init({
   selector: "#editra-editor",

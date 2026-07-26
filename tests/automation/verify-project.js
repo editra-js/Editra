@@ -15,6 +15,8 @@ const childProcess = require("node:child_process");
 const root = path.resolve(__dirname, "../..");
 const versionFile = fs.readFileSync(path.join(root, "version.prop"), "utf8");
 const version = versionFile.match(/^version=(.+)$/m)?.[1]?.trim();
+const packageVersion =
+  versionFile.match(/^package_version=(.+)$/m)?.[1]?.trim();
 const requiredHeader = [
   "Product: Editra",
   "Author: Editra Team",
@@ -60,6 +62,12 @@ const requiredFiles = [
   "docs/ROADMAP.md",
   "src/editra.js",
   "src/editra.mjs",
+  "index.js",
+  "index.mjs",
+  "webpack.config.js",
+  "jest.config.js",
+  "dist/editra.js",
+  "package-lock.json",
   "editra.js",
   "package.json",
   "plugins/pagination.js",
@@ -192,8 +200,25 @@ if (!core.includes(`EditraCore.VERSION = "${version}"`)) {
 const packageMetadata = JSON.parse(
   fs.readFileSync(path.join(root, "package.json"), "utf8"),
 );
-if (packageMetadata.version !== version) {
-  errors.push("package.json version does not match version.prop");
+if (packageMetadata.version !== packageVersion) {
+  errors.push("package.json version does not match package_version");
+}
+if (packageMetadata.main !== "index.js") {
+  errors.push("package.json main must be index.js");
+}
+if (
+  packageMetadata.repository?.url !==
+  "git+https://github.com/editra-js/Editra.git"
+) {
+  errors.push("package.json repository does not match the Git origin");
+}
+const requiredKeywords = ["wysiwyg", "editor", "html", "pdf", "word"];
+if (
+  requiredKeywords.some(
+    (keyword) => !packageMetadata.keywords?.includes(keyword),
+  )
+) {
+  errors.push("package.json is missing required npm keywords");
 }
 
 if (errors.length) {

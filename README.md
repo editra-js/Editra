@@ -4,6 +4,7 @@ Editra is a premium open‑source WYSIWYG editor for the web, offering Word‑st
 Editra is a premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.16.0 is licensed under the MIT License.
 
 Author: Editra Team  
+Package version: 1.0.0
 
 ## Quick start
 
@@ -38,7 +39,7 @@ npm install editra
 import Editra from "editra";
 import "editra/themes/premium.css";
 
-await Editra.init({ selector: "#editra-editor" });
+await Editra.init("#editra-editor", { theme: "premium" });
 ```
 
 The unscoped npm name is currently owned by another publisher, so publication requires package ownership or a new package name. A local release archive can be verified with `npm run pack:check`.
@@ -46,12 +47,20 @@ The unscoped npm name is currently owned by another publisher, so publication re
 ### CDN integration
 
 ```html
-<link rel="stylesheet" href="https://cdn.editra.org/latest/themes/premium.css">
-<script src="https://cdn.editra.org/latest/editra.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/editra/themes/premium.css">
+<script src="https://cdn.jsdelivr.net/npm/editra/dist/editra.js"></script>
 <script>
-  Editra.init({ selector: "#editra-editor" });
+  Editra.init("#editra-editor", { theme: "premium" });
 </script>
 ```
+
+unpkg alternative:
+
+```html
+<script src="https://unpkg.com/editra/dist/editra.js"></script>
+```
+
+These npm CDN paths become valid for this project only after registry ownership is resolved and this package is published. The existing unscoped registry package is unrelated.
 
 See the [feedback form](examples/feedback-form.html) for localStorage persistence, live HTML/plain-text output, and end-user form integration.
 
