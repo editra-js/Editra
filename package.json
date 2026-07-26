@@ -1,0 +1,51 @@
+{
+  "name": "editra",
+  "version": "1.15.0",
+  "description": "Minsoft Editra — a premium modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript.",
+  "author": "Editra Team",
+  "license": "MIT",
+  "main": "./editra.js",
+  "module": "./src/editra.mjs",
+  "browser": "./editra.js",
+  "unpkg": "./editra.js",
+  "jsdelivr": "./editra.js",
+  "exports": {
+    ".": {
+      "import": "./src/editra.mjs",
+      "default": "./editra.js"
+    },
+    "./themes/premium.css": "./themes/premium.css",
+    "./core/editor.js": "./core/editor.js",
+    "./plugins/*": "./plugins/*",
+    "./ui/*": "./ui/*"
+  },
+  "files": [
+    "editra.js",
+    "core",
+    "plugins",
+    "ui",
+    "themes",
+    "src",
+    "docs",
+    "examples",
+    "README.md",
+    "LICENSE.md",
+    "RELEASE_NOTES.md",
+    "version.prop"
+  ],
+  "keywords": [
+    "wysiwyg",
+    "rich-text-editor",
+    "document-editor",
+    "contenteditable",
+    "minsoft",
+    "editra"
+  ],
+  "scripts": {
+    "test": "node tests/automation/verify-project.js && node tests/unit/core-contract.test.js && node tests/unit/distribution-contract.test.js",
+    "pack:check": "npm pack --dry-run --cache ./.npm-cache"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

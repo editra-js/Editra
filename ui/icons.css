@@ -1,0 +1,63 @@
+/**
+ * © Minsoft. All rights reserved.
+ * Product: Editra (Minsoft product)
+ * Author: Editra Team
+ * Version: 1.15.0
+ * Purpose: Defines shared Editra icon presentation rules.
+ * Licensing: MIT License (open source)
+ */
+
+.editra-icon {
+  display: inline-grid;
+  min-width: 1.2em;
+  place-items: center;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.editra-icon-bold::before {
+  content: "B";
+  font-weight: 800;
+}
+
+.editra-icon-italic::before {
+  content: "I";
+  font-style: italic;
+}
+
+.editra-icon-underline::before {
+  content: "U";
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.editra-icon-table::before {
+  content: "▦";
+  font-family: system-ui, sans-serif;
+  font-size: 1.15rem;
+}
+
+.editra-icon-image::before {
+  content: "▧";
+  font-family: system-ui, sans-serif;
+  font-size: 1.1rem;
+}
+
+.editra-icon-video::before {
+  content: "▶";
+  font-family: system-ui, sans-serif;
+  font-size: 0.8rem;
+}
+
+.editra-icon-undo::before {
+  content: "↶";
+  font-family: system-ui, sans-serif;
+  font-size: 1.1rem;
+}
+
+.editra-icon-redo::before {
+  content: "↷";
+  font-family: system-ui, sans-serif;
+  font-size: 1.1rem;
+}

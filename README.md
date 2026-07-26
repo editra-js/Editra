@@ -1,2 +1,90 @@
 # Editra
 Editra is a premium open‑source WYSIWYG editor for the web, offering Word‑style text editing, pagination control, tables, media embedding, and export to PDF/Word/HTML. Available via npm or CDN, it delivers enterprise‑grade features with a clean, developer‑friendly API.
+
+Editra is Minsoft's premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.15.0 is licensed under the MIT License.
+
+Author: Editra Team  
+Owner: Minsoft
+
+## Quick start
+
+Serve the project over HTTP:
+
+```powershell
+.\start-editra.cmd
+```
+
+Then open `http://localhost:8080/examples/full.html`.
+
+Minimal integration:
+
+```html
+<div id="editra-editor"></div>
+<link rel="stylesheet" href="./themes/premium.css">
+<script src="./core/editor.js"></script>
+<script>
+  Editra.init({ selector: "#editra-editor" });
+</script>
+```
+
+Do not open the examples with `file://`; browsers block dynamically loaded plugin files for security reasons.
+
+### Package integration
+
+```bash
+npm install editra
+```
+
+```js
+import Editra from "editra";
+import "editra/themes/premium.css";
+
+await Editra.init({ selector: "#editra-editor" });
+```
+
+The unscoped npm name is currently owned by another publisher, so Minsoft publication requires package ownership or a scoped package name. A local release archive can be verified with `npm run pack:check`.
+
+### CDN integration
+
+```html
+<link rel="stylesheet" href="https://cdn.minsoft.com/editra/latest/themes/premium.css">
+<script src="https://cdn.minsoft.com/editra/latest/editra.js"></script>
+<script>
+  Editra.init({ selector: "#editra-editor" });
+</script>
+```
+
+See the [feedback form](examples/feedback-form.html) for localStorage persistence, live HTML/plain-text output, and end-user form integration.
+
+## Project layout
+
+- `core/` — runtime and initialization engine.
+- `plugins/` — independently loaded editor features.
+- `ui/` — toolbar, menu, icons, and premium UI layer.
+- `themes/` — public theme entry points.
+- `src/` — distribution metadata and source manifest.
+- `docs/` — user, API, help, governance, and roadmap documentation.
+- `examples/` — runnable feature demonstrations.
+- `tests/automation/` — release and regression checks.
+
+## Documentation
+
+- [User guide](docs/USER_GUIDE.md)
+- [API reference](docs/API_REFERENCE.md)
+- [Help and FAQ](docs/HELP.md)
+- [About Editra](docs/ABOUT.md)
+- [Contribution guide](docs/CONTRIBUTING.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Release notes](RELEASE_NOTES.md)
+
+## Testing
+
+```powershell
+npm test
+npm run pack:check
+```
+
+## License
+
+[MIT License](LICENSE.md) — © Minsoft. All rights reserved.
+>>>>>>> d6e6fa3 (Release Editra 1.15.0 integration and distribution)

@@ -1,0 +1,238 @@
+/*
+ * © Minsoft. All rights reserved.
+ * Product: Editra (Minsoft product)
+ * Author: Editra Team
+ * Version: 1.15.0
+ * Purpose: Provides the shared presentation layer for Editra example pages.
+ * Licensing: MIT License (open source)
+ */
+
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI", Calibri, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 24px;
+  color: #1f2328;
+  background: #e9ebef;
+}
+
+.demo-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.demo-intro {
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border: 1px solid #111;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(20, 24, 31, 0.08);
+}
+
+.demo-intro h1 {
+  margin: 0 0 6px;
+  font-size: 1.4rem;
+}
+
+.demo-intro p {
+  margin: 0;
+  color: #4c5561;
+  line-height: 1.5;
+}
+
+.demo-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.demo-links a,
+.demo-actions button {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid #20242a;
+  border-radius: 5px;
+  color: #20242a;
+  background: #fff;
+  font: 600 0.75rem/1 "Segoe UI", sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.demo-links a:hover,
+.demo-actions button:hover {
+  color: #fff;
+  background: #20242a;
+}
+
+.demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 auto 10px;
+}
+
+.demo-output,
+.feedback-form,
+.feedback-output {
+  margin: 0 auto 14px;
+  padding: 16px;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(20, 24, 31, 0.08);
+}
+
+.demo-output > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.demo-output button,
+.feedback-submit button {
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid #111;
+  border-radius: 0;
+  color: #fff;
+  background: #20242a;
+  font: 600 0.78rem/1 "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.demo-output pre,
+.feedback-output pre {
+  max-height: 280px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid #b8bec7;
+  background: #f6f8fa;
+  color: #1f2328;
+  font: 0.76rem/1.5 Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.feedback-fields {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(280px, 2fr);
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.feedback-fields > label,
+.feedback-editor-label {
+  display: grid;
+  gap: 7px;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.feedback-fields input[type="text"],
+.feedback-fields input:not([type]) {
+  min-height: 38px;
+  padding-inline: 10px;
+  border: 1px solid #707780;
+  border-radius: 0;
+  font: inherit;
+}
+
+.feedback-fields fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #707780;
+}
+
+.feedback-fields legend {
+  padding-inline: 5px;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.feedback-fields fieldset label {
+  font-size: 0.78rem;
+}
+
+.feedback-editor-label {
+  display: block;
+  margin-bottom: 7px;
+}
+
+.feedback-submit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  min-height: 34px;
+  font-size: 0.8rem;
+}
+
+.feedback-output {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.feedback-output h2 {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.feedback-output h3 {
+  margin: 0 0 7px;
+  font-size: 0.8rem;
+}
+
+.feedback-details {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: max-content 1fr;
+  gap: 5px 12px;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.feedback-details dt {
+  font-weight: 700;
+}
+
+.feedback-details dd {
+  margin: 0;
+}
+
+.demo-note {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-left: 3px solid #2b78d4;
+  color: #374151;
+  background: #fff;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 10px;
+  }
+
+  .feedback-fields,
+  .feedback-output {
+    grid-template-columns: 1fr;
+  }
+
+  .feedback-output h2,
+  .feedback-details {
+    grid-column: 1;
+  }
+}

@@ -1,0 +1,88 @@
+<!--
+  © Minsoft. All rights reserved.
+  Product: Editra (Minsoft product)
+  Author: Editra Team
+  Version: 1.15.0
+  Purpose: Demonstrates a localStorage-backed feedback form with rich HTML and plain-text output.
+  Licensing: MIT License (open source)
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../themes/premium.css">
+  <link rel="stylesheet" href="./demo.css">
+  <title>Feedback Form — Editra</title>
+</head>
+<body data-editra-demo="feedback-form">
+  <main class="demo-shell">
+    <header class="demo-intro">
+      <h1 data-demo-title>Feedback Form</h1>
+      <p data-demo-description></p>
+      <nav class="demo-links">
+        <a href="./full.html">Full editor</a>
+        <a href="./minimal.html">Minimal editor</a>
+        <a href="../docs/USER_GUIDE.md">User guide</a>
+      </nav>
+    </header>
+
+    <div class="demo-actions" data-demo-actions hidden></div>
+    <p class="demo-note" data-demo-error hidden></p>
+
+    <form class="feedback-form" data-feedback-form>
+      <div class="feedback-fields">
+        <label>
+          <span>Name</span>
+          <input name="name" autocomplete="name" required>
+        </label>
+        <fieldset>
+          <legend>Gender</legend>
+          <label><input type="radio" name="gender" value="Female" required> Female</label>
+          <label><input type="radio" name="gender" value="Male"> Male</label>
+          <label><input type="radio" name="gender" value="Non-binary"> Non-binary</label>
+          <label><input type="radio" name="gender" value="Prefer not to say"> Prefer not to say</label>
+        </fieldset>
+      </div>
+
+      <label class="feedback-editor-label" for="editra-editor">Feedback</label>
+      <div id="editra-editor"></div>
+      <div class="feedback-submit">
+        <button type="submit">Save feedback</button>
+        <span role="status" aria-live="polite" data-feedback-status></span>
+      </div>
+    </form>
+
+    <section class="feedback-output" aria-labelledby="live-output-title">
+      <h2 id="live-output-title">Live editor output</h2>
+      <div>
+        <h3>HTML</h3>
+        <pre data-feedback-live-html></pre>
+      </div>
+      <div>
+        <h3>Plain text</h3>
+        <pre data-feedback-live-text></pre>
+      </div>
+    </section>
+
+    <section class="feedback-output" data-feedback-saved hidden aria-labelledby="saved-feedback-title">
+      <h2 id="saved-feedback-title">Latest saved feedback</h2>
+      <dl class="feedback-details">
+        <dt>Name</dt><dd data-saved-name></dd>
+        <dt>Gender</dt><dd data-saved-gender></dd>
+        <dt>Saved</dt><dd data-saved-date></dd>
+      </dl>
+      <div>
+        <h3>Saved HTML</h3>
+        <pre data-saved-html></pre>
+      </div>
+      <div>
+        <h3>Saved plain text</h3>
+        <pre data-saved-text></pre>
+      </div>
+    </section>
+  </main>
+  <script src="../core/editor.js"></script>
+  <script src="./demo.js"></script>
+</body>
+</html>

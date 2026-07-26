@@ -1,0 +1,15 @@
+# © Minsoft. All rights reserved.
+# Product: Editra (Minsoft product)
+# Author: Editra Team
+# Version: 1.15.0
+# Purpose: Excludes local runtime, cache, log, and operating-system artifacts from Git.
+# Licensing: MIT License (open source)
+
+node_modules/
+.npm-cache/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.openai/
