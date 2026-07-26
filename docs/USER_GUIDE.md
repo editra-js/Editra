@@ -39,6 +39,20 @@ The unscoped `editra` name and version `1.0.0` currently belong to another npm p
 
 ### CDN
 
+The currently published GitHub-backed jsDelivr build is:
+
+```html
+<div id="editra-editor"></div>
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/themes/premium.css">
+<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js"></script>
+<script>
+  Editra.init("#editra-editor", {
+    theme: "premium"
+  });
+</script>
+```
+
 After this package is published under the `editra` name, jsDelivr usage is:
 
 ```html
@@ -61,7 +75,7 @@ The equivalent unpkg links are:
 <script src="https://unpkg.com/editra/dist/editra.js"></script>
 ```
 
-Both CDNs must serve the complete npm release tree—`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra@1.0.0/` instead of `/editra/` when deterministic production builds are required.
+Both npm CDNs must serve the complete release tree—`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra@1.0.0/` instead of `/editra/` when deterministic production builds are required.
 
 ### Local files
 

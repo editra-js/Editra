@@ -46,6 +46,18 @@ The unscoped npm name is currently owned by another publisher, so publication re
 
 ### CDN integration
 
+Currently published through the GitHub-backed jsDelivr endpoint:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/themes/premium.css">
+<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js"></script>
+<script>
+  Editra.init("#editra-editor", { theme: "premium" });
+</script>
+```
+
+The npm-backed URLs, available after npm publication, are:
+
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/editra/themes/premium.css">
 <script src="https://cdn.jsdelivr.net/npm/editra/dist/editra.js"></script>

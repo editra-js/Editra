@@ -69,6 +69,11 @@ assert(feedback.includes("data-saved-text"));
 assert(guide.includes("npm install editra"));
 assert(guide.includes("https://cdn.jsdelivr.net/npm/editra/dist/editra.js"));
 assert(guide.includes("https://unpkg.com/editra/dist/editra.js"));
+assert(
+  guide.includes(
+    "https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js",
+  ),
+);
 assert(guide.includes("../examples/feedback-form.html"));
 assert(guide.includes("../examples/pagination.html"));
 

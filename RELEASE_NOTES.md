@@ -12,6 +12,7 @@ Release date: 2026-07-26
 - Added multi-page table export segmentation with repeated semantic header rows.
 - Added a dedicated pagination demonstration and pagination behavior throughout all example pages.
 - Added npm CDN integration paths for jsDelivr and unpkg.
+- Published the UMD bundle through the GitHub-backed jsDelivr endpoint.
 - Added package release `1.0.0` with CommonJS and native ES-module entry points.
 - Added a Webpack UMD build at `dist/editra.js` for npm-backed CDNs.
 - Added Jest entry tests and verified installation from the generated package archive.
