@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Initializes and coordinates all feature-focused Editra demonstrations.
  * Licensing: MIT License (open source)
  */
@@ -89,7 +89,7 @@
     },
     "sized-editor": {
       title: "Custom Editor Size",
-      description: "A custom 720 × 900 pixel document page.",
+      description: "A custom 720 Ã— 900 pixel document page.",
       config: { editorWidth: "720px", editorHeight: "900px" },
       content: "<h2>Custom page dimensions</h2><p>Dimensions are preserved by HTML, Word, and PDF export.</p>",
     },
@@ -182,7 +182,7 @@
       title: "About Editra",
       description: "Project ownership, goals, technology, author, and MIT licensing.",
       config: { showMenuBar: false, toolbar: "bold italic | undo redo" },
-      content: "<h1>About Editra</h1><p>Editra is a standalone premium WYSIWYG editor authored by Editra Team. Version 1.16.0 is MIT licensed.</p><p><a href='../docs/ABOUT.md'>Read project details</a></p>",
+      content: "<h1>About Editra</h1><p>Editra is a standalone premium WYSIWYG editor authored by Editra Team. Version 1.17.0 is MIT licensed.</p><p><a href='../docs/ABOUT.md'>Read project details</a></p>",
     },
     bold: {
       title: "Bold",
@@ -265,7 +265,7 @@
     },
     headings: {
       title: "Semantic Headings",
-      description: "Convert document blocks to paragraph or semantic H1–H6 elements.",
+      description: "Convert document blocks to paragraph or semantic H1â€“H6 elements.",
       config: { plugins: ["headings"], toolbar: "heading undo redo" },
       content: "<p>Select this paragraph and choose a heading level.</p><h2>Existing heading</h2>",
     },
@@ -488,7 +488,7 @@
   async function boot() {
     const name = document.body.dataset.editraDemo || "full";
     const definition = definitions[name] || definitions.full;
-    document.title = `${definition.title} — Editra`;
+    document.title = `${definition.title} â€” Editra`;
     document.querySelector("[data-demo-title]").textContent = definition.title;
     document.querySelector("[data-demo-description]").textContent =
       definition.description;

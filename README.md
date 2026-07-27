@@ -1,10 +1,10 @@
 # Editra
 Editra is a premium open‑source WYSIWYG editor for the web, offering Word‑style text editing, pagination control, tables, media embedding, and export to PDF/Word/HTML. Available via npm or CDN, it delivers enterprise‑grade features with a clean, developer‑friendly API.
 
-Editra is a premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.16.0 is licensed under the MIT License.
+Editra is a premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.17.0 is licensed under the MIT License.
 
 Author: Editra Team  
-Package version: 1.0.0
+Package version: 1.1.0
 
 ## Quick start
 
@@ -90,17 +90,23 @@ See the [feedback form](examples/feedback-form.html) for localStorage persistenc
 ## Documentation
 
 - [User guide](docs/USER_GUIDE.md)
+- [Feature guide](docs/FEATURE_GUIDE.md)
 - [API reference](docs/API_REFERENCE.md)
 - [Help and FAQ](docs/HELP.md)
 - [About Editra](docs/ABOUT.md)
 - [Contribution guide](docs/CONTRIBUTING.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Enterprise security](docs/SECURITY.md)
+- [Standards and compliance](docs/COMPLIANCE.md)
+- [Performance benchmarks](docs/PERFORMANCE.md)
 - [Release notes](RELEASE_NOTES.md)
 
 ## Testing
 
 ```powershell
 npm test
+npm run security:audit
+npm run test:cross-browser
 npm run pack:check
 ```
 

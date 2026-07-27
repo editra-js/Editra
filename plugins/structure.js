@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra structure plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -73,13 +73,20 @@
     if (options.emoji) return insertEmojiValue(core, options.emoji);
     state.emojiOverlay?.dispatchEvent(new CustomEvent("editra:close"));
     const overlay = document.createElement("div");
-    overlay.className = "editra-emoji-picker";
+    overlay.className =
+      "editra-emoji-picker editra-popup editra-popup--emoji";
     overlay.dataset.editraUi = "true";
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-label", "Emoji picker");
     const header = document.createElement("header");
-    header.innerHTML =
-      '<strong>Emoji</strong><button type="button" data-emoji-close aria-label="Close">×</button>';
+    const title = document.createElement("strong");
+    title.textContent = "Emoji";
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.dataset.emojiClose = "true";
+    closeButton.setAttribute("aria-label", "Close emoji picker");
+    closeButton.textContent = "\u00d7";
+    header.append(title, closeButton);
     const search = document.createElement("input");
     search.type = "search";
     search.placeholder = "Search emoji categories";
@@ -88,6 +95,23 @@
     body.className = "editra-emoji-groups";
     overlay.append(header, search, body);
     core.toolbar.card.append(overlay);
+    const anchor =
+      options.anchor instanceof Element ? options.anchor : core.toolbar.element;
+    const anchorRect = options.anchorRect || anchor.getBoundingClientRect();
+    const cardRect = core.toolbar.card.getBoundingClientRect();
+    const popupWidth = Math.min(350, Math.max(240, cardRect.width - 32));
+    overlay.style.right = "auto";
+    overlay.style.left = `${Math.max(
+      8,
+      Math.min(
+        anchorRect.left - cardRect.left,
+        Math.max(8, cardRect.width - popupWidth - 8),
+      ),
+    )}px`;
+    overlay.style.top = `${Math.max(
+      8,
+      anchorRect.bottom - cardRect.top + 6,
+    )}px`;
     let unregister = () => {};
     let closed = false;
 
@@ -119,6 +143,8 @@
       search.removeEventListener("input", input);
       overlay.removeEventListener("keydown", keydown);
       overlay.removeEventListener("editra:close", close);
+      document.removeEventListener("pointerdown", outsidePointer, true);
+      core.editor.removeEventListener("beforeinput", editorTyping);
       overlay.remove();
       state.emojiOverlay = null;
       unregister();
@@ -137,10 +163,18 @@
     function keydown(event) {
       if (event.key === "Escape") close();
     }
+    function outsidePointer(event) {
+      if (!overlay.contains(event.target)) close();
+    }
+    function editorTyping() {
+      close();
+    }
     overlay.addEventListener("click", click);
     search.addEventListener("input", input);
     overlay.addEventListener("keydown", keydown);
     overlay.addEventListener("editra:close", close);
+    document.addEventListener("pointerdown", outsidePointer, true);
+    core.editor.addEventListener("beforeinput", editorTyping);
     unregister = core.registerCleanup(close);
     state.emojiOverlay = overlay;
     render();
@@ -152,6 +186,7 @@
     const pageBreak = document.createElement("div");
     pageBreak.className = "editra-page-break";
     pageBreak.contentEditable = "false";
+    pageBreak.dataset.editraSelectable = "true";
     pageBreak.setAttribute("role", "separator");
     pageBreak.setAttribute("aria-label", "Page break");
     const result = insertAtSelection(core, pageBreak);
@@ -175,6 +210,7 @@
     const line = document.createElement("hr");
     line.className = "editra-horizontal-line";
     line.contentEditable = "false";
+    line.dataset.editraSelectable = "true";
     return insertAtSelection(core, line);
   }
 
@@ -240,6 +276,7 @@
     nav.className = "editra-table-of-contents";
     nav.dataset.editraToc = "true";
     nav.contentEditable = "false";
+    nav.dataset.editraSelectable = "true";
     nav.setAttribute("aria-label", "Table of contents");
     const title = document.createElement("strong");
     title.textContent = options.title || "Table of Contents";

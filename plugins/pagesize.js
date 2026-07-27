@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra pagesize plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -62,13 +62,23 @@
       orientation === "landscape" ? dimensions.height : dimensions.width;
     const height =
       orientation === "landscape" ? dimensions.width : dimensions.height;
-    core.setEditorSize(`${width}px`, `${height}px`);
+    let appliedWidth = `${width}px`;
+    let appliedHeight = `${height}px`;
+    if (core.options.editorHeightFixed) {
+      const fixedHeight = Number.parseFloat(core.options.editorHeight);
+      if (Number.isFinite(fixedHeight) && fixedHeight > 0) {
+        appliedHeight = core.options.editorHeight;
+        appliedWidth = `${Math.round(fixedHeight * (width / height))}px`;
+      }
+    }
+    core.setEditorSize(appliedWidth, appliedHeight);
     return notify(core, {
       pageSize: sizeName,
       orientation,
-      width: `${width}px`,
-      height: `${height}px`,
+      width: appliedWidth,
+      height: appliedHeight,
       custom: false,
+      fixedHeight: Boolean(core.options.editorHeightFixed),
     });
   }
 

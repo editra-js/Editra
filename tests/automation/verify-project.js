@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Enforces Editra release metadata, headers, documentation, demos, and JavaScript syntax.
  * Licensing: MIT License (open source)
  */
@@ -45,7 +45,7 @@ function requireFile(file) {
 }
 
 if (!version) errors.push("version.prop has no version value");
-["product=Editra", "release_date=2026-07-26"].forEach((value) => {
+["product=Editra", "release_date=2026-07-27"].forEach((value) => {
   if (!versionFile.includes(value)) errors.push(`version.prop missing ${value}`);
 });
 
@@ -60,21 +60,59 @@ const requiredFiles = [
   "docs/ABOUT.md",
   "docs/CONTRIBUTING.md",
   "docs/ROADMAP.md",
+  "docs/SECURITY.md",
+  "docs/COMPLIANCE.md",
+  "docs/PERFORMANCE.md",
+  "docs/FEATURE_GUIDE.md",
   "src/editra.js",
   "src/editra.mjs",
   "index.js",
   "index.mjs",
   "webpack.config.js",
-  "jest.config.js",
+  "playwright.config.js",
   "dist/editra.js",
   "package-lock.json",
   "editra.js",
   "package.json",
   "plugins/pagination.js",
+  "plugins/languages.js",
+  "core/security.js",
+  "vendor/purify.min.js",
+  "vendor/THIRD_PARTY_LICENSES.md",
+  "assets/icons/bold.svg",
+  "assets/icons/italic.svg",
+  "assets/icons/underline.svg",
+  "assets/icons/table.svg",
+  "assets/icons/image.svg",
+  "assets/icons/video.svg",
+  ".github/workflows/security.yml",
   "tests/unit/core-contract.test.js",
   "tests/unit/distribution-contract.test.js",
+  "tests/unit/security-contract.test.js",
+  "tests/security/browser-security.html",
+  "tests/playwright/enterprise.spec.js",
 ];
 requiredFiles.forEach(requireFile);
+
+const indexBuffer = fs.readFileSync(path.join(root, "index.html"));
+if (
+  indexBuffer.length >= 3 &&
+  indexBuffer[0] === 0xef &&
+  indexBuffer[1] === 0xbb &&
+  indexBuffer[2] === 0xbf
+) {
+  errors.push("index.html must use UTF-8 without BOM");
+}
+const indexHTML = indexBuffer.toString("utf8");
+if (!/<meta\s+charset=["']?UTF-8["']?\s*\/?>/i.test(indexHTML)) {
+  errors.push("index.html is missing an early UTF-8 charset declaration");
+}
+if (!/<title>Full Editra<\/title>/.test(indexHTML)) {
+  errors.push("index.html title must be exactly Full Editra");
+}
+if (indexHTML.includes("\ufffd")) {
+  errors.push("index.html contains a Unicode replacement character");
+}
 
 const examples = [
   "full", "hidden-menu", "custom-tools", "sized-editor", "media",

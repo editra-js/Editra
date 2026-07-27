@@ -1,6 +1,6 @@
 # Product: Editra
 # Author: Editra Team
-# Version: 1.16.0
+# Version: 1.17.0
 # Purpose: Excludes local runtime, cache, log, and operating-system artifacts from Git.
 # Licensing: MIT License (open source)
 
@@ -15,3 +15,5 @@ Thumbs.db
 .idea/
 .vscode/
 .openai/
+playwright-report/
+test-results/

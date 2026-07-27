@@ -1,5 +1,94 @@
 # Editra Release Notes
 
+## Version 1.17.0
+
+Release date: 2026-07-27
+
+### Step 24 QR and barcode removal
+
+- Deprecated and removed QR and barcode toolbar/menu controls, commands,
+  render-span interpretation, export generation, plugin code, icons, vendor
+  runtimes, package dependencies, and related documentation.
+- Removed all special handling for former `.render-mode` and `data-render`
+  markup without changing generic spans or other formatting markup.
+- Confirmed that no other editor tools, layouts, styling, or behaviors were
+  modified by this removal.
+
+### Step 23 stability restoration
+
+- Reverted the Step 22 font-family experiment and removed its barcode fonts,
+  pseudo-font sizing, resize overlay, and layout-affecting styles.
+- Restored the Step 21 `.render-mode` plus `data-render` contract, badge
+  styling, toggle behavior, lazy QR/CODE128 export pipeline, and toolbar/menu
+  commands.
+- Confirmed placeholders and normal text remain intact until the server or
+  cloned export renderer interprets them.
+
+### Step 21 rendering and editing improvements
+
+- Added lazy, client-side QR Code and CODE128 Barcode render modes for selected
+  text, with metadata-only storage and clone-only conversion during
+  HTML/Word/PDF/print export.
+- Added packaged QRCode and JsBarcode runtimes with exact dependency pins and
+  third-party license inventory.
+- Added object selection and Delete/Backspace removal for images, videos,
+  tables, and non-editable structure elements.
+- Changed remote HTTPS images to eager loading and stabilized their reserved
+  layout space so scrolling does not reset editor state.
+- Expanded the font selector to 23 families and added 12 document-language
+  choices, including Hindi, Telugu, Urdu, and Arabic with RTL behavior.
+- Added QR, Barcode, Language, and Format Painter UI integration, Word-style
+  color grids with advanced choice and No Fill, arrow table-grid cursors, and
+  consistent toggle behavior for core emphasis commands.
+
+### Enterprise security hardening
+
+- Added mandatory DOMPurify sanitization across initialization, paste, imports, source view, collaboration, revision previews, headers/footers, serialization, and export.
+- Added Trusted Types and strict CSP compatibility, safe URL policy, deny-by-default iframe embeds, sandboxed print frames, and removal of `document.write`.
+- Added byte, DOM-node, recursion-depth, media, command-rate, history, and plugin-origin limits.
+- Added same-origin secure requests with required CSRF tokens for state-changing methods.
+- Added plugin origin allowlisting, optional mandatory SRI, CSP nonces, and a no-eval policy.
+- Added language packs, `lang`, RTL direction, translated toolbar/menu labels, and screen-reader command announcements.
+- Replaced Jest with Node's built-in test runner after dependency audit findings.
+- Exact-pinned DOMPurify, Webpack, Webpack CLI, and Playwright; the resulting npm audit reports zero known vulnerabilities.
+- Added Chrome/Edge local security verification plus Chromium/Firefox/WebKit CI coverage.
+- Added CodeQL, dependency review, npm audit, package inspection, security documentation, compliance mapping, and benchmark guidance.
+
+### Toolbar and regression fixes
+
+- Restored toolbar icons under strict Trusted Types by replacing sanitized
+  inline SVG fragments with packaged, same-origin SVG image assets.
+- Removed duplicate `editra-loader` Trusted Types policy creation during lazy
+  plugin loading.
+- Added a DOM formatting fallback for bold, italic, underline, and
+  strikethrough when a browser reports no `execCommand` mutation.
+- Added automated 404, CSP, toolbar action, table/media plugin, export, keyboard
+  focus, ARIA label, lifecycle, and large-document browser checks.
+
+### Metadata and UX consistency fixes
+
+- Rebuilt `index.html` as a complete UTF-8-without-BOM document with an early
+  charset declaration and the exact `Full Editra` title.
+- Corrected bullet and number list toggle behavior and coalesced rapid duplicate
+  font-size commands.
+- Filtered menus by active plugins and made table row/column actions contextual
+  to documents that contain a table.
+- Added direct Insert Table access, anchored popup placement, outside/typing
+  dismissal for Emoji, and accessible Help dialogs with documentation links.
+- Defined fixed-height page-size switching and corrected Accept/Reject behavior
+  for formatting revisions.
+- Added a feature guide covering layout, menus, contextual tools, Help, and the
+  complete Track Changes workflow.
+
+### Security behavior changes
+
+- `sanitizePaste` now defaults to `true`; the enterprise security layer cannot be bypassed by setting it to `false`.
+- Iframes and hosted video players are denied until `security.allowIframes` and exact `allowedIframeHosts` are configured.
+- `file:` media URLs are rejected.
+- Local media larger than 10 MiB is rejected by default.
+
+See [Security](docs/SECURITY.md), [Compliance](docs/COMPLIANCE.md), and [Performance](docs/PERFORMANCE.md).
+
 ## Version 1.16.0
 
 Release date: 2026-07-26

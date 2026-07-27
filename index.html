@@ -1,13 +1,21 @@
 <!--
   Product: Editra
   Author: Editra Team
-  Version: 1.16.0
-  Purpose: Provides the minimal Editra initialization example.
+  Version: 1.17.0
+  Purpose: Provides the complete local Editra application entry page.
   Licensing: MIT License (open source)
 -->
-<div id="editra-editor"></div>
-<link rel="stylesheet" href="./themes/premium.css" />
-<script src="./core/editor.js"></script>
-<script>
-  Editra.init({ selector:"#editra-editor" });
-</script>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Full Editra</title>
+  <link rel="stylesheet" href="./themes/premium.css">
+</head>
+<body>
+  <div id="editra-editor"></div>
+  <script src="./core/editor.js"></script>
+  <script src="./index-init.js"></script>
+</body>
+</html>

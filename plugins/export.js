@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra export plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -107,10 +107,16 @@
     clone.querySelectorAll("[contenteditable]").forEach((element) => {
       element.removeAttribute("contenteditable");
     });
-    clone.classList.remove("is-table-selected");
+    clone.classList.remove("is-table-selected", "is-object-selected");
+    clone.removeAttribute("aria-selected");
     clone
-      .querySelectorAll(".editra-table-frame.is-table-selected")
-      .forEach((frame) => frame.classList.remove("is-table-selected"));
+      .querySelectorAll(
+        ".editra-table-frame.is-table-selected, .is-object-selected",
+      )
+      .forEach((frame) => {
+        frame.classList.remove("is-table-selected", "is-object-selected");
+        frame.removeAttribute("aria-selected");
+      });
     return clone;
   }
 
@@ -322,6 +328,7 @@
   }
 
   function documentHTML(
+    core,
     pages,
     metrics,
     title = "Editra document",
@@ -329,13 +336,13 @@
   ) {
     const sections = pages
       .map((nodes, index) => {
-        const content = nodes
+        const content = String(core.sanitizeHTML(nodes
           .map((node) =>
             node.nodeType === Node.TEXT_NODE
               ? escapeHTML(node.nodeValue)
               : node.outerHTML,
           )
-          .join("");
+          .join(""), { kind: "export page" }));
         const header = resolvePart(parts.header, index + 1, pages.length);
         const footer = resolvePart(parts.footer, index + 1, pages.length);
         return `<section class="editra-export-page" data-editra-page="${index + 1}" aria-label="Page ${index + 1}">${header ? `<header class="editra-export-header">${header}</header>` : ""}<div class="editra-export-content">${content}</div>${footer ? `<footer class="editra-export-footer">${footer}</footer>` : ""}</section>`;
@@ -349,6 +356,7 @@
     return {
       ...result,
       html: documentHTML(
+        core,
         result.pages,
         result.metrics,
         options.title || "Editra document",
@@ -359,12 +367,18 @@
 
   async function exportHTML(core, options = {}) {
     const result = await createExport(core, options);
-    core.downloadFile(
-      options.fileName || "editra-document.html",
-      result.html,
-      "text/html;charset=utf-8",
-    );
-    return { format: "html", pageCount: result.metrics.pageCount };
+    if (options.download !== false) {
+      core.downloadFile(
+        options.fileName || "editra-document.html",
+        result.html,
+        "text/html;charset=utf-8",
+      );
+    }
+    return {
+      format: "html",
+      pageCount: result.metrics.pageCount,
+      ...(options.returnHTML ? { html: result.html } : {}),
+    };
   }
 
   async function exportWord(core, options = {}) {
@@ -373,30 +387,47 @@
       "</style>",
       `.editra-export-page{mso-page-break-after:always;} .editra-export-page:last-child{mso-page-break-after:auto;} @page EditraSection{size:${result.metrics.widthCSS} ${result.metrics.heightCSS};margin:0;} .editra-export-page{page:EditraSection;}</style>`,
     );
-    core.downloadFile(
-      options.fileName || "editra-document.doc",
-      wordHTML,
-      "application/msword",
-    );
-    return { format: "word", pageCount: result.metrics.pageCount };
+    if (options.download !== false) {
+      core.downloadFile(
+        options.fileName || "editra-document.doc",
+        wordHTML,
+        "application/msword",
+      );
+    }
+    return {
+      format: "word",
+      pageCount: result.metrics.pageCount,
+      ...(options.returnHTML ? { html: wordHTML } : {}),
+    };
   }
 
   async function exportPDF(core, options = {}) {
     const result = await createExport(core, options);
+    if (options.print === false) {
+      return {
+        format: "pdf",
+        pageCount: result.metrics.pageCount,
+        ...(options.returnHTML ? { html: result.html } : {}),
+      };
+    }
     const frame = document.createElement("iframe");
     frame.className = "editra-print-frame";
     frame.dataset.editraUi = "true";
     frame.setAttribute("aria-hidden", "true");
+    frame.setAttribute("sandbox", "allow-modals allow-same-origin");
+    const printUrl = URL.createObjectURL(
+      new Blob([result.html], { type: "text/html;charset=utf-8" }),
+    );
+    frame.src = printUrl;
     document.body.append(frame);
-    const frameDocument = frame.contentDocument;
-    frameDocument.open();
-    frameDocument.write(result.html);
-    frameDocument.close();
     await new Promise((resolve) => {
-      if (frameDocument.readyState === "complete") resolve();
+      if (frame.contentDocument?.readyState === "complete") resolve();
       else frame.addEventListener("load", resolve, { once: true });
     });
-    const removeFrame = () => frame.remove();
+    const removeFrame = () => {
+      frame.remove();
+      URL.revokeObjectURL(printUrl);
+    };
     frame.contentWindow.addEventListener("afterprint", removeFrame, {
       once: true,
     });

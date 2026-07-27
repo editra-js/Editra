@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Builds the browser-ready Editra UMD distribution with Webpack.
  * Licensing: MIT License (open source)
  */
@@ -13,6 +13,8 @@ const webpack = require("webpack");
 
 module.exports = {
   mode: "production",
+  target: ["web", "es2018"],
+  devtool: false,
   entry: path.resolve(__dirname, "index.js"),
   output: {
     path: path.resolve(__dirname, "dist"),
@@ -20,10 +22,8 @@ module.exports = {
     library: "Editra",
     libraryTarget: "umd",
     globalObject: "typeof self !== 'undefined' ? self : this",
-    clean: true,
+    clean: false,
   },
-  target: ["web", "es2018"],
-  devtool: false,
   optimization: {
     minimize: false,
   },
@@ -31,7 +31,7 @@ module.exports = {
     new webpack.BannerPlugin({
       banner: `Product: Editra
 Author: Editra Team
-Version: 1.16.0
+Version: 1.17.0
 Purpose: Provides the browser-ready Editra UMD distribution for npm CDNs.
 Licensing: MIT License (open source)`,
     }),

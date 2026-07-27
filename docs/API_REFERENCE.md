@@ -1,6 +1,6 @@
-# Editra API Reference
+﻿# Editra API Reference
 
-Version 1.16.0
+Version 1.17.0
 
 ## Pagination
 
@@ -67,12 +67,13 @@ const editor = await Editra.init({
 | `colorScheme` | light/dark/system | `light` | UI color mode |
 | `editorWidth` | CSS length | `816px` | Custom page width |
 | `editorHeight` | CSS length | `1056px` | Custom page height |
+| `editorHeightFixed` | boolean | inferred | Preserve an explicitly configured height while page-size changes adjust proportional width |
 | `pageSize` | string | `Letter` | Standard page size |
 | `orientation` | portrait/landscape | `portrait` | Page orientation |
 | `margins` | object | 72px each | Page margins |
 | `header` / `footer` | string/object | none | Repeated page content |
 | `printContentOnly` | boolean | `false` | Crop print output to content |
-| `sanitizePaste` | boolean | `false` | Remove unsafe pasted elements |
+| `sanitizePaste` | boolean | `true` | Sanitize pasted HTML; enterprise security cannot be bypassed through this flag |
 | `historyLimit` | number | `100` | Maximum undo snapshots |
 
 ## Content methods
@@ -86,6 +87,8 @@ const editor = await Editra.init({
 | `getMediaData()` | Image/video storage metadata |
 | `focus()` | Focus the editor |
 | `destroy()` | Remove listeners, observers, UI, and object URLs |
+| `sanitizeHTML(html)` | Sanitize untrusted HTML with the active enterprise policy |
+| `secureRequest(url, options)` | Make an origin-checked request with CSRF enforcement |
 
 ## Commands
 
@@ -98,6 +101,20 @@ Document commands include `undo`, `redo`, `setPageSize`, `setOrientation`, `setC
 Table commands include `insertTable`, `selectTable`, `deleteTable`, `mergeCells`, `splitCell`, `addRow`, `deleteRow`, `addColumn`, `deleteColumn`, `setTableBorder`, `setTableBorderColor`, `setCellBackground`, and `setTableAlignment`.
 
 Media commands include `insertImage` and `insertVideo`.
+
+Language commands:
+
+```js
+editor.executeCommand("setLanguage", "ur");
+const languages = await editor.executeCommand("getLanguages");
+```
+
+QR/barcode commands and render-span interpretation were deprecated and removed
+in Step 24.
+
+Object selection commands are `selectObject(element)` and
+`deleteSelectedObject`. Pressing Delete or Backspace invokes the same deletion
+behavior for selected media, tables, and non-editable structural objects.
 
 Productivity commands include `findReplace`, `formatPainter`, `insertMergeField`, `previewMergeFields`, `exportPDF`, `exportWord`, `exportHTML`, `exportMarkdown`, `importWord`, `importHTML`, and `printContentOnly`.
 
@@ -150,6 +167,8 @@ The corresponding configuration callback receives an event detail object.
 | `onRulerAdjust` | Margin, indent, or tab stop changed |
 | `onPageChange` | Page count, size, orientation, or margins changed |
 | `onThemeToggle` | Theme mode applied and menus refreshed |
+| `onLanguageChange` | Document language or text direction changed |
+| `onSecurityViolation` | Size, rate, URL, plugin, or policy violation detected |
 
 DOM events use the same names prefixed by `editra:`, such as `editra:themeToggle`, `editra:rulerAdjust`, and `editra:pageChange`.
 
@@ -160,3 +179,28 @@ Plugins expose a function through `window.EditraPlugins` and register commands d
 ## Storage
 
 `getCode()` returns persistable HTML. Local files may be represented as object URLs or data URLs depending on plugin options. For durable database storage, extract media through `getMediaData()` and replace temporary object URLs before saving.
+
+## Toolbar icon assets
+
+Toolbar icons are served as same-origin SVG images from `assets/icons/`.
+Use `iconBaseUrl` when Editra's assets are hosted at a custom path:
+
+```js
+Editra.init({
+  selector: "#editra-editor",
+  iconBaseUrl: "/static/editra/icons/"
+});
+```
+
+Export commands accept non-interactive options for automated validation:
+
+```js
+const html = await editor.executeCommand("exportHTML", {
+  download: false,
+  returnHTML: true
+});
+const pdf = await editor.executeCommand("exportPDF", {
+  print: false,
+  returnHTML: true
+});
+```

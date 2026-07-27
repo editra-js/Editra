@@ -1,6 +1,6 @@
-# Editra User Guide
+﻿# Editra User Guide
 
-Version 1.16.0
+Version 1.17.0
 
 ## Installation
 
@@ -75,7 +75,7 @@ The equivalent unpkg links are:
 <script src="https://unpkg.com/editra/dist/editra.js"></script>
 ```
 
-Both npm CDNs must serve the complete release tree—`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra@1.0.0/` instead of `/editra/` when deterministic production builds are required.
+Both npm CDNs must serve the complete release treeâ€”`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra@1.0.0/` instead of `/editra/` when deterministic production builds are required.
 
 ### Local files
 
@@ -190,7 +190,7 @@ Tables may flow across pages by default. Use a semantic `<thead>` for the header
 
 ### Page sizes and orientation
 
-Use Layout → Page Size and Orientation or configure `pageSize` and `orientation`. Fifteen standard sizes and custom CSS dimensions are supported. See [page sizes](../examples/page-sizes.html) and [sized editor](../examples/sized-editor.html).
+Use Layout â†’ Page Size and Orientation or configure `pageSize` and `orientation`. Fifteen standard sizes and custom CSS dimensions are supported. See [page sizes](../examples/page-sizes.html) and [sized editor](../examples/sized-editor.html).
 
 ### Headers and footers
 
@@ -198,11 +198,11 @@ Insert reusable text, page numbers, date/time, and custom fields. Tokens include
 
 ### Ruler and margins
 
-View → Show/Hide Ruler displays draggable margins, first-line indent, left indent, and tab stops. Click the track to add a tab; double-click a tab to remove it. See [ruler](../examples/ruler.html) and [margins](../examples/margins.html).
+View â†’ Show/Hide Ruler displays draggable margins, first-line indent, left indent, and tab stops. Click the track to add a tab; double-click a tab to remove it. See [ruler](../examples/ruler.html) and [margins](../examples/margins.html).
 
 ### Tables
 
-Use Insert → Table and drag across the grid. Resize rows/columns with handles. The square upper-left handle selects the complete table; Delete or Backspace then removes it. See [tables](../examples/tables.html).
+Use Insert â†’ Table and drag across the grid. Resize rows/columns with handles. The square upper-left handle selects the complete table; Delete or Backspace then removes it. See [tables](../examples/tables.html).
 
 ### Media
 
@@ -210,7 +210,7 @@ Images accept local files, clipboard images, data URLs, and web URLs. Videos acc
 
 ## Export and print
 
-File → Export PDF uses the browser print dialog. Export Word produces Word-compatible HTML, while Export HTML preserves fixed page sections. Save uses the page-fidelity HTML exporter. “Print text area only” removes unused page height. See [export](../examples/export.html) and [custom print](../examples/custom-print.html).
+File â†’ Export PDF uses the browser print dialog. Export Word produces Word-compatible HTML, while Export HTML preserves fixed page sections. Save uses the page-fidelity HTML exporter. â€œPrint text area onlyâ€ removes unused page height. See [export](../examples/export.html) and [custom print](../examples/custom-print.html).
 
 Use 100% print scale and disable browser-supplied print headers/footers for best fidelity.
 
@@ -222,8 +222,8 @@ Use 100% print scale and disable browser-supplied print headers/footers for best
 | Italic | Toggle emphasized text | [Italic](../examples/italic.html) |
 | Underline | Underline selected text | [Underline](../examples/underline.html) |
 | Undo / Redo | Move backward or forward through history | [Shortcuts](../examples/shortcuts.html) |
-| Font Family / Size | Choose predefined Word-style fonts and sizes 8–36 | [Formatting](../examples/formatting.html) |
-| Heading | Convert blocks semantically to paragraph or H1–H6 | [Headings](../examples/headings.html) |
+| Font Family / Size | Choose predefined Word-style fonts and sizes 8â€“36 | [Formatting](../examples/formatting.html) |
+| Heading | Convert blocks semantically to paragraph or H1â€“H6 | [Headings](../examples/headings.html) |
 | Text/Background Color | Apply foreground or background color | [Formatting](../examples/formatting.html) |
 | Highlighter | Apply a marker-style background | [Formatting](../examples/formatting.html) |
 | Strikethrough | Mark text as struck through | [Formatting](../examples/formatting.html) |
@@ -244,7 +244,7 @@ Use 100% print scale and disable browser-supplied print headers/footers for best
 | Page Break | Lock a page boundary | [Multipage](../examples/multipage.html) |
 | Keep Together | Keep the selected block on one page when it fits | [Pagination](../examples/pagination.html) |
 | Keep With Next | Keep a heading or block with the following block | [Pagination](../examples/pagination.html) |
-| Table of Contents | Generate navigation from H1–H6 | [Structure](../examples/structure.html) |
+| Table of Contents | Generate navigation from H1â€“H6 | [Structure](../examples/structure.html) |
 | HTML Code View | Edit highlighted source with line numbers | [Code view](../examples/code-view.html) |
 
 ## Menu feature guide
@@ -324,13 +324,42 @@ Use 100% print scale and disable browser-supplied print headers/footers for best
 
 Font, size, color, highlighter, headings, strikethrough, alignment, line height, lists, indentation, table border color, case change, and remove format control document appearance. See [formatting](../examples/formatting.html), [headings](../examples/headings.html), and [lists](../examples/lists.html).
 
+The Font Family selector contains more than 20 common document and system
+fonts. Text Color and Background Color use a compact Word-style palette,
+provide an advanced native chooser, and expose **No Fill** for background and
+highlight removal. Repeating bold, italic, underline, or strikethrough removes
+the active format. Format Painter captures the selected text's font, size,
+color, background, and emphasis, then applies them to the next selection.
+
+### Languages
+
+The Language selector supports English, Hindi, Telugu, Urdu, Arabic, Spanish,
+French, German, Portuguese, Chinese, Japanese, and Korean. Urdu and Arabic
+automatically use right-to-left direction. Hosts can observe
+`onLanguageChange`.
+
+QR and barcode support was deprecated and removed in Step 24. The editor no
+longer provides related controls, commands, markup interpretation, assets, or
+export rendering.
+
+Images, videos, tables, and structural blocks can be selected as complete
+objects. Their selection outline is not persisted or exported; Delete or
+Backspace removes the selected object while preserving a valid caret position.
+
 ### Review
 
-Track Changes, Add Comment, Show Comments, Accept All Changes, and Reject All Changes support editorial review. See [collaboration](../examples/collaboration.html).
+Track Changes records insertions, deletions, and formatting proposals. Accept
+All keeps inserted text, removes deleted text, and retains proposed formatting;
+Reject All removes inserted text, restores deleted text, and discards proposed
+formatting. See the [Feature Guide](FEATURE_GUIDE.md) and
+[collaboration demo](../examples/collaboration.html).
 
 ### Help
 
-Accessibility, About, Documentation, and Shortcuts provide assistance or application-defined help actions. See [help](../examples/help.html) and [about](../examples/about.html).
+Accessibility, About, Documentation, and Shortcuts open accessible dialogs with
+a clear explanation and direct documentation links. See the
+[Feature Guide](FEATURE_GUIDE.md), [help](../examples/help.html), and
+[about](../examples/about.html).
 
 ## Feature configuration examples
 
@@ -343,11 +372,16 @@ Editra.init({
   header: { text: "Quarterly Report", dateTime: true },
   footer: { pageNumber: "Page {{page}} of {{pages}}" },
   colorScheme: "system",
-  sanitizePaste: false
+  sanitizePaste: true,
+  security: {
+    allowIframes: false,
+    allowedPluginOrigins: [location.origin],
+    maxDocumentBytes: 5 * 1024 * 1024
+  }
 });
 ```
 
-See the [paste handling demo](../examples/paste.html) for raw and sanitized HTML behavior.
+All untrusted HTML is sanitized in the enterprise profile. See the [paste handling demo](../examples/paste.html) and [security guide](SECURITY.md).
 
 ## Troubleshooting
 

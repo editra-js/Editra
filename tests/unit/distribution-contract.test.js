@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Verifies Editra package metadata, demo integration actions, feedback persistence, and premium styling.
  * Licensing: MIT License (open source)
  */
@@ -25,7 +25,7 @@ const tablePlugin = read("plugins/table.js");
 const exportPlugin = read("plugins/export.js");
 
 assert.equal(metadata.name, "editra");
-assert.equal(metadata.version, "1.0.0");
+assert.equal(metadata.version, "1.1.0");
 assert.equal(metadata.description, "Premium WYSIWYG Editor for the Web");
 assert.equal(metadata.license, "MIT");
 assert.equal(metadata.main, "index.js");
@@ -43,6 +43,7 @@ assert.deepEqual(metadata.keywords, [
 ]);
 assert(metadata.files.includes("plugins"));
 assert(metadata.files.includes("themes"));
+assert(metadata.files.includes("vendor"));
 
 assert.match(
   theme,

@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Provides a dependency-free local HTTP server for Editra development and demos.
  * Licensing: MIT License (open source)
  */
@@ -58,6 +58,12 @@ const server = http.createServer((request, response) => {
       "Cache-Control": "no-cache",
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Permissions-Policy":
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Content-Security-Policy":
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'",
     });
     fs.createReadStream(filePath).pipe(response);
   });

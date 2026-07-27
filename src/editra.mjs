@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Exposes an ES-module loader for npm-based Editra integrations.
  * Licensing: MIT License (open source)
  */

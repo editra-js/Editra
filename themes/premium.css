@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Provides the public premium Editra document and component theme.
  * Licensing: MIT License (open source)
  */
@@ -481,6 +481,85 @@ body {
   background: rgba(255, 254, 250, 0.99);
   box-shadow: 0 18px 50px rgba(35, 31, 25, 0.18);
   backdrop-filter: blur(16px);
+}
+
+.editra-popup {
+  position: absolute;
+  animation: editra-popup-enter 130ms ease-out;
+  transform-origin: top left;
+}
+
+.editra-popup--emoji {
+  border-top: 3px solid #7357d6;
+}
+
+.editra-help-dialog {
+  z-index: 1250;
+  width: min(360px, calc(100% - 16px));
+  padding: 14px;
+  border: 1px solid var(--editra-line);
+  border-top: 3px solid #2864dc;
+  border-radius: 10px;
+  color: var(--editra-ink);
+  background: rgba(255, 254, 250, 0.99);
+  box-shadow: 0 18px 48px rgba(35, 31, 25, 0.2);
+  backdrop-filter: blur(16px);
+}
+
+.editra-help-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editra-help-dialog h2 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.editra-help-dialog > header button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--editra-muted);
+  background: transparent;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.editra-help-dialog p {
+  margin: 10px 0;
+  color: var(--editra-muted);
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.editra-help-links {
+  display: grid;
+  gap: 6px;
+}
+
+.editra-help-links a {
+  padding: 7px 9px;
+  border-radius: 6px;
+  color: var(--editra-accent);
+  background: var(--editra-accent-soft);
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+@keyframes editra-popup-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .editra-emoji-picker > header {
@@ -1113,13 +1192,33 @@ body {
   border: 1px solid rgba(50, 45, 36, 0.18);
   border-radius: 3px;
   background: #fff;
-  cursor: crosshair;
+  cursor: default;
 }
 
 .editra-table-grid-cell:hover,
 .editra-table-grid-cell.is-selected {
   border-color: var(--editra-accent);
   background: var(--editra-accent-soft);
+}
+
+.editra-media-frame.is-object-selected,
+.editra-table-frame.is-object-selected,
+[data-editra-selectable].is-object-selected {
+  outline: 2px solid #2b78d4;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px rgba(43, 120, 212, 0.18);
+}
+
+.editra-media-frame.is-media-loading {
+  background:
+    linear-gradient(90deg, #f4f6f8 25%, #e8ebef 37%, #f4f6f8 63%);
+  background-size: 400% 100%;
+  animation: editra-media-loading 1.2s ease infinite;
+}
+
+@keyframes editra-media-loading {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
 }
 
 .editra-table-grid-cell:focus-visible {

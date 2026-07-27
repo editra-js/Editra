@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra paste plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -10,29 +10,8 @@
   "use strict";
 
   const installations = new WeakMap();
-  const UNSAFE_ELEMENTS =
-    "script,iframe,object,embed,applet,base,meta[http-equiv],link[rel='import']";
-
-  function sanitizeHTML(html) {
-    const template = document.createElement("template");
-    template.innerHTML = String(html ?? "");
-    template.content.querySelectorAll(UNSAFE_ELEMENTS).forEach((node) =>
-      node.remove(),
-    );
-    template.content.querySelectorAll("*").forEach((element) => {
-      [...element.attributes].forEach((attribute) => {
-        const name = attribute.name.toLowerCase();
-        const value = attribute.value.trim();
-        if (
-          name.startsWith("on") ||
-          (/^(?:href|src|action|formaction|xlink:href)$/i.test(name) &&
-            /^(?:javascript|vbscript|data:text\/html):/i.test(value))
-        ) {
-          element.removeAttribute(attribute.name);
-        }
-      });
-    });
-    return template.innerHTML;
+  function sanitizeHTML(core, html, kind = "paste") {
+    return String(core.sanitizeHTML(html, { kind }));
   }
 
   function insertHTML(core, html, savedRange = null) {
@@ -109,9 +88,7 @@
       if ("html" in result) payload.html = String(result.html ?? "");
       if ("text" in result) payload.text = String(result.text ?? "");
     }
-    const html = core.options.sanitizePaste
-      ? sanitizeHTML(payload.html)
-      : payload.html;
+    const html = sanitizeHTML(core, payload.html);
     if (html) return insertHTML(core, html, savedRange);
     const image = payload.files.find((file) => file.type.startsWith("image/"));
     if (image) return insertClipboardImage(core, image);
@@ -167,14 +144,10 @@
     const unregisterCommands = [
       core.registerCommand(
         "pasteHTML",
-        (html, options = {}) =>
-          insertHTML(
-            core,
-            options.sanitize ? sanitizeHTML(html) : html,
-          ),
+        (html) => insertHTML(core, sanitizeHTML(core, html, "pasteHTML")),
         { plugin: "paste", source: "plugin" },
       ),
-      core.registerCommand("sanitizeHTML", sanitizeHTML, {
+      core.registerCommand("sanitizeHTML", (html) => sanitizeHTML(core, html), {
         plugin: "paste",
         source: "plugin",
       }),

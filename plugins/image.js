@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra image plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -167,6 +167,13 @@
 
   ImagePlugin.insertFile = function insertFile(core, file, options = {}) {
     if (!(file instanceof Blob)) return false;
+    if (file.size > core.security.config.maxMediaBytes) {
+      core.security.violation("media-size", "Image exceeds the media limit.", {
+        actual: file.size,
+        limit: core.security.config.maxMediaBytes,
+      });
+      throw new RangeError("Editra rejected an oversized image.");
+    }
     const reader = new FileReader();
     let unregister = () => {};
 

@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra formatting plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -113,6 +113,23 @@
       value || promptValue("Background color:", "#fff2a8"),
       "#fff2a8",
     );
+    if (color === "transparent") {
+      const range = selectionRange(core);
+      if (!range) return false;
+      const anchor =
+        range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+          ? range.commonAncestorContainer
+          : range.commonAncestorContainer.parentElement;
+      const styled = anchor?.closest("span[style]");
+      if (styled && core.editor.contains(styled)) {
+        styled.style.backgroundColor = "";
+        if (!styled.getAttribute("style")) {
+          styled.replaceWith(...styled.childNodes);
+        }
+        return commit(core);
+      }
+      return false;
+    }
     return wrapInlineStyle(
       core,
       "backgroundColor",
@@ -126,6 +143,7 @@
       value || promptValue("Highlighter color:", "#fff176"),
       "#fff176",
     );
+    if (color === "transparent") return setBackgroundColor(core, color);
     const result = wrapInlineStyle(
       core,
       "backgroundColor",
@@ -142,12 +160,11 @@
   }
 
   function strikethrough(core) {
-    return wrapInlineStyle(
-      core,
-      "textDecoration",
-      "line-through",
-      "strikethrough",
-    );
+    core.restoreSelection();
+    core.editor.focus({ preventScroll: true });
+    const result = core.execCommand("strikeThrough");
+    commit(core);
+    return result;
   }
 
   function setHeading(core, value) {

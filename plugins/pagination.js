@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Applies page-aware flow rules to blocks, lists, tables, media, forms, and code.
  * Licensing: MIT License (open source)
  */

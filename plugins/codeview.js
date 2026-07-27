@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra codeview plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -61,7 +61,19 @@
 
   function applySource(core, state, record = true) {
     if (!state.textarea) return false;
-    core.editor.innerHTML = state.textarea.value;
+    const sanitized = String(
+      core.sanitizeHTML(state.textarea.value, {
+        kind: "HTML source view",
+      }),
+    );
+    if (sanitized !== state.textarea.value) {
+      state.textarea.value = sanitized;
+      updateDecorations(state);
+    }
+    core.editor.innerHTML = core.security.trustedHTML(
+      sanitized,
+      "HTML source view",
+    );
     if (record) core.recordHistory();
     core.scheduleUpdate("codeview-change", () => {
       core.emitChange();

@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra headerfooter plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -106,13 +106,19 @@
       if (header) {
         const preview = document.createElement("div");
         preview.className = "editra-page-header-preview";
-        preview.innerHTML = resolveDefinition(header, index + 1, pageCount);
+        preview.innerHTML = core.security.trustedHTML(
+          resolveDefinition(header, index + 1, pageCount),
+          "header preview",
+        );
         guide.append(preview);
       }
       if (footer) {
         const preview = document.createElement("div");
         preview.className = "editra-page-footer-preview";
-        preview.innerHTML = resolveDefinition(footer, index + 1, pageCount);
+        preview.innerHTML = core.security.trustedHTML(
+          resolveDefinition(footer, index + 1, pageCount),
+          "footer preview",
+        );
         guide.append(preview);
       }
     });
@@ -138,7 +144,10 @@
       core.editor.prepend(source);
     }
     source.dataset.editraDefinition = JSON.stringify(definition);
-    source.innerHTML = definition.template;
+    source.innerHTML = core.security.trustedHTML(
+      definition.template,
+      `${part} content`,
+    );
     core.state[part] = { ...definition };
     core.recordHistory();
     core.scheduleUpdate("header-footer", () => {

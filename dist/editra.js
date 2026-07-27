@@ -1,7 +1,7 @@
 /*!
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Provides the browser-ready Editra UMD distribution for npm CDNs.
  * Licensing: MIT License (open source)
  */
@@ -25,7 +25,7 @@ return /******/ (() => { // webpackBootstrap
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Exposes the CommonJS and UMD-compatible Editra package entry API.
  * Licensing: MIT License (open source)
  */
@@ -123,8 +123,8 @@ async function init(selector, options) {
 const api = {
   init,
   load: loadRuntime,
-  version: "1.16.0",
-  packageVersion: "1.0.0",
+  version: "1.17.0",
+  packageVersion: "1.1.0",
 };
 api.default = api;
 Object.freeze(api);

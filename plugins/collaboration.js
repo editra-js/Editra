@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra collaboration plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -37,9 +37,12 @@
     return String(value ?? "").trim();
   }
 
-  function textFromHTML(html) {
+  function textFromHTML(core, html) {
     const template = document.createElement("template");
-    template.innerHTML = html;
+    template.innerHTML = core.security.trustedHTML(
+      html,
+      "collaboration message",
+    );
     return template.content.textContent ?? "";
   }
 
@@ -193,7 +196,7 @@
     return state.tracking;
   }
 
-  function finalizeChanges(core, accept) {
+  function finalizeChanges(core, state, accept) {
     const changes = [...core.editor.querySelectorAll(TRACKED_SELECTOR)];
     let count = 0;
     changes.forEach((node) => {
@@ -202,6 +205,10 @@
         node.replaceWith(...node.childNodes);
       } else if ((kind === "insert" && !accept) || (kind === "delete" && accept)) {
         node.remove();
+      } else if (kind === "format" && accept) {
+        node.classList.remove("editra-change-format");
+        delete node.dataset.editraChange;
+        delete node.dataset.changeDetail;
       } else {
         node.replaceWith(...node.childNodes);
       }
@@ -544,7 +551,10 @@
       if (event.target.closest("[data-revision-preview]")) {
         const frame = document.createElement("div");
         frame.className = "editra-revision-document";
-        frame.innerHTML = revision.html;
+        frame.innerHTML = core.security.trustedHTML(
+          revision.html,
+          "revision preview",
+        );
         preview.replaceChildren(frame);
       } else if (event.target.closest("[data-revision-restore]")) {
         restoreRevision(core, state, { id: revision.id });
@@ -651,9 +661,12 @@
     }
   }
 
-  function parseBlock(html) {
+  function parseBlock(core, html) {
     const template = document.createElement("template");
-    template.innerHTML = html;
+    template.innerHTML = core.security.trustedHTML(
+      html,
+      "collaboration operation",
+    );
     return template.content.firstElementChild;
   }
 
@@ -678,7 +691,7 @@
             state.blockPositions.delete(operation.id);
             return;
           }
-          const incoming = parseBlock(operation.html);
+          const incoming = parseBlock(core, operation.html);
           if (!incoming) return;
           incoming.dataset.editraBlockId = operation.id;
           if (current) current.replaceWith(incoming);
@@ -1087,8 +1100,8 @@
       disconnectCollaboration: () => disconnectCollaboration(core, state),
       collaborationStressTest: (options) =>
         collaborationStressTest(core, options),
-      acceptAllChanges: () => finalizeChanges(core, true),
-      rejectAllChanges: () => finalizeChanges(core, false),
+      acceptAllChanges: () => finalizeChanges(core, state, true),
+      rejectAllChanges: () => finalizeChanges(core, state, false),
     };
     Object.entries(commands).forEach(([name, handler]) => {
       state.unregisterCommands.push(
@@ -1190,7 +1203,7 @@
       state.revisions.push({
         id: createId("revision"),
         html,
-        text: textFromHTML(html),
+        text: textFromHTML(core, html),
         author: authorOf(state),
         label: index === 0 ? "Initial version" : `Version ${index + 1}`,
         createdAt: new Date(Date.now() - (core.history.length - index) * 1000)

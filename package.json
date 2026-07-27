@@ -1,6 +1,6 @@
 {
   "name": "editra",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Premium WYSIWYG Editor for the Web",
   "main": "index.js",
   "module": "index.mjs",
@@ -16,6 +16,8 @@
     "./dist/editra.js": "./dist/editra.js",
     "./themes/premium.css": "./themes/premium.css",
     "./core/editor.js": "./core/editor.js",
+    "./core/security.js": "./core/security.js",
+    "./assets/*": "./assets/*",
     "./plugins/*": "./plugins/*",
     "./ui/*": "./ui/*"
   },
@@ -27,6 +29,8 @@
     "plugins",
     "ui",
     "themes",
+    "assets",
+    "vendor",
     "docs",
     "examples",
     "README.md",
@@ -52,8 +56,12 @@
   "author": "Editra Team",
   "license": "MIT",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "test": "jest --runInBand && node tests/automation/verify-project.js && node tests/unit/core-contract.test.js && node tests/unit/distribution-contract.test.js",
+    "build": "node tools/sync-vendor.js && webpack --config webpack.config.js",
+    "test": "npm run test:unit && npm run test:browser:installed",
+    "test:unit": "node --test tests/unit/entry.test.js && node tests/automation/verify-project.js && node tests/unit/core-contract.test.js && node tests/unit/distribution-contract.test.js && node tests/unit/security-contract.test.js",
+    "test:browser:installed": "node tests/automation/browser-security.js",
+    "test:cross-browser": "playwright test",
+    "security:audit": "npm audit --audit-level=high",
     "pack:check": "npm pack --dry-run --cache ./.npm-cache",
     "prepublishOnly": "npm test && npm run build"
   },
@@ -61,8 +69,11 @@
     "node": ">=18"
   },
   "devDependencies": {
-    "jest": "^30.0.0",
-    "webpack": "^5.0.0",
-    "webpack-cli": "^6.0.0"
+    "@playwright/test": "1.61.1",
+    "webpack": "5.109.0",
+    "webpack-cli": "6.0.1"
+  },
+  "dependencies": {
+    "dompurify": "3.4.12"
   }
 }

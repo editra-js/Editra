@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Provides an optional distribution loader for the canonical Editra core runtime.
  * Licensing: MIT License (open source)
  */

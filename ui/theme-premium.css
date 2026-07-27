@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Defines premium light and dark UI styling for Editra controls and dialogs.
  * Licensing: MIT License (open source)
  */
@@ -65,10 +65,12 @@ body,
 }
 
 .editra-tool-icon {
+  display: block;
   width: 15px !important;
   height: 15px !important;
-  stroke-width: 1.65 !important;
-  color: #050505 !important;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
   filter: none !important;
 }
 
@@ -255,6 +257,17 @@ body,
   scrollbar-width: thin;
 }
 
+.editra-menu-chooser--setfontsize,
+.editra-menu-chooser--setfontfamily {
+  border-top: 3px solid #2864dc;
+}
+
+.editra-menu-chooser--setforecolor,
+.editra-menu-chooser--setbackgroundcolor,
+.editra-menu-chooser--highlighttext {
+  border-top: 3px solid #7357d6;
+}
+
 .editra-menu-list {
   scroll-behavior: smooth;
   scrollbar-color: #7d8590 #f1f2f4;
@@ -314,8 +327,8 @@ body,
 
 .editra-menu-color-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 7px;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
   padding: 5px;
 }
 
@@ -323,7 +336,8 @@ body,
   aspect-ratio: 1;
   padding: 0;
   border: 1px solid rgba(0, 0, 0, 0.22);
-  border-radius: 5px;
+  min-width: 19px;
+  border-radius: 2px;
   background: var(--editra-choice-color);
   cursor: pointer;
 }
@@ -340,10 +354,6 @@ body,
 }
 
 .editra-theme-dark .editra-tool {
-  color: #f5f7fa !important;
-}
-
-.editra-theme-dark .editra-tool-icon {
   color: #f5f7fa !important;
 }
 
@@ -443,6 +453,7 @@ body,
 }
 
 html[data-editra-theme-mode="dark"] .editra-media-dialog,
+html[data-editra-theme-mode="dark"] .editra-help-dialog,
 html[data-editra-theme-mode="dark"] .editra-table-picker,
 html[data-editra-theme-mode="dark"] .editra-table-context-menu,
 html[data-editra-theme-mode="dark"] .editra-productivity-overlay,
@@ -484,6 +495,7 @@ html[data-editra-theme-mode="dark"] .editra-productivity-overlay label {
 }
 
 html[data-editra-theme-mode="light"] .editra-media-dialog,
+html[data-editra-theme-mode="light"] .editra-help-dialog,
 html[data-editra-theme-mode="light"] .editra-table-picker,
 html[data-editra-theme-mode="light"] .editra-table-context-menu,
 html[data-editra-theme-mode="light"] .editra-productivity-overlay,
@@ -499,6 +511,60 @@ html[data-editra-theme-mode="light"] .editra-revision-overlay {
 
 .editra-menu-list[hidden] {
   display: none !important;
+}
+
+.editra-menu-color-grid .editra-color-no-fill {
+  position: relative;
+  background: #fff;
+}
+
+.editra-menu-color-grid .editra-color-no-fill::after {
+  position: absolute;
+  inset: 50% -2px auto;
+  height: 2px;
+  background: #d32626;
+  content: "";
+  transform: rotate(-45deg);
+  transform-origin: center;
+}
+
+.editra-advanced-color {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 6px 2px;
+  border-top: 1px solid var(--editra-line);
+  color: var(--editra-ink);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.editra-advanced-color input {
+  width: 32px;
+  height: 24px;
+  padding: 1px;
+  border: 1px solid var(--editra-line);
+  background: transparent;
+  cursor: pointer;
+}
+
+.editra-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+[dir="rtl"] .editra-editor {
+  text-align: start;
 }
 
 @media (max-width: 620px) {

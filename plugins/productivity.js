@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra productivity plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -272,18 +272,24 @@
     toast.textContent = "Format copied — select target text";
     core.toolbar.card.append(toast);
     state.painterToast = toast;
+    const painterButton =
+      core.toolbar.getButton("formatPainter") ||
+      core.toolbar.getButton("productivity");
+    painterButton?.classList.add("is-active");
+    painterButton?.setAttribute("aria-pressed", "true");
+    core.announce("Format Painter copied formatting. Select target text.");
 
     state.painterListener = () => {
       requestAnimationFrame(() => {
         const applied = applyFormatPainter(core, state);
         if (!applied && state.painter) {
-          core.editor.addEventListener("mouseup", state.painterListener, {
+          core.editor.addEventListener("pointerup", state.painterListener, {
             once: true,
           });
         }
       });
     };
-    core.editor.addEventListener("mouseup", state.painterListener, {
+    core.editor.addEventListener("pointerup", state.painterListener, {
       once: true,
     });
     return true;
@@ -291,12 +297,17 @@
 
   function clearPainter(core, state) {
     if (state.painterListener) {
-      core.editor.removeEventListener("mouseup", state.painterListener);
+      core.editor.removeEventListener("pointerup", state.painterListener);
     }
     state.painterListener = null;
     state.painterToast?.remove();
     state.painterToast = null;
     state.painter = null;
+    const painterButton =
+      core.toolbar.getButton("formatPainter") ||
+      core.toolbar.getButton("productivity");
+    painterButton?.classList.remove("is-active");
+    painterButton?.setAttribute("aria-pressed", "false");
   }
 
   function applyFormatPainter(core, state) {

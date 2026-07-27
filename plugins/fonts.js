@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra fonts plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -10,12 +10,31 @@
   "use strict";
 
   const installations = new WeakMap();
+  const fontSizeGuards = new WeakMap();
   const FONT_FAMILIES = Object.freeze([
     "Segoe UI",
     "Calibri",
+    "Arial",
+    "Helvetica",
     "Times New Roman",
+    "Georgia",
+    "Garamond",
     "Verdana",
+    "Tahoma",
+    "Trebuchet MS",
     "Courier New",
+    "Consolas",
+    "Cambria",
+    "Candara",
+    "Century Gothic",
+    "Franklin Gothic Medium",
+    "Palatino Linotype",
+    "Book Antiqua",
+    "Lucida Sans Unicode",
+    "Impact",
+    "Noto Sans",
+    "Noto Serif",
+    "Arial Unicode MS",
   ]);
   const FONT_SIZES = Object.freeze(
     Array.from({ length: 29 }, (_, index) => index + 8),
@@ -104,6 +123,13 @@
   function setFontSize(core, value) {
     const numeric = Number.parseInt(String(value || "").replace("px", ""), 10);
     if (!FONT_SIZES.includes(numeric)) return false;
+    const now = performance.now();
+    const previous = fontSizeGuards.get(core);
+    if (previous?.value === numeric && now - previous.time < 150) return true;
+    fontSizeGuards.set(core, { value: numeric, time: now });
+    requestAnimationFrame(() => {
+      if (fontSizeGuards.get(core)?.time === now) fontSizeGuards.delete(core);
+    });
     return applyInline(core, "fontSize", `${numeric}px`);
   }
 
@@ -149,6 +175,7 @@
     const state = { unregister };
     core.registerCleanup(() => {
       unregister.forEach((remove) => remove());
+      fontSizeGuards.delete(core);
       installations.delete(core);
     });
     installations.set(core, state);

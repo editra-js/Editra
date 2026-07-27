@@ -1,7 +1,7 @@
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.16.0
+ * Version: 1.17.0
  * Purpose: Implements the Editra lists plugin and its editor commands.
  * Licensing: MIT License (open source)
  */
@@ -25,9 +25,80 @@
   function runListCommand(core, command) {
     core.restoreSelection();
     core.editor.focus({ preventScroll: true });
+    const tagName =
+      command === "insertOrderedList"
+        ? "OL"
+        : command === "insertUnorderedList"
+          ? "UL"
+          : null;
+    const selection = global.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    const anchor =
+      selection?.anchorNode?.nodeType === Node.ELEMENT_NODE
+        ? selection.anchorNode
+        : selection?.anchorNode?.parentElement;
+    const currentList = tagName ? anchor?.closest("ul,ol") : null;
+    const before = core.editor.innerHTML;
     const result = core.execCommand(command);
+    if (core.editor.innerHTML !== before || !tagName || !range) {
+      commit(core);
+      return result;
+    }
+
+    if (currentList && core.editor.contains(currentList)) {
+      if (currentList.tagName !== tagName) {
+        const replacement = document.createElement(tagName.toLowerCase());
+        replacement.className = currentList.className;
+        replacement.append(...currentList.childNodes);
+        currentList.replaceWith(replacement);
+      } else {
+        const fragment = document.createDocumentFragment();
+        [...currentList.children].forEach((item) => {
+          if (item.tagName !== "LI") return;
+          const paragraph = document.createElement("p");
+          paragraph.append(...item.childNodes);
+          if (!paragraph.hasChildNodes()) paragraph.append(document.createElement("br"));
+          fragment.append(paragraph);
+        });
+        currentList.replaceWith(fragment);
+      }
+      commit(core);
+      return true;
+    }
+
+    const blocks = [
+      ...core.editor.querySelectorAll("p,div,h1,h2,h3,h4,h5,h6,blockquote,pre"),
+    ].filter((block) => {
+      if (block.parentElement !== core.editor) return false;
+      try {
+        return range.intersectsNode(block);
+      } catch {
+        return false;
+      }
+    });
+    const targets = blocks.length
+      ? blocks
+      : [anchor?.closest("p,div,h1,h2,h3,h4,h5,h6,blockquote,pre")].filter(
+          (block) => block?.parentElement === core.editor,
+        );
+    if (!targets.length) return result;
+    const list = document.createElement(tagName.toLowerCase());
+    targets[0].before(list);
+    targets.forEach((block) => {
+      const item = document.createElement("li");
+      item.append(...block.childNodes);
+      if (!item.hasChildNodes()) item.append(document.createElement("br"));
+      list.append(item);
+      block.remove();
+    });
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(list.firstElementChild);
+    nextRange.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(nextRange);
+    core.selection = nextRange.cloneRange();
     commit(core);
-    return result;
+    return true;
   }
 
   function bulletList(core) {
