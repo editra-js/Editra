@@ -112,8 +112,9 @@ test("toolbar SVG assets load without 404 or CSP regressions", async ({
 
 test("demo server supplies enterprise response headers", async ({ request }) => {
   const response = await request.get("/index.html");
-  expect(response.headers()["x-frame-options"]).toBe("DENY");
+  expect(response.headers()["x-frame-options"]).toBe("SAMEORIGIN");
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(response.headers()["referrer-policy"]).toBe("no-referrer");
   expect(response.headers()["content-security-policy"]).toContain(
     "require-trusted-types-for 'script'",
   );

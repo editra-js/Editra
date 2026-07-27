@@ -30,6 +30,7 @@ const mimeTypes = {
 };
 
 const server = http.createServer((request, response) => {
+  const isHttps = Boolean(request.socket?.encrypted);
   let pathname;
   try {
     pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
@@ -51,20 +52,26 @@ const server = http.createServer((request, response) => {
       return;
     }
 
-    response.writeHead(200, {
+    const headers = {
       "Content-Type":
         mimeTypes[path.extname(filePath).toLowerCase()] ||
         "application/octet-stream",
       "Cache-Control": "no-cache",
-      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Referrer-Policy": "no-referrer",
       "X-Content-Type-Options": "nosniff",
-      "X-Frame-Options": "DENY",
+      "X-Frame-Options": "SAMEORIGIN",
       "Permissions-Policy":
         "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
       "Cross-Origin-Opener-Policy": "same-origin",
       "Content-Security-Policy":
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'",
-    });
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'",
+    };
+    if (isHttps) {
+      headers["Strict-Transport-Security"] =
+        "max-age=31536000; includeSubDomains";
+    }
+
+    response.writeHead(200, headers);
     fs.createReadStream(filePath).pipe(response);
   });
 });
