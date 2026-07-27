@@ -9,6 +9,9 @@
 "use strict";
 
 const { defineConfig } = require("@playwright/test");
+const path = require("node:path");
+
+const chromiumExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || "";
 
 module.exports = defineConfig({
   testDir: "./tests/playwright",
@@ -27,7 +30,15 @@ module.exports = defineConfig({
     timeout: 15000,
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium" } },
+    {
+      name: "chromium",
+      use: {
+        browserName: "chromium",
+        launchOptions: chromiumExecutable
+          ? { executablePath: chromiumExecutable }
+          : undefined,
+      },
+    },
     { name: "firefox", use: { browserName: "firefox" } },
     { name: "webkit", use: { browserName: "webkit" } },
   ],
