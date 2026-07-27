@@ -10,6 +10,19 @@
 
 const { test, expect } = require("@playwright/test");
 
+test.beforeEach(async ({ page }) => {
+  await page.route("https://assets.editra.test/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/gif",
+      body: Buffer.from(
+        "R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
+        "base64",
+      ),
+    }),
+  );
+});
+
 test("security, accessibility, RTL, lifecycle, and performance contracts pass", async ({
   page,
 }) => {
