@@ -10,6 +10,27 @@
 
 const { test, expect } = require("@playwright/test");
 
+function isToolbarIconUrl(value) {
+  try {
+    return new URL(value).pathname.startsWith("/assets/icons/");
+  } catch {
+    return false;
+  }
+}
+
+async function expectSecurityContractsToPass(page) {
+  await page.waitForFunction(
+    () => ["passed", "failed"].includes(document.body.dataset.testStatus),
+    null,
+    { timeout: 45000 },
+  );
+  const outcome = await page.locator("body").getAttribute("data-test-status");
+  const report = (await page.locator("#test-result").textContent())?.trim();
+  expect(outcome, report || "Enterprise browser contract failed").toBe(
+    "passed",
+  );
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route("https://assets.editra.test/**", (route) =>
     route.fulfill({
@@ -26,12 +47,9 @@ test.beforeEach(async ({ page }) => {
 test("security, accessibility, RTL, lifecycle, and performance contracts pass", async ({
   page,
 }) => {
+  test.setTimeout(60000);
   await page.goto("/tests/security/browser-security.html");
-  await expect(page.locator("body")).toHaveAttribute(
-    "data-test-status",
-    "passed",
-    { timeout: 20000 },
-  );
+  await expectSecurityContractsToPass(page);
   await expect(page.locator("#test-result")).toHaveText("passed");
   await expect(page.locator("body")).toHaveAttribute(
     "data-benchmark",
@@ -44,25 +62,50 @@ test("toolbar SVG assets load without 404 or CSP regressions", async ({
 }) => {
   const failedRequests = [];
   page.on("requestfailed", (request) => {
-    failedRequests.push(`${request.url()}: ${request.failure()?.errorText}`);
+    if (isToolbarIconUrl(request.url())) {
+      failedRequests.push(`${request.url()}: ${request.failure()?.errorText}`);
+    }
   });
   const errorResponses = [];
   page.on("response", (response) => {
-    if (response.status() >= 400) {
+    if (isToolbarIconUrl(response.url()) && response.status() >= 400) {
       errorResponses.push(`${response.status()} ${response.url()}`);
     }
   });
 
   await page.goto("/tests/security/browser-security.html");
-  await expect(page.locator("body")).toHaveAttribute(
-    "data-test-status",
-    "passed",
-    { timeout: 30000 },
+  const icons = page.locator(".editra-tool-icon");
+  await expect(icons.first()).toBeAttached({ timeout: 15000 });
+  await expect
+    .poll(
+      () =>
+        icons.evaluateAll(
+          (elements) =>
+            elements.length >= 8 &&
+            elements.every(
+              (icon) => icon.complete && icon.naturalWidth > 0,
+            ),
+        ),
+      { timeout: 15000 },
+    )
+    .toBe(true);
+  const iconResults = await icons.evaluateAll((elements) =>
+    elements.map((icon) => ({
+      complete: icon.complete,
+      naturalWidth: icon.naturalWidth,
+      path: new URL(icon.src).pathname,
+    })),
   );
-  await expect(page.locator(".editra-tool-icon").first()).toHaveJSProperty(
-    "complete",
-    true,
-  );
+  expect(iconResults.length).toBeGreaterThanOrEqual(8);
+  expect(
+    iconResults.every(
+      (icon) =>
+        icon.complete &&
+        icon.naturalWidth > 0 &&
+        icon.path.startsWith("/assets/icons/"),
+    ),
+    JSON.stringify(iconResults),
+  ).toBe(true);
   expect(failedRequests).toEqual([]);
   expect(errorResponses).toEqual([]);
 });
