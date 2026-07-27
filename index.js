@@ -100,7 +100,7 @@ const api = {
   init,
   load: loadRuntime,
   version: "1.17.0",
-  packageVersion: "1.1.0",
+  packageVersion: "1.17.0",
 };
 api.default = api;
 Object.freeze(api);

@@ -20,7 +20,7 @@ test("exports the CommonJS API", () => {
   assert.equal(Editra.default, Editra);
   assert.equal(typeof Editra.init, "function");
   assert.equal(typeof Editra.load, "function");
-  assert.equal(Editra.packageVersion, "1.1.0");
+  assert.equal(Editra.packageVersion, "1.17.0");
 });
 
 test("normalizes selector and options", async () => {

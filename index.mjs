@@ -77,7 +77,7 @@ const Editra = Object.freeze({
   init,
   load,
   version: "1.17.0",
-  packageVersion: "1.1.0",
+  packageVersion: "1.17.0",
 });
 
 export { init, load };

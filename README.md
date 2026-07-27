@@ -4,7 +4,7 @@ Editra is a premium open‑source WYSIWYG editor for the web, offering Word‑st
 Editra is a premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.17.0 is licensed under the MIT License.
 
 Author: Editra Team  
-Package version: 1.1.0
+Package version: 1.17.0
 
 ## Quick start
 
@@ -32,17 +32,17 @@ Do not open the examples with `file://`; browsers block dynamically loaded plugi
 ### Package integration
 
 ```bash
-npm install editra
+npm install @editra-js/editra
 ```
 
 ```js
-import Editra from "editra";
-import "editra/themes/premium.css";
+import Editra from "@editra-js/editra";
+import "@editra-js/editra/themes/premium.css";
 
 await Editra.init("#editra-editor", { theme: "premium" });
 ```
 
-The unscoped npm name is currently owned by another publisher, so publication requires package ownership or a new package name. A local release archive can be verified with `npm run pack:check`.
+The scoped package is published under the `@editra-js` namespace. A local release archive can be verified with `npm run pack:check`.
 
 ### CDN integration
 
@@ -59,8 +59,8 @@ Currently published through the GitHub-backed jsDelivr endpoint:
 The npm-backed URLs, available after npm publication, are:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/editra/themes/premium.css">
-<script src="https://cdn.jsdelivr.net/npm/editra/dist/editra.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@editra-js/editra/themes/premium.css">
+<script src="https://cdn.jsdelivr.net/npm/@editra-js/editra/dist/editra.min.js"></script>
 <script>
   Editra.init("#editra-editor", { theme: "premium" });
 </script>
@@ -69,7 +69,7 @@ The npm-backed URLs, available after npm publication, are:
 unpkg alternative:
 
 ```html
-<script src="https://unpkg.com/editra/dist/editra.js"></script>
+<script src="https://unpkg.com/@editra-js/editra/dist/editra.min.js"></script>
 ```
 
 These npm CDN paths become valid for this project only after registry ownership is resolved and this package is published. The existing unscoped registry package is unrelated.

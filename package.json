@@ -1,6 +1,6 @@
 {
-  "name": "editra",
-  "version": "1.1.0",
+  "name": "@editra-js/editra",
+  "version": "1.17.0",
   "description": "Premium WYSIWYG Editor for the Web",
   "main": "index.js",
   "module": "index.mjs",
@@ -14,7 +14,9 @@
       "default": "./index.js"
     },
     "./dist/editra.js": "./dist/editra.js",
+    "./dist/editra.min.js": "./dist/editra.min.js",
     "./themes/premium.css": "./themes/premium.css",
+    "./themes/premium.min.css": "./themes/premium.min.css",
     "./core/editor.js": "./core/editor.js",
     "./core/security.js": "./core/security.js",
     "./assets/*": "./assets/*",
@@ -56,7 +58,7 @@
   "author": "Editra Team",
   "license": "MIT",
   "scripts": {
-    "build": "node tools/sync-vendor.js && webpack --config webpack.config.js",
+    "build": "node tools/sync-vendor.js && webpack --config webpack.config.js && node tools/generate-minified-assets.js",
     "test": "npm run test:unit && npm run test:browser:installed",
     "test:unit": "node --test tests/unit/entry.test.js && node tests/automation/verify-project.js && node tests/unit/core-contract.test.js && node tests/unit/distribution-contract.test.js && node tests/unit/security-contract.test.js",
     "test:browser:installed": "node tests/automation/browser-security.js",

@@ -25,7 +25,7 @@ module.exports = {
     clean: false,
   },
   optimization: {
-    minimize: false,
+    minimize: true,
   },
   plugins: [
     new webpack.BannerPlugin({

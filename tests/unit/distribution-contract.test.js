@@ -24,8 +24,8 @@ const pagination = read("plugins/pagination.js");
 const tablePlugin = read("plugins/table.js");
 const exportPlugin = read("plugins/export.js");
 
-assert.equal(metadata.name, "editra");
-assert.equal(metadata.version, "1.1.0");
+assert.equal(metadata.name, "@editra-js/editra");
+assert.equal(metadata.version, "1.17.0");
 assert.equal(metadata.description, "Premium WYSIWYG Editor for the Web");
 assert.equal(metadata.license, "MIT");
 assert.equal(metadata.main, "index.js");
@@ -67,9 +67,9 @@ assert(feedback.includes('id="editra-editor"'));
 assert(feedback.includes("data-saved-html"));
 assert(feedback.includes("data-saved-text"));
 
-assert(guide.includes("npm install editra"));
-assert(guide.includes("https://cdn.jsdelivr.net/npm/editra/dist/editra.js"));
-assert(guide.includes("https://unpkg.com/editra/dist/editra.js"));
+assert(guide.includes("npm install @editra-js/editra"));
+assert(guide.includes("https://cdn.jsdelivr.net/npm/@editra-js/editra/dist/editra.min.js"));
+assert(guide.includes("https://unpkg.com/@editra-js/editra/dist/editra.min.js"));
 assert(
   guide.includes(
     "https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js",
