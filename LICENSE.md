@@ -1,3 +1,4 @@
+Version: 2.0.0
 # MIT License
 
 Copyright (c) 2026 Editra Team

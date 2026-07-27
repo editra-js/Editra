@@ -1,7 +1,8 @@
+Version: 2.0.0
 <!--
 Product: Editra
 Author: Editra Team
-Version: 1.17.0
+Version: 2.0.0
 Purpose: Documents Editra performance budgets, benchmark methodology, and lifecycle verification.
 Licensing: MIT License (open source)
 -->

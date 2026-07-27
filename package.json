@@ -1,6 +1,6 @@
 {
   "name": "@editra-js/editra",
-  "version": "1.17.2",
+  "version": "2.0.0",
   "description": "Premium WYSIWYG Editor for the Web",
   "main": "index.js",
   "module": "index.mjs",
@@ -58,7 +58,8 @@
   "author": "Editra Team",
   "license": "MIT",
   "scripts": {
-    "build": "node tools/sync-vendor.js && webpack --config webpack.config.js && node tools/generate-minified-assets.js",
+    "sync:headers": "node tools/update-version-headers.js",
+    "build": "npm run sync:headers && node tools/sync-vendor.js && webpack --config webpack.config.js && node tools/generate-minified-assets.js && npm run sync:headers",
     "test": "npm run test:unit && npm run test:browser:installed",
     "test:unit": "node --test tests/unit/entry.test.js && node tests/automation/verify-project.js && node tests/unit/core-contract.test.js && node tests/unit/distribution-contract.test.js && node tests/unit/security-contract.test.js",
     "test:browser:installed": "node tests/automation/browser-security.js",

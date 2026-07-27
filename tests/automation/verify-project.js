@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Enforces Editra release metadata, headers, documentation, demos, and JavaScript syntax.
  * Licensing: MIT License (open source)
  */
@@ -193,8 +194,9 @@ sourceFiles.forEach((file) => {
     extension === ".html"
       ? content.trimStart().startsWith("<!--")
       : extension === ".cmd"
-        ? content.trimStart().startsWith("REM")
-        : content.trimStart().startsWith("/**") ||
+      ? content.trimStart().startsWith("REM")
+        : content.trimStart().startsWith("// Version:") ||
+          content.trimStart().startsWith("/**") ||
           content.trimStart().startsWith("/*");
   if (!startsWithHeader) {
     errors.push(`${relative(file)} does not begin with a header block`);

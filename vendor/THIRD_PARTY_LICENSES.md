@@ -1,3 +1,4 @@
+Version: 2.0.0
 # Third-party browser runtimes
 
 Editra distributes pinned browser builds of these open-source projects:

@@ -1,3 +1,4 @@
+Version: 2.0.0
 # Editra tests
 
 - `automation/verify-project.js` checks release metadata, source headers, JavaScript syntax, documentation, licensing, examples, and required structure.

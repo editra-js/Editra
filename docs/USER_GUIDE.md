@@ -1,4 +1,5 @@
-﻿# Editra User Guide
+﻿Version: 2.0.0
+# Editra User Guide
 
 Version 1.17.0
 

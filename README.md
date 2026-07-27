@@ -1,3 +1,4 @@
+Version: 2.0.0
 # Editra
 
 ![npm](https://img.shields.io/npm/v/@editra-js/editra)
@@ -8,10 +9,10 @@
 [![Join Discord](https://img.shields.io/badge/discord-join-blueviolet)](https://discord.gg/YOUR_INVITE_CODE)
 Editra is a premium open‑source WYSIWYG editor for the web, offering Word‑style text editing, pagination control, tables, media embedding, and export to PDF/Word/HTML. Available via npm or CDN, it delivers enterprise‑grade features with a clean, developer‑friendly API.
 
-Editra is a premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.17.0 is licensed under the MIT License.
+Editra is a premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 2.0.0 is licensed under the MIT License.
 
 Author: Editra Team  
-Package version: 1.17.0
+Package version: 2.0.0
 
 ## Quick start
 

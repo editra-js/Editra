@@ -1,3 +1,4 @@
+Version: 2.0.0
 # Editra source distribution
 
 `src/editra.js` is the optional distribution loader. The canonical readable source remains split by responsibility:

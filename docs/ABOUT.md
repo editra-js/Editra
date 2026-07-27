@@ -1,4 +1,5 @@
-﻿# About Editra
+﻿Version: 2.0.0
+# About Editra
 
 ## Project overview
 

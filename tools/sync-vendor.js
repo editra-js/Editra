@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Copies the pinned security browser runtime into the vendor folder.
  * Licensing: MIT License (open source)
  */
@@ -34,7 +35,7 @@ function header(asset) {
   return `/**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: ${asset.purpose}
  * Licensing: MIT License (open source); ${asset.name} remains ${asset.license}.
  */

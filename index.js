@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Exposes the CommonJS and UMD-compatible Editra package entry API.
  * Licensing: MIT License (open source)
  */
@@ -99,8 +100,8 @@ async function init(selector, options) {
 const api = {
   init,
   load: loadRuntime,
-  version: "1.17.0",
-  packageVersion: "1.17.0",
+  version: "2.0.0",
+  packageVersion: "2.0.0",
 };
 api.default = api;
 Object.freeze(api);

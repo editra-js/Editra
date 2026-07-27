@@ -1,3 +1,4 @@
+Version: 2.0.0
 # Editra Help
 
 ## Frequently asked questions

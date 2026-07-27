@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Exercises browser-enforced security, accessibility, i18n, limits, and cleanup contracts.
  * Licensing: MIT License (open source)
  */

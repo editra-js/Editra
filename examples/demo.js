@@ -1,7 +1,8 @@
-﻿/**
+﻿// Version: 2.0.0
+/**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Initializes and coordinates all feature-focused Editra demonstrations.
  * Licensing: MIT License (open source)
  */

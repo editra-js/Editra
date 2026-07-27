@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Implements the Editra core runtime, initialization, state, history, commands, and plugin loading.
  * Licensing: MIT License (open source)
  */
@@ -2434,7 +2435,7 @@ class EditraCore {
   }
 }
 
-  EditraCore.VERSION = "1.17.0";
+  EditraCore.VERSION = "2.0.0";
   EditraCore.PRODUCT = "Editra";
   global.EditraCore = EditraCore;
   global.Editra = EditraCore;

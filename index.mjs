@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Exposes the native ES-module Editra package entry API.
  * Licensing: MIT License (open source)
  */
@@ -76,8 +77,8 @@ async function init(selector, options) {
 const Editra = Object.freeze({
   init,
   load,
-  version: "1.17.0",
-  packageVersion: "1.17.0",
+  version: "2.0.0",
+  packageVersion: "2.0.0",
 });
 
 export { init, load };

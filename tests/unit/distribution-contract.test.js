@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Verifies Editra package metadata, demo integration actions, feedback persistence, and premium styling.
  * Licensing: MIT License (open source)
  */
@@ -15,6 +16,7 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "../..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const metadata = JSON.parse(read("package.json"));
+const version = read("version.prop").match(/^version=(.+)$/m)?.[1]?.trim();
 const theme = read("ui/theme-premium.css");
 const documentTheme = read("themes/premium.css");
 const demos = read("examples/demo.js");
@@ -25,7 +27,7 @@ const tablePlugin = read("plugins/table.js");
 const exportPlugin = read("plugins/export.js");
 
 assert.equal(metadata.name, "@editra-js/editra");
-assert.equal(metadata.version, "1.17.0");
+assert.equal(metadata.version, version);
 assert.equal(metadata.description, "Premium WYSIWYG Editor for the Web");
 assert.equal(metadata.license, "MIT");
 assert.equal(metadata.main, "index.js");

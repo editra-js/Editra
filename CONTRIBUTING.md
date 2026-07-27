@@ -1,3 +1,4 @@
+Version: 2.0.0
 # Contributing to Editra
 
 The canonical contribution guide is [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).

@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Verifies the documented Editra public API and command routing contract.
  * Licensing: MIT License (open source)
  */
@@ -14,6 +15,10 @@ const assert = require("node:assert/strict");
 
 const root = path.resolve(__dirname, "../..");
 const core = fs.readFileSync(path.join(root, "core/editor.js"), "utf8");
+const version = fs
+  .readFileSync(path.join(root, "version.prop"), "utf8")
+  .match(/^version=(.+)$/m)?.[1]
+  ?.trim();
 const requiredMethods = [
   "static async init",
   "executeCommand(",
@@ -44,5 +49,5 @@ requiredMethods.forEach((method) =>
 requiredCommands.forEach((command) =>
   assert.ok(core.includes(command), `Missing command route ${command}`),
 );
-assert.ok(core.includes('EditraCore.VERSION = "1.17.0"'));
+assert.ok(core.includes(`EditraCore.VERSION = "${version}"`));
 console.log("Editra core API contract passed.");

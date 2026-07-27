@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Generates minified distribution aliases for the public package.
  * Licensing: MIT License (open source)
  */
@@ -19,14 +20,14 @@ const minifiedTheme = path.join(root, "themes", "premium.min.css");
 const header = `/**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Provides the browser-ready Editra UMD distribution for npm CDNs.
  * Licensing: MIT License (open source)
  */
 `;
 
 function minifyCss(source) {
-  const header = source.match(/^\s*(\/\*[\s\S]*?\*\/)/)?.[1] ?? "";
+  const header = source.match(/^(?:\s*\/\*[\s\S]*?\*\/\s*)+/)?.[0] ?? "";
   const stylesheet = source.slice(header.length);
   let output = "";
   let quote = null;

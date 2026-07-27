@@ -1,7 +1,8 @@
+// Version: 2.0.0
 /**
  * Product: Editra
  * Author: Editra Team
- * Version: 1.17.0
+ * Version: 2.0.0
  * Purpose: Verifies CommonJS package exports and selector-based initialization.
  * Licensing: MIT License (open source)
  */
@@ -11,6 +12,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const Editra = require("../../index.js");
+const packageMetadata = require("../../package.json");
 
 test.afterEach(() => {
   delete globalThis.EditraCore;
@@ -20,7 +22,7 @@ test("exports the CommonJS API", () => {
   assert.equal(Editra.default, Editra);
   assert.equal(typeof Editra.init, "function");
   assert.equal(typeof Editra.load, "function");
-  assert.equal(Editra.packageVersion, "1.17.0");
+  assert.equal(Editra.packageVersion, packageMetadata.version);
 });
 
 test("normalizes selector and options", async () => {
