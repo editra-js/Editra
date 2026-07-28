@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Runs the enterprise browser security suite in installed Chromium-family browsers.
  * Licensing: MIT License (open source)

@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Verifies CommonJS package exports and selector-based initialization.
  * Licensing: MIT License (open source)

@@ -1,6 +1,5 @@
 REM Version: 2.0.0
 REM Product: Editra
-REM Author: Editra Team
 REM Version: 2.0.0
 REM Purpose: Starts the local Editra HTTP server on Windows.
 REM Licensing: MIT License (open source)

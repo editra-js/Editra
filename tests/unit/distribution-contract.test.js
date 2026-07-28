@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Verifies Editra package metadata, demo integration actions, feedback persistence, and premium styling.
  * Licensing: MIT License (open source)
@@ -26,7 +25,7 @@ const pagination = read("plugins/pagination.js");
 const tablePlugin = read("plugins/table.js");
 const exportPlugin = read("plugins/export.js");
 
-assert.equal(metadata.name, "@editra-js/editra");
+assert.equal(metadata.name, "editra-js");
 assert.equal(metadata.version, version);
 assert.equal(metadata.description, "Premium WYSIWYG Editor for the Web");
 assert.equal(metadata.license, "MIT");
@@ -69,9 +68,9 @@ assert(feedback.includes('id="editra-editor"'));
 assert(feedback.includes("data-saved-html"));
 assert(feedback.includes("data-saved-text"));
 
-assert(guide.includes("npm install @editra-js/editra"));
-assert(guide.includes("https://cdn.jsdelivr.net/npm/@editra-js/editra/dist/editra.min.js"));
-assert(guide.includes("https://unpkg.com/@editra-js/editra/dist/editra.min.js"));
+assert(guide.includes("npm install editra-js"));
+assert(guide.includes("https://cdn.jsdelivr.net/npm/editra-js/dist/editra.min.js"));
+assert(guide.includes("https://unpkg.com/editra-js/dist/editra.min.js"));
 assert(
   guide.includes(
     "https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js",

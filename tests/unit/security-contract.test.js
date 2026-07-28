@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Enforces static enterprise security, supply-chain, and lifecycle contracts.
  * Licensing: MIT License (open source)
@@ -51,8 +50,14 @@ assert.ok(toolbar.includes('document.createElement("img")'));
 assert.ok(!toolbar.includes("svg.innerHTML"));
 assert.ok(server.includes("font-src 'self'"));
 assert.equal(packageMetadata.dependencies.dompurify, "3.4.12");
-assert.ok(!packageMetadata.dependencies.qrcode);
-assert.ok(!packageMetadata.dependencies.jsbarcode);
+assert.equal(packageMetadata.dependencies["qrcode-generator"], "2.0.4");
+assert.equal(packageMetadata.dependencies.jsbarcode, "3.11.6");
+assert.equal(packageMetadata.devDependencies["@fontsource/libre-barcode-128"], "5.3.0");
+assert.equal(packageMetadata.devDependencies["@fontsource/libre-barcode-39"], "5.3.0");
+assert.equal(
+  packageMetadata.devDependencies["@fontsource/libre-barcode-ean13-text"],
+  "5.3.0",
+);
 assert.equal(packageMetadata.devDependencies.webpack, "5.109.0");
 assert.equal(packageMetadata.devDependencies["webpack-cli"], "6.0.1");
 
@@ -72,33 +77,37 @@ for (const icon of [
   );
 }
 
-for (const removedAsset of [
-  "plugins/rendering.js",
-  "assets/icons/qr-code.svg",
-  "assets/icons/barcode.svg",
-  "vendor/qrcode.min.js",
-  "vendor/jsbarcode.min.js",
-]) {
+for (const removedAsset of ["plugins/rendering.js", "vendor/qrcode.min.js"]) {
   assert.ok(
     !fs.existsSync(path.join(root, removedAsset)),
     `Removed QR/barcode asset still exists: ${removedAsset}`,
   );
 }
 
-for (const [file, source] of Object.entries({
-  "core/editor.js": core,
-  "plugins/export.js": exportPlugin,
-  "ui/toolbar.js": toolbar,
-  "ui/menubar.js": read("ui/menubar.js"),
-  "themes/premium.css": read("themes/premium.css"),
-})) {
+for (const asset of [
+  "vendor/jsbarcode.min.js",
+  "vendor/qrcode.js",
+  "vendor/qrcode_UTF8.js",
+  "assets/fonts/editra-code128.woff2",
+  "assets/fonts/editra-code39.woff2",
+  "assets/fonts/editra-ean13.woff2",
+  "assets/fonts/OFL-1.1.txt",
+]) {
   assert.ok(
-    !/renderQRCode|renderBarcode|renderModesForExport|applyRenderMode|render-mode|data-render/i.test(
-      source,
-    ),
-    `${file} still contains QR/barcode behavior`,
+    fs.existsSync(path.join(root, asset)),
+    `Missing embedded code resource: ${asset}`,
   );
 }
+
+for (const asset of ["assets/icons/qr-code.svg", "assets/icons/barcode.svg"]) {
+  assert.ok(
+    fs.existsSync(path.join(root, asset)),
+    `Missing QR/barcode asset: ${asset}`,
+  );
+}
+
+assert.ok(read("plugins/codes.js").includes("global.JsBarcode"));
+assert.ok(read("plugins/codes.js").includes("global.qrcode"));
 
 const executableFiles = [
   "core/editor.js",

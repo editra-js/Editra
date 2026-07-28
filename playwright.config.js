@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Configures Chromium, Firefox, and WebKit enterprise browser verification.
  * Licensing: MIT License (open source)

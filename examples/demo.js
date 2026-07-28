@@ -1,7 +1,6 @@
 ﻿// Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Initializes and coordinates all feature-focused Editra demonstrations.
  * Licensing: MIT License (open source)
@@ -183,7 +182,7 @@
       title: "About Editra",
       description: "Project ownership, goals, technology, author, and MIT licensing.",
       config: { showMenuBar: false, toolbar: "bold italic | undo redo" },
-      content: "<h1>About Editra</h1><p>Editra is a standalone premium WYSIWYG editor authored by Editra Team. Version 1.17.0 is MIT licensed.</p><p><a href='../docs/ABOUT.md'>Read project details</a></p>",
+      content: "<h1>About Editra</h1><p>Editra is a standalone, MIT-licensed WYSIWYG editor. Release metadata is maintained centrally.</p><p><a href='../docs/ABOUT.md'>Read project details</a></p>",
     },
     bold: {
       title: "Bold",
@@ -260,9 +259,12 @@
     },
     formatting: {
       title: "Core Formatting",
-      description: "Fonts, sizes, colors, highlighting, alignment, line height, and strikethrough.",
-      config: { plugins: ["formatting", "fonts", "headings"] },
-      content: "<h2>Formatting controls</h2><p>Select this text and combine font, color, highlight, alignment, and spacing tools.</p>",
+      description: "Fonts, colors, highlight, sup/subscript, block quotes, alignment, line height, and Format Painter.",
+      config: {
+        plugins: ["formatting", "fonts", "headings", "productivity"],
+        toolbar: "fontFamily fontSize foreColor backgroundColor highlighter | strikethrough superscript subscript blockQuote formatPainter | alignment lineHeight | undo redo",
+      },
+      content: "<h2>Formatting controls</h2><p>Select this text and combine font, color, highlight, strikethrough, superscript, subscript, block quote, alignment, spacing, and Format Painter.</p>",
     },
     headings: {
       title: "Semantic Headings",
@@ -272,15 +274,22 @@
     },
     lists: {
       title: "Lists",
-      description: "Bullet, numbered, multilevel, TODO lists, and indentation.",
-      config: { plugins: ["lists"] },
+      description: "Styled bullet and number lists, multilevel lists, TODO items, and indentation.",
+      config: {
+        plugins: ["lists"],
+        toolbar: "bulletList numberList multilevelList todoList decreaseIndent increaseIndent | undo redo",
+        menu: { Format: ["Bullet List", "Number List", "Multilevel List", "TODO List", "Decrease Indent", "Increase Indent"] },
+      },
       content: "<h2>List editing</h2><p>Select these lines and choose a list style.</p><p>First item<br>Second item<br>Third item</p>",
     },
     structure: {
       title: "Document Structure",
-      description: "Emoji, code blocks, horizontal rules, page breaks, and table of contents.",
-      config: { plugins: ["structure", "headings"] },
-      content: "<h1>Structure demo</h1><h2>Section one</h2><p>Use Insert commands to add structural elements.</p>",
+      description: "Emoji, categorized symbols, date/time, codes, page breaks, headings, and table of contents.",
+      config: {
+        plugins: ["structure", "headings", "codes"],
+        toolbar: "emoji specialCharacters dateTime insertBarcode insertQrCode | codeBlock horizontalLine pageBreak toc | heading undo redo",
+      },
+      content: "<h1>Structure demo</h1><h2>Section one</h2><p>Use the purpose-built toolbar and Insert menu to add characters, dates, codes, and structural elements.</p>",
     },
     "code-view": {
       title: "HTML Code View",

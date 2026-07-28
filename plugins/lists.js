@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Implements the Editra lists plugin and its editor commands.
  * Licensing: MIT License (open source)
@@ -23,7 +22,81 @@
     return true;
   }
 
-  function runListCommand(core, command) {
+  function createListFromBlocks(tagName, blocks) {
+    if (!blocks.length) return null;
+    const list = document.createElement(tagName.toLowerCase());
+    const firstBlock = blocks[0];
+    firstBlock.before(list);
+    blocks.forEach((block) => {
+      const item = document.createElement("li");
+      const childNodes = [...block.childNodes];
+      if (childNodes.length) item.append(...childNodes);
+      else item.append(document.createElement("br"));
+      list.append(item);
+      block.remove();
+    });
+    return list;
+  }
+
+  function removeEmptyStyle(element) {
+    if (!element.getAttribute("style")?.trim()) element.removeAttribute("style");
+  }
+
+  function normalizeFontSizeFormatting(list) {
+    [list, ...list.querySelectorAll("li")].forEach((element) => {
+      element.style.removeProperty("font-size");
+      removeEmptyStyle(element);
+    });
+    list.querySelectorAll("span[style]").forEach((span) => {
+      if (!span.style.fontSize || !span.parentElement) return;
+      if (getComputedStyle(span).fontSize !== getComputedStyle(span.parentElement).fontSize) {
+        return;
+      }
+      span.style.removeProperty("font-size");
+      removeEmptyStyle(span);
+      if (!span.attributes.length) span.replaceWith(...span.childNodes);
+    });
+  }
+
+  function placeCaret(core, selection, container) {
+    const target = container.matches?.("li,p")
+      ? container
+      : container.querySelector?.("li,p") || container;
+    if (!target) return;
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(target);
+    nextRange.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(nextRange);
+    core.selection = nextRange.cloneRange();
+  }
+
+  function replaceListType(list, tagName) {
+    const replacement = document.createElement(tagName.toLowerCase());
+    [...list.attributes].forEach((attribute) => {
+      replacement.setAttribute(attribute.name, attribute.value);
+    });
+    replacement.append(...list.childNodes);
+    list.replaceWith(replacement);
+    return replacement;
+  }
+
+  function removeList(list) {
+    const fragment = document.createDocumentFragment();
+    const paragraphs = [];
+    [...list.children].forEach((item) => {
+      if (item.tagName !== "LI") return;
+      const paragraph = document.createElement("p");
+      paragraph.append(...item.childNodes);
+      if (!paragraph.hasChildNodes()) paragraph.append(document.createElement("br"));
+      paragraphs.push(paragraph);
+      fragment.append(paragraph);
+    });
+    list.replaceWith(fragment);
+    return paragraphs[0] || null;
+  }
+
+  function runListCommand(core, command, options = {}) {
     core.restoreSelection();
     core.editor.focus({ preventScroll: true });
     const tagName =
@@ -31,7 +104,10 @@
         ? "OL"
         : command === "insertUnorderedList"
           ? "UL"
-          : null;
+        : null;
+    const requestedStyle = String(
+      typeof options === "string" ? options : options.style || "",
+    ).trim();
     const selection = global.getSelection();
     const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
     const anchor =
@@ -39,30 +115,30 @@
         ? selection.anchorNode
         : selection?.anchorNode?.parentElement;
     const currentList = tagName ? anchor?.closest("ul,ol") : null;
-    const before = core.editor.innerHTML;
-    const result = core.execCommand(command);
-    if (core.editor.innerHTML !== before || !tagName || !range) {
+    if (!tagName || !range) {
       commit(core);
-      return result;
+      return false;
     }
 
     if (currentList && core.editor.contains(currentList)) {
-      if (currentList.tagName !== tagName) {
-        const replacement = document.createElement(tagName.toLowerCase());
-        replacement.className = currentList.className;
-        replacement.append(...currentList.childNodes);
-        currentList.replaceWith(replacement);
-      } else {
-        const fragment = document.createDocumentFragment();
-        [...currentList.children].forEach((item) => {
-          if (item.tagName !== "LI") return;
-          const paragraph = document.createElement("p");
-          paragraph.append(...item.childNodes);
-          if (!paragraph.hasChildNodes()) paragraph.append(document.createElement("br"));
-          fragment.append(paragraph);
-        });
-        currentList.replaceWith(fragment);
+      const shouldRemove = currentList.tagName === tagName.toUpperCase();
+      if (shouldRemove && requestedStyle) {
+        currentList.style.listStyleType = requestedStyle;
+        normalizeFontSizeFormatting(currentList);
+        placeCaret(core, selection, currentList);
+        commit(core);
+        return true;
       }
+      if (shouldRemove) {
+        const paragraph = removeList(currentList);
+        if (paragraph) placeCaret(core, selection, paragraph);
+        commit(core);
+        return true;
+      }
+      const replacement = replaceListType(currentList, tagName);
+      if (requestedStyle) replacement.style.listStyleType = requestedStyle;
+      normalizeFontSizeFormatting(replacement);
+      placeCaret(core, selection, replacement);
       commit(core);
       return true;
     }
@@ -82,32 +158,22 @@
       : [anchor?.closest("p,div,h1,h2,h3,h4,h5,h6,blockquote,pre")].filter(
           (block) => block?.parentElement === core.editor,
         );
-    if (!targets.length) return result;
-    const list = document.createElement(tagName.toLowerCase());
-    targets[0].before(list);
-    targets.forEach((block) => {
-      const item = document.createElement("li");
-      item.append(...block.childNodes);
-      if (!item.hasChildNodes()) item.append(document.createElement("br"));
-      list.append(item);
-      block.remove();
-    });
-    const nextRange = document.createRange();
-    nextRange.selectNodeContents(list.firstElementChild);
-    nextRange.collapse(false);
-    selection.removeAllRanges();
-    selection.addRange(nextRange);
-    core.selection = nextRange.cloneRange();
+    if (!targets.length) return false;
+    const list = createListFromBlocks(tagName, targets);
+    if (!list) return false;
+    if (requestedStyle) list.style.listStyleType = requestedStyle;
+    normalizeFontSizeFormatting(list);
+    placeCaret(core, selection, list);
     commit(core);
     return true;
   }
 
-  function bulletList(core) {
-    return runListCommand(core, "insertUnorderedList");
+  function bulletList(core, options) {
+    return runListCommand(core, "insertUnorderedList", options);
   }
 
-  function numberList(core) {
-    return runListCommand(core, "insertOrderedList");
+  function numberList(core, options) {
+    return runListCommand(core, "insertOrderedList", options);
   }
 
   function increaseIndent(core) {
@@ -211,8 +277,8 @@
     if (installations.has(core)) return installations.get(core);
     const unregisterCommands = [];
     const commands = {
-      bulletList: () => bulletList(core),
-      numberList: () => numberList(core),
+      bulletList: (options) => bulletList(core, options),
+      numberList: (options) => numberList(core, options),
       multilevelList: (options) => multilevelList(core, options),
       todoList: (options) => todoList(core, options),
       increaseIndent: () => increaseIndent(core),

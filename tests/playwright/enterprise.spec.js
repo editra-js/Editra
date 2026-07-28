@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Verifies enterprise security and compatibility in Chromium, Firefox, and WebKit.
  * Licensing: MIT License (open source)

@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Implements the Editra shortcuts plugin and its editor commands.
  * Licensing: MIT License (open source)
@@ -149,6 +148,13 @@
     // Native clipboard shortcuts retain browser permission and rich clipboard data.
     if (NATIVE_SHORTCUTS.has(key)) return;
 
+    if (event.shiftKey && (key === "7" || key === "8")) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      core.executeCommand(key === "7" ? "numberList" : "bulletList");
+      return;
+    }
+
     let command = SHORTCUTS[key];
     if (key === "z") command = event.shiftKey ? "redo" : "undo";
     if (key === "y") command = "redo";
@@ -165,7 +171,15 @@
     core.editor.addEventListener("keydown", listener, true);
     const unregisterCommand = core.registerCommand(
       "getShortcuts",
-      () => ({ ...SHORTCUTS, z: "undo", "shift+z": "redo", y: "redo", tab: "tab" }),
+      () => ({
+        ...SHORTCUTS,
+        z: "undo",
+        "shift+z": "redo",
+        y: "redo",
+        "shift+7": "numberList",
+        "shift+8": "bulletList",
+        tab: "tab",
+      }),
       { plugin: "shortcuts", source: "plugin" },
     );
     const state = { listener, unregisterCommand };

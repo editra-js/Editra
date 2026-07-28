@@ -1,7 +1,7 @@
 Version: 2.0.0
 # MIT License
 
-Copyright (c) 2026 Editra Team
+Copyright (c) 2026 Editra contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,4 +21,4 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Editra author: Editra Team.
+Project metadata is maintained in `version.prop`.

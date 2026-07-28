@@ -1,7 +1,6 @@
 Version: 2.0.0
 <!--
 Product: Editra
-Author: Editra Team
 Version: 2.0.0
 Purpose: Maps Editra controls to accessibility, internationalization, browser, privacy, and security standards.
 Licensing: MIT License (open source)

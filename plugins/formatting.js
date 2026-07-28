@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Implements the Editra formatting plugin and its editor commands.
  * Licensing: MIT License (open source)
@@ -160,10 +159,70 @@
     return result;
   }
 
-  function strikethrough(core) {
-    core.restoreSelection();
+  function toggleInlineElement(core, tagName, nativeCommand) {
+    const range = selectionRange(core, true);
+    if (!range) return false;
     core.editor.focus({ preventScroll: true });
-    const result = core.execCommand("strikeThrough");
+    const anchor =
+      range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+        ? range.commonAncestorContainer
+        : range.commonAncestorContainer.parentElement;
+    const active = anchor?.closest(tagName);
+    if (active && core.editor.contains(active)) {
+      const children = [...active.childNodes];
+      const parent = active.parentNode;
+      active.replaceWith(...children);
+      if (children.length) {
+        range.setStartBefore(children[0]);
+        range.setEndAfter(children.at(-1));
+        const selection = global.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        core.selection = range.cloneRange();
+      } else if (parent) {
+        range.selectNodeContents(parent);
+        range.collapse(false);
+      }
+      return commit(core);
+    }
+    if (range.collapsed) {
+      const result = core.execCommand(nativeCommand);
+      commit(core);
+      return result;
+    }
+    const wrapper = document.createElement(tagName);
+    wrapper.append(range.extractContents());
+    range.insertNode(wrapper);
+    range.selectNodeContents(wrapper);
+    const selection = global.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    core.selection = range.cloneRange();
+    return commit(core);
+  }
+
+  function strikethrough(core) {
+    return toggleInlineElement(core, "s", "strikeThrough");
+  }
+
+  function superscript(core) {
+    return toggleInlineElement(core, "sup", "superscript");
+  }
+
+  function subscript(core) {
+    return toggleInlineElement(core, "sub", "subscript");
+  }
+
+  function blockQuote(core) {
+    const range = selectionRange(core, true);
+    if (!range) return false;
+    const anchor =
+      range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? range.startContainer
+        : range.startContainer.parentElement;
+    const current = anchor?.closest("blockquote");
+    core.editor.focus({ preventScroll: true });
+    const result = core.execCommand("formatBlock", current ? "p" : "blockquote");
     commit(core);
     return result;
   }
@@ -282,6 +341,9 @@
       setBackgroundColor: (value) => setBackgroundColor(core, value),
       highlightText: (value) => highlightText(core, value),
       strikethrough: () => strikethrough(core),
+      superscript: () => superscript(core),
+      subscript: () => subscript(core),
+      blockQuote: () => blockQuote(core),
       setAlignment: (value) => setAlignment(core, value),
       setLineHeight: (value) => setLineHeight(core, value),
       formattingStressTest: (options) => formattingStressTest(core, options),

@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Implements the Editra productivity plugin and its editor commands.
  * Licensing: MIT License (open source)

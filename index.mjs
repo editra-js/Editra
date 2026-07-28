@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Exposes the native ES-module Editra package entry API.
  * Licensing: MIT License (open source)

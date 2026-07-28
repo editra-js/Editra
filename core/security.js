@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Enforces HTML sanitization, document limits, safe URLs, Trusted Types, and security telemetry.
  * Licensing: MIT License (open source)
@@ -274,7 +273,7 @@
     sanitizerConfig(returnTrustedType = false) {
       return {
         RETURN_TRUSTED_TYPE: returnTrustedType,
-        USE_PROFILES: { html: true },
+        USE_PROFILES: { html: true, svg: true, svgFilters: true },
         FORBID_TAGS: this.config.allowIframes
           ? FORBID_TAGS.filter((tag) => tag !== "iframe")
           : FORBID_TAGS,

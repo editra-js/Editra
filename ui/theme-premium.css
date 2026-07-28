@@ -1,7 +1,6 @@
 /* Version: 2.0.0 */
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Defines premium light and dark UI styling for Editra controls and dialogs.
  * Licensing: MIT License (open source)
@@ -328,8 +327,8 @@ body,
 
 .editra-menu-color-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 5px;
+  grid-template-columns: repeat(10, 16px);
+  gap: 4px;
   padding: 5px;
 }
 
@@ -337,7 +336,8 @@ body,
   aspect-ratio: 1;
   padding: 0;
   border: 1px solid rgba(0, 0, 0, 0.22);
-  min-width: 19px;
+  width: 16px;
+  min-width: 16px;
   border-radius: 2px;
   background: var(--editra-choice-color);
   cursor: pointer;
@@ -473,6 +473,8 @@ html[data-editra-theme-mode="dark"] .editra-revision-overlay,
 }
 
 html[data-editra-theme-mode="dark"] .editra-media-dialog input,
+html[data-editra-theme-mode="dark"] .editra-media-dialog textarea,
+html[data-editra-theme-mode="dark"] .editra-media-dialog select,
 html[data-editra-theme-mode="dark"] .editra-media-dialog button,
 html[data-editra-theme-mode="dark"] .editra-productivity-overlay input,
 html[data-editra-theme-mode="dark"] .editra-productivity-overlay button,

@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Implements the Editra codeview plugin and its editor commands.
  * Licensing: MIT License (open source)
@@ -81,6 +80,25 @@
       core.refreshPageLayout();
     });
     return true;
+  }
+
+  function saveSource(core, state, options = {}) {
+    if (!state.textarea) return false;
+    const source = String(
+      core.sanitizeHTML(state.textarea.value, {
+        kind: "HTML source save",
+      }),
+    );
+    state.textarea.value = source;
+    applySource(core, state);
+    if (options.download !== false) {
+      core.downloadFile(
+        options.fileName || "editra-document.html",
+        source,
+        "text/html;charset=utf-8",
+      );
+    }
+    return { format: "html-source", html: source };
   }
 
   function updateDecorations(state, sourceChanged = true) {
@@ -325,6 +343,11 @@
       core.registerCommand(
         "codeViewStressTest",
         (options) => codeViewStressTest(core, options),
+        { plugin: "codeview", source: "plugin" },
+      ),
+      core.registerCommand(
+        "saveHTMLSource",
+        (options) => saveSource(core, state, options),
         { plugin: "codeview", source: "plugin" },
       ),
     );

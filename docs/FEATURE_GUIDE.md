@@ -1,7 +1,6 @@
 Version: 2.0.0
 <!--
 Product: Editra
-Author: Editra Team
 Version: 2.0.0
 Purpose: Explains Editra features, contextual behavior, and review workflows.
 Licensing: MIT License (open source)
@@ -52,11 +51,13 @@ Emoji opens beside its triggering control and closes with its close button,
 Escape, an outside click, or when editing resumes. Page Break, Horizontal Line,
 Code Block, and Table of Contents create structural document elements.
 
-## Removed features
+## Codes and movable objects
 
-QR and barcode support was deprecated and removed in Step 24. No toolbar or
-menu controls, commands, special span interpretation, rendering libraries, or
-related assets remain. All other editor features are unchanged.
+Barcode supports Code 128, Code 39, and EAN-13 with validation and automatic
+EAN check digits. QR codes use a UTF-8 JavaScript encoder and error-corrected
+SVG matrices. Generated codes persist in document HTML and exports. Images,
+barcodes, QR codes, and emoji can be selected, moved, and removed; resizable
+objects expose corner handles.
 
 ## Languages
 

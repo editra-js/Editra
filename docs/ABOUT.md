@@ -24,6 +24,6 @@ Editra is a standalone premium browser-based WYSIWYG document editor. It provide
 ## Product and authorship
 
 - Product: Editra
-- Author: Editra Team
+- Project metadata: `version.prop`
 - Current version: 1.17.0
 - License: MIT

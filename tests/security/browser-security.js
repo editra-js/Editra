@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Exercises browser-enforced security, accessibility, i18n, limits, and cleanup contracts.
  * Licensing: MIT License (open source)
@@ -41,9 +40,10 @@
         "languages",
         "formatting",
         "productivity",
+        "codes",
       ],
       toolbar:
-        "bold italic underline strikethrough formatPainter | fontFamily fontSize foreColor backgroundColor language | table image video insertEmoji trackChanges | undo redo",
+        "bold italic underline strikethrough formatPainter | fontFamily fontSize foreColor backgroundColor language | table image video insertEmoji insertBarcode insertQrCode trackChanges | undo redo",
       showMenuBar: true,
       editorHeight: "900px",
       language: "ar",
@@ -58,6 +58,46 @@
         maxDocumentBytes: 1024 * 1024,
       },
     });
+
+    const formatTrigger = [...document.querySelectorAll(".editra-menu-trigger")]
+      .find((trigger) => trigger.textContent.trim() === "Format");
+    formatTrigger?.click();
+    const colorMenuItem = document.querySelector(
+      '.editra-menu.is-open [data-command="setForeColor"]',
+    );
+    colorMenuItem?.click();
+    const inlineChooser = document.querySelector(".editra-menu-chooser");
+    const itemRect = colorMenuItem?.getBoundingClientRect();
+    const chooserRect = inlineChooser?.getBoundingClientRect();
+    assert(
+      colorMenuItem?.classList.contains("has-submenu"),
+      "menu item is missing its submenu indicator",
+    );
+    assert(
+      colorMenuItem?.getAttribute("aria-expanded") === "true",
+      "submenu parent did not expose its expanded state",
+    );
+    assert(
+      colorMenuItem?.closest(".editra-menu")?.classList.contains("is-open"),
+      "parent menu closed while its submenu was open",
+    );
+    assert(
+      chooserRect &&
+        itemRect &&
+        (chooserRect.left >= itemRect.right - 8 ||
+          chooserRect.right <= itemRect.left + 8),
+      `submenu was not placed beside its parent (${JSON.stringify({
+        itemLeft: itemRect?.left,
+        itemRight: itemRect?.right,
+        chooserLeft: chooserRect?.left,
+        chooserRight: chooserRect?.right,
+        chooserStyleLeft: inlineChooser?.style.left,
+        hostLeft: colorMenuItem
+          ?.closest(".editra-menu")
+          ?.getBoundingClientRect().left,
+      })})`,
+    );
+    instance.menubar.closeMenus();
 
     instance.setCode(
       '<p id="constructor" onclick="alert(1)">Safe</p>' +
@@ -92,6 +132,24 @@
         "toolbar",
       "toolbar role missing",
     );
+
+    await instance.executeCommand("toggleCodeView", { enabled: true });
+    const sourceView = instance.toolbar.card.querySelector(".editra-code-view");
+    const sourceMarkup =
+      '<section data-source-container="true" style="color: rgb(12, 34, 56)">Container <span>text</span></section>';
+    sourceView.value = sourceMarkup;
+    sourceView.dispatchEvent(new Event("input", { bubbles: true }));
+    const sourceSave = await instance.executeCommand("saveHTMLSource", {
+      download: false,
+    });
+    assert(
+      sourceSave.html.includes("Container <span>text</span>") &&
+        sourceSave.html.includes('data-source-container="true"') &&
+        sourceSave.html.includes("color: rgb(12, 34, 56)") &&
+        !sourceSave.html.includes("<style"),
+      "HTML source save changed container text or injected CSS",
+    );
+    await instance.executeCommand("toggleCodeView", { enabled: false });
     const toolbarIcons = [...document.querySelectorAll(".editra-tool-icon")];
     await Promise.all(
       toolbarIcons.map((icon) =>
@@ -256,6 +314,153 @@
       !/<(ul|ol)\b/i.test(numberListState) &&
       instance.editor.textContent.includes("List item");
     assert(numberListToggledOff, "number list did not toggle off");
+
+    listRange = document.createRange();
+    listRange.selectNodeContents(instance.editor.querySelector("p"));
+    globalThis.getSelection().removeAllRanges();
+    globalThis.getSelection().addRange(listRange);
+    instance.selection = listRange.cloneRange();
+    await instance.executeCommand("numberList", "upper-roman");
+    assert(
+      instance.editor.querySelector("ol")?.style.listStyleType ===
+        "upper-roman",
+      "number list style option was not applied",
+    );
+    await instance.executeCommand("numberList");
+
+    instance.setCode('<p><span style="font-size:18px">Stable list text</span></p>');
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+    listRange = document.createRange();
+    listRange.selectNodeContents(instance.editor.querySelector("p"));
+    globalThis.getSelection().removeAllRanges();
+    globalThis.getSelection().addRange(listRange);
+    instance.selection = listRange.cloneRange();
+    await instance.executeCommand("bulletList");
+    await instance.executeCommand("bulletList");
+    assert(
+      instance.editor.querySelectorAll('span[style*="font-size"]').length === 1 &&
+        !instance.editor.querySelector("ul,ol"),
+      "list toggling changed explicit font size or created redundant wrappers",
+    );
+
+    instance.placeCaretAtEnd();
+    const barcodeResult = await instance.executeCommand("insertBarcode", {
+      value: "123456789012",
+      format: "EAN13",
+    });
+    assert(barcodeResult === true, "EAN-13 barcode insertion failed");
+    const barcode = instance.editor.querySelector('[data-editra-barcode="1234567890128"]');
+    const barcodeFrame = barcode?.closest(".editra-media-frame");
+    assert(
+      barcode?.dataset.editraBarcodeFormat === "EAN13" &&
+        barcode.querySelectorAll("svg rect").length > 10 &&
+        barcodeFrame?.draggable &&
+        barcodeFrame.querySelectorAll(".editra-resize-handle").length === 4,
+      "EAN-13 barcode SVG or computed check digit is invalid",
+    );
+    const invalidBarcode = await instance.executeCommand("insertBarcode", {
+      value: "1234567890123",
+      format: "EAN13",
+    });
+    assert(
+      Boolean(invalidBarcode?.error),
+      "invalid EAN-13 check digit was accepted",
+    );
+
+    instance.placeCaretAtEnd();
+    const qrValue = "https://example.com/editra?step=27";
+    const qrResult = await instance.executeCommand("insertQrCode", {
+      value: qrValue,
+    });
+    assert(qrResult === true, "QR code insertion failed");
+    const qrCode = instance.editor.querySelector(`[data-editra-qr="${qrValue}"]`);
+    const qrFrame = qrCode?.closest(".editra-media-frame");
+    const qrViewBox = qrCode?.querySelector("svg")?.getAttribute("viewBox") || "";
+    const qrExtent = Number(qrViewBox.split(/\s+/).at(-1));
+    assert(
+      qrCode?.dataset.editraQrErrorCorrection === "M" &&
+        qrFrame?.draggable &&
+        qrFrame.querySelectorAll(".editra-resize-handle").length === 4 &&
+        qrExtent >= 29 &&
+        (qrCode.querySelector("path")?.getAttribute("d") || "").length > 200,
+      "QR encoder did not produce a standards-sized matrix",
+    );
+    const serializedCodes = instance.getCode();
+    assert(
+      serializedCodes.includes("data-editra-barcode") &&
+        serializedCodes.includes("data-editra-qr") &&
+        serializedCodes.includes("<svg"),
+      "serialized document did not preserve generated codes",
+    );
+    const exportedCodes = await instance.executeCommand("exportHTML", {
+      download: false,
+      returnHTML: true,
+    });
+    assert(
+      exportedCodes.html.includes("data-editra-barcode") &&
+        exportedCodes.html.includes("data-editra-qr") &&
+        exportedCodes.html.includes("<svg"),
+      "HTML export did not preserve generated codes",
+    );
+    const pdfCodes = await instance.executeCommand("exportPDF", {
+      print: false,
+      returnHTML: true,
+    });
+    assert(
+      pdfCodes.html.includes("data-editra-barcode") &&
+        pdfCodes.html.includes("data-editra-qr") &&
+        pdfCodes.html.includes("<svg"),
+      "PDF render input did not preserve generated codes",
+    );
+
+    instance.placeCaretAtEnd();
+    await instance.executeCommand("insertEmoji", { emoji: "\u{1F642}" });
+    const emojiObject = instance.editor.querySelector(".editra-emoji-object");
+    assert(
+      emojiObject?.draggable &&
+        emojiObject.dataset.editraSelectable === "true",
+      "emoji was not inserted as a selectable draggable object",
+    );
+    instance.placeCaretAtEnd();
+    await instance.executeCommand("special-characters", { character: "\u20AC" });
+    await instance.executeCommand("insertDateTime", {
+      mode: "date",
+      date: new Date("2026-07-28T12:00:00Z"),
+    });
+    assert(
+      instance.editor.textContent.includes("\u20AC") &&
+        instance.editor.querySelector("time[datetime]"),
+      "special character or date insertion failed",
+    );
+
+    instance.setCode("<p>Toggle formatting</p>");
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+    let formattingRange = document.createRange();
+    formattingRange.selectNodeContents(instance.editor.querySelector("p"));
+    globalThis.getSelection().removeAllRanges();
+    globalThis.getSelection().addRange(formattingRange);
+    instance.selection = formattingRange.cloneRange();
+    await instance.executeCommand("strikethrough");
+    await instance.executeCommand("strikethrough");
+    assert(!instance.editor.querySelector("s"), "strikethrough did not toggle off");
+    formattingRange = document.createRange();
+    formattingRange.selectNodeContents(instance.editor.querySelector("p"));
+    globalThis.getSelection().removeAllRanges();
+    globalThis.getSelection().addRange(formattingRange);
+    instance.selection = formattingRange.cloneRange();
+    await instance.executeCommand("superscript");
+    assert(instance.editor.querySelector("sup"), "superscript was not applied");
+    await instance.executeCommand("superscript");
+    assert(!instance.editor.querySelector("sup"), "superscript did not toggle off");
+
+    instance.setCode("<p>Font size test</p>");
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
 
     const fontSizeBlock =
       instance.editor.querySelector("p, div, h1, h2, h3, h4, h5, h6, blockquote, pre") ||

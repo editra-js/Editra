@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Implements the Editra structure plugin and its editor commands.
  * Licensing: MIT License (open source)
@@ -16,6 +15,14 @@
     People: ["😎", "🤓", "🤔", "😮", "😢", "😡", "👏", "🙏", "💪", "👋"],
     Nature: ["🌿", "🌸", "🌞", "🌙", "⭐", "🔥", "🌈", "❄️", "🌊", "🍀"],
     Objects: ["💡", "📌", "✅", "⚠️", "🚀", "🎯", "📚", "💻", "🔒", "❤️"],
+  });
+  const SPECIAL_CHARACTER_GROUPS = Object.freeze({
+    Emoji: ["\u{1F600}", "\u{1F642}", "\u{1F44D}", "\u{1F389}", "\u2728", "\u2764\uFE0F"],
+    Currency: ["$", "\u20AC", "\u00A3", "\u00A5", "\u20B9", "\u20A9", "\u20BD", "\u00A2"],
+    Text: ["\u00A9", "\u00AE", "\u2122", "\u00A7", "\u00B6", "\u2020", "\u2021", "\u2026"],
+    Mathematical: ["\u00B1", "\u00D7", "\u00F7", "\u2260", "\u2264", "\u2265", "\u221E", "\u221A", "\u03C0", "\u2211"],
+    Arrows: ["\u2190", "\u2191", "\u2192", "\u2193", "\u2194", "\u21D0", "\u21D2", "\u21D4"],
+    Latin: ["\u00C0", "\u00C1", "\u00C4", "\u00C7", "\u00D1", "\u00D6", "\u00DC", "\u00DF", "\u00E6", "\u00F8"],
   });
 
   function nextFrame() {
@@ -60,14 +67,167 @@
     return node;
   }
 
+  function insertInlineNode(core, node) {
+    core.restoreSelection();
+    core.editor.focus({ preventScroll: true });
+    const selection = global.getSelection();
+    const range =
+      selection?.rangeCount && core.isRangeInside(selection.getRangeAt(0))
+        ? selection.getRangeAt(0)
+        : null;
+    if (!range) return false;
+    range.deleteContents();
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    core.selection = range.cloneRange();
+    return commit(core);
+  }
+
   function insertEmojiValue(core, emoji) {
     const value = String(emoji || "").trim();
     if (!value || value.length > 16) return false;
-    core.restoreSelection();
-    core.editor.focus({ preventScroll: true });
-    const result = core.execCommand("insertText", value);
-    commit(core);
-    return result;
+    const span = document.createElement("span");
+    span.className = "editra-emoji-object";
+    span.textContent = value;
+    span.contentEditable = "false";
+    span.draggable = true;
+    span.dataset.editraEmoji = value;
+    span.dataset.editraSelectable = "true";
+    span.dataset.editraDraggable = "true";
+    span.setAttribute("role", "img");
+    span.setAttribute("aria-label", `Emoji ${value}`);
+    return insertInlineNode(core, span);
+  }
+
+  function insertCharacterValue(core, character) {
+    const value = String(character || "");
+    if (!value || value.length > 8) return false;
+    const text = document.createTextNode(value);
+    return insertInlineNode(core, text);
+  }
+
+  function positionPicker(core, overlay, options) {
+    const anchor =
+      options.anchor instanceof Element ? options.anchor : core.toolbar.element;
+    const anchorRect = options.anchorRect || anchor.getBoundingClientRect();
+    const cardRect = core.toolbar.card.getBoundingClientRect();
+    const popupWidth = Math.min(350, Math.max(240, cardRect.width - 32));
+    overlay.style.right = "auto";
+    overlay.style.left = `${Math.max(8, Math.min(anchorRect.left - cardRect.left, Math.max(8, cardRect.width - popupWidth - 8)))}px`;
+    overlay.style.top = `${Math.max(8, anchorRect.bottom - cardRect.top + 6)}px`;
+  }
+
+  function openSpecialCharacterPicker(core, state, options = {}) {
+    if (options.character) return insertCharacterValue(core, options.character);
+    state.characterOverlay?.dispatchEvent(new CustomEvent("editra:close"));
+    const overlay = document.createElement("div");
+    overlay.className = "editra-emoji-picker editra-popup editra-popup--characters";
+    overlay.dataset.editraUi = "true";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", "Special characters");
+    const header = document.createElement("header");
+    const title = document.createElement("strong");
+    title.textContent = "Special characters";
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.dataset.characterClose = "true";
+    closeButton.setAttribute("aria-label", "Close special characters");
+    closeButton.textContent = "\u00d7";
+    header.append(title, closeButton);
+    const categories = document.createElement("div");
+    categories.className = "editra-character-categories";
+    const body = document.createElement("div");
+    body.className = "editra-emoji-groups";
+    overlay.append(header, categories, body);
+    core.toolbar.card.append(overlay);
+    positionPicker(core, overlay, options);
+
+    let activeCategory = Object.keys(SPECIAL_CHARACTER_GROUPS)[0];
+    let unregister = () => {};
+    let closed = false;
+    const render = () => {
+      categories.replaceChildren(
+        ...Object.keys(SPECIAL_CHARACTER_GROUPS).map((name) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.dataset.characterCategory = name;
+          button.classList.toggle("is-active", name === activeCategory);
+          button.textContent = name;
+          return button;
+        }),
+      );
+      const grid = document.createElement("div");
+      SPECIAL_CHARACTER_GROUPS[activeCategory].forEach((character) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.character = character;
+        button.setAttribute("aria-label", `Insert ${character}`);
+        button.textContent = character;
+        grid.append(button);
+      });
+      const section = document.createElement("section");
+      section.append(grid);
+      body.replaceChildren(section);
+    };
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      overlay.removeEventListener("click", click);
+      overlay.removeEventListener("keydown", keydown);
+      overlay.removeEventListener("editra:close", close);
+      document.removeEventListener("pointerdown", outside, true);
+      overlay.remove();
+      state.characterOverlay = null;
+      unregister();
+      core.focus();
+    };
+    const click = (event) => {
+      if (event.target.closest("[data-character-close]")) return close();
+      const category = event.target.closest("[data-character-category]");
+      if (category) {
+        activeCategory = category.dataset.characterCategory;
+        render();
+        return;
+      }
+      const character = event.target.closest("[data-character]");
+      if (!character) return;
+      insertCharacterValue(core, character.dataset.character);
+      close();
+    };
+    const keydown = (event) => {
+      if (event.key === "Escape") close();
+    };
+    const outside = (event) => {
+      if (!overlay.contains(event.target)) close();
+    };
+    overlay.addEventListener("click", click);
+    overlay.addEventListener("keydown", keydown);
+    overlay.addEventListener("editra:close", close);
+    document.addEventListener("pointerdown", outside, true);
+    unregister = core.registerCleanup(close);
+    state.characterOverlay = overlay;
+    render();
+    categories.querySelector("button")?.focus({ preventScroll: true });
+    return overlay;
+  }
+
+  function insertDateTime(core, options = {}) {
+    const mode = String(typeof options === "string" ? options : options.mode || "datetime");
+    const now = options.date instanceof Date ? options.date : new Date();
+    const locale = core.options.language || undefined;
+    const value =
+      mode === "date"
+        ? now.toLocaleDateString(locale)
+        : mode === "time"
+          ? now.toLocaleTimeString(locale)
+          : now.toLocaleString(locale);
+    const time = document.createElement("time");
+    time.dateTime = now.toISOString();
+    time.textContent = value;
+    return insertInlineNode(core, time);
   }
 
   function openEmojiPicker(core, state, options = {}) {
@@ -358,12 +518,19 @@
 
   function install(core) {
     if (installations.has(core)) return installations.get(core);
-    const state = { emojiOverlay: null, unregisterCommands: [] };
+    const state = {
+      emojiOverlay: null,
+      characterOverlay: null,
+      unregisterCommands: [],
+    };
     const commands = {
       insertEmoji: (options) =>
         typeof options === "string"
           ? insertEmojiValue(core, options)
           : openEmojiPicker(core, state, options),
+      "special-characters": (options) =>
+        openSpecialCharacterPicker(core, state, options),
+      insertDateTime: (options) => insertDateTime(core, options),
       insertPageBreak: () => insertPageBreak(core),
       insertHorizontalLine: () => insertHorizontalLine(core),
       insertTableOfContents: (options) => insertTableOfContents(core, options),
@@ -381,6 +548,7 @@
     });
     core.registerCleanup(() => {
       state.emojiOverlay?.dispatchEvent(new CustomEvent("editra:close"));
+      state.characterOverlay?.dispatchEvent(new CustomEvent("editra:close"));
       state.unregisterCommands.forEach((unregister) => unregister());
       installations.delete(core);
     });

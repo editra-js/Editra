@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Generates minified distribution aliases for the public package.
  * Licensing: MIT License (open source)
@@ -19,7 +18,6 @@ const theme = path.join(root, "themes", "premium.css");
 const minifiedTheme = path.join(root, "themes", "premium.min.css");
 const header = `/**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Provides the browser-ready Editra UMD distribution for npm CDNs.
  * Licensing: MIT License (open source)

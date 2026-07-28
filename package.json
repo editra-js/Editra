@@ -1,5 +1,5 @@
 {
-  "name": "@editra-js/editra",
+  "name": "editra-js",
   "version": "2.0.0",
   "description": "Premium WYSIWYG Editor for the Web",
   "main": "index.js",
@@ -55,13 +55,12 @@
     "pdf",
     "word"
   ],
-  "author": "Editra Team",
   "license": "MIT",
   "scripts": {
     "sync:headers": "node tools/update-version-headers.js",
     "build": "npm run sync:headers && node tools/sync-vendor.js && webpack --config webpack.config.js && node tools/generate-minified-assets.js && npm run sync:headers",
     "test": "npm run test:unit && npm run test:browser:installed",
-    "test:unit": "node --test tests/unit/entry.test.js && node tests/automation/verify-project.js && node tests/unit/core-contract.test.js && node tests/unit/distribution-contract.test.js && node tests/unit/security-contract.test.js",
+    "test:unit": "node --test tests/unit/entry.test.js && node tests/automation/verify-project.js && node tests/unit/core-contract.test.js && node tests/unit/distribution-contract.test.js && node tests/unit/security-contract.test.js && node --test tests/unit/lists-contract.test.js tests/unit/codes-contract.test.js",
     "test:browser:installed": "node tests/automation/browser-security.js",
     "test:cross-browser": "playwright test",
     "security:audit": "npm audit --audit-level=high",
@@ -72,11 +71,16 @@
     "node": ">=18"
   },
   "devDependencies": {
+    "@fontsource/libre-barcode-128": "5.3.0",
+    "@fontsource/libre-barcode-39": "5.3.0",
+    "@fontsource/libre-barcode-ean13-text": "5.3.0",
     "@playwright/test": "1.61.1",
     "webpack": "5.109.0",
     "webpack-cli": "6.0.1"
   },
   "dependencies": {
-    "dompurify": "3.4.12"
+    "dompurify": "3.4.12",
+    "jsbarcode": "3.11.6",
+    "qrcode-generator": "2.0.4"
   }
 }

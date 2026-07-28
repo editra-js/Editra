@@ -5,35 +5,14 @@ Version: 2.0.0
 
 Release date: 2026-07-27
 
-### Step 24 QR and barcode removal
+### Barcode, QR, and editing improvements
 
-- Deprecated and removed QR and barcode toolbar/menu controls, commands,
-  render-span interpretation, export generation, plugin code, icons, vendor
-  runtimes, package dependencies, and related documentation.
-- Removed all special handling for former `.render-mode` and `data-render`
-  markup without changing generic spans or other formatting markup.
-- Confirmed that no other editor tools, layouts, styling, or behaviors were
-  modified by this removal.
-
-### Step 23 stability restoration
-
-- Reverted the Step 22 font-family experiment and removed its barcode fonts,
-  pseudo-font sizing, resize overlay, and layout-affecting styles.
-- Restored the Step 21 `.render-mode` plus `data-render` contract, badge
-  styling, toggle behavior, lazy QR/CODE128 export pipeline, and toolbar/menu
-  commands.
-- Confirmed placeholders and normal text remain intact until the server or
-  cloned export renderer interprets them.
-
-### Step 21 rendering and editing improvements
-
-- Added lazy, client-side QR Code and CODE128 Barcode render modes for selected
-  text, with metadata-only storage and clone-only conversion during
-  HTML/Word/PDF/print export.
+- Added lazy, client-side QR Code, Code 128, Code 39, and EAN-13 generation
+  with persistent SVG output for HTML, Word, PDF, and print rendering.
 - Added packaged QRCode and JsBarcode runtimes with exact dependency pins and
   third-party license inventory.
-- Added object selection and Delete/Backspace removal for images, videos,
-  tables, and non-editable structure elements.
+- Added object selection, resizing, movement, and Delete/Backspace removal for
+  images, videos, barcodes, QR codes, emoji, tables, and structure elements.
 - Changed remote HTTPS images to eager loading and stabilized their reserved
   layout space so scrolling does not reset editor state.
 - Expanded the font selector to 23 families and added 12 document-language
@@ -41,6 +20,8 @@ Release date: 2026-07-27
 - Added QR, Barcode, Language, and Format Painter UI integration, Word-style
   color grids with advanced choice and No Fill, arrow table-grid cursors, and
   consistent toggle behavior for core emphasis commands.
+- Added superscript, subscript, block quotes, date/time insertion, categorized
+  special characters, and multiple bullet and number styles.
 
 ### Enterprise security hardening
 

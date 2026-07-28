@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Implements the Editra core runtime, initialization, state, history, commands, and plugin loading.
  * Licensing: MIT License (open source)
@@ -121,6 +120,9 @@
         { name: "backgroundColor", command: "setBackgroundColor", aliases: ["backColor"], label: "Background color", icon: "palette", type: "color", value: "#fff2a8" },
         { name: "highlighter", command: "highlightText", label: "Highlighter", icon: "highlighter", type: "color", value: "#fff176" },
         { name: "strikethrough", command: "strikethrough", label: "Strikethrough", icon: "strikethrough" },
+        { name: "superscript", command: "superscript", label: "Superscript", icon: "superscript" },
+        { name: "subscript", command: "subscript", label: "Subscript", icon: "subscript" },
+        { name: "blockQuote", command: "blockQuote", label: "Block quote", icon: "blockQuote" },
         { name: "alignment", command: "setAlignment", label: "Alignment", type: "select", value: "left", options: [["left", "Align left"], ["center", "Align center"], ["right", "Align right"], ["justify", "Justify"]] },
         { name: "lineHeight", command: "setLineHeight", label: "Line height", type: "select", value: "1.5", options: [["1", "1.0"], ["1.15", "1.15"], ["1.5", "1.5"], ["1.85", "1.85"], ["2", "2.0"], ["2.5", "2.5"]] },
       ],
@@ -194,10 +196,22 @@
       lazy: true,
       toolbarItems: [
         { name: "emoji", command: "insertEmoji", label: "Emoji", icon: "emoji" },
+        { name: "specialCharacters", command: "special-characters", label: "Special characters", icon: "specialCharacters" },
+        { name: "dateTime", command: "insertDateTime", label: "Insert date and time", icon: "dateTime" },
         { name: "codeBlock", command: "insertCodeBlock", label: "Code block", icon: "codeBlock" },
         { name: "horizontalLine", command: "insertHorizontalLine", label: "Horizontal line", icon: "horizontalLine" },
         { name: "pageBreak", command: "insertPageBreak", label: "Page break", icon: "pageBreak" },
         { name: "toc", command: "insertTableOfContents", label: "Table of contents", icon: "toc" },
+      ],
+    },
+    codes: {
+      file: "plugins/codes.js",
+      label: "Barcode and QR code",
+      command: "insertBarcode",
+      lazy: true,
+      toolbarItems: [
+        { name: "insertBarcode", command: "insertBarcode", label: "Barcode", icon: "barcode" },
+        { name: "insertQrCode", command: "insertQrCode", label: "QR code", icon: "qrCode" },
       ],
     },
     pagination: {
@@ -342,6 +356,9 @@
     applyHeading: "headings",
     headingsStressTest: "headings",
     strikethrough: "formatting",
+    superscript: "formatting",
+    subscript: "formatting",
+    blockQuote: "formatting",
     setAlignment: "formatting",
     setLineHeight: "formatting",
     formattingStressTest: "formatting",
@@ -353,6 +370,10 @@
     decreaseIndent: "lists",
     listsStressTest: "lists",
     insertEmoji: "structure",
+    "special-characters": "structure",
+    insertDateTime: "structure",
+    insertBarcode: "codes",
+    insertQrCode: "codes",
     insertPageBreak: "structure",
     insertHorizontalLine: "structure",
     insertTableOfContents: "structure",
@@ -769,6 +790,7 @@ class EditraCore {
     this.destroyed = false;
     this.activeResizeFrame = null;
     this.selectedObject = null;
+    this.draggedObject = null;
     this.security = new global.EditraSecurity(this, this.options);
     this.editor.innerHTML = this.security.trustedHTML(
       this.editor.innerHTML,
@@ -780,6 +802,10 @@ class EditraCore {
     this.handleKeydown = this.handleKeydown.bind(this);
     this.handleSelectionChange = this.handleSelectionChange.bind(this);
     this.handleResizePointerDown = this.handleResizePointerDown.bind(this);
+    this.handleObjectDragStart = this.handleObjectDragStart.bind(this);
+    this.handleObjectDragOver = this.handleObjectDragOver.bind(this);
+    this.handleObjectDrop = this.handleObjectDrop.bind(this);
+    this.handleObjectDragEnd = this.handleObjectDragEnd.bind(this);
     this.handleFocus = this.handleFocus.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
 
@@ -1041,6 +1067,10 @@ class EditraCore {
     this.editor.addEventListener("paste", this.handlePaste);
     this.editor.addEventListener("keydown", this.handleKeydown, true);
     this.editor.addEventListener("pointerdown", this.handleResizePointerDown);
+    this.editor.addEventListener("dragstart", this.handleObjectDragStart);
+    this.editor.addEventListener("dragover", this.handleObjectDragOver);
+    this.editor.addEventListener("drop", this.handleObjectDrop);
+    this.editor.addEventListener("dragend", this.handleObjectDragEnd);
     this.editor.addEventListener("focus", this.handleFocus);
     this.editor.addEventListener("blur", this.handleBlur);
     document.addEventListener("selectionchange", this.handleSelectionChange);
@@ -1078,9 +1108,13 @@ class EditraCore {
     register("new", () => this.setHTML(""));
     register("open", () => this.openDocument());
     register("save", () =>
-      this.executeCommand("exportHTML", {
-        fileName: "editra-document.html",
-      }),
+      this.state.codeView && this.commands.has("saveHTMLSource")
+        ? this.executeCommand("saveHTMLSource", {
+            fileName: "editra-document.html",
+          })
+        : this.executeCommand("exportHTML", {
+            fileName: "editra-document.html",
+          }),
     );
     register("print", (options = {}) =>
       this.executeCommand("exportPDF", {
@@ -1153,10 +1187,6 @@ class EditraCore {
         ? this.executeCommand("image")
         : this.dispatchCommand("media"),
     );
-    register("special-characters", () => {
-      const character = global.prompt("Insert special character:", "©");
-      return character ? exec("insertText", character) : false;
-    });
     register("code-block", () => exec("formatBlock", "pre"));
     register("horizontal-line", () => exec("insertHorizontalRule"));
     register("page-break", () =>
@@ -1200,7 +1230,7 @@ class EditraCore {
       about: {
         title: "About Editra",
         purpose:
-          "Editra 1.17.0 is a modular, MIT-licensed WYSIWYG editor authored by Editra Team.",
+          "Editra is a modular, MIT-licensed WYSIWYG editor with centralized release metadata.",
         links: [["Project overview", "docs/ABOUT.md"]],
       },
       documentation: {
@@ -1711,6 +1741,9 @@ class EditraCore {
   makeMediaResizable(media, kind) {
     const existingFrame = media.closest?.(".editra-media-frame");
     if (existingFrame) {
+      existingFrame.draggable = true;
+      existingFrame.dataset.editraSelectable = "true";
+      existingFrame.dataset.editraDraggable = "true";
       ["nw", "ne", "sw", "se"].forEach((direction) => {
         if (
           existingFrame.querySelector(
@@ -1732,7 +1765,10 @@ class EditraCore {
     const frame = document.createElement("figure");
     frame.className = "editra-media-frame";
     frame.dataset.editraMedia = kind;
+    frame.dataset.editraSelectable = "true";
+    frame.dataset.editraDraggable = "true";
     frame.contentEditable = "false";
+    frame.draggable = true;
     frame.style.width = media.style.width || "min(100%, 640px)";
 
     if (kind === "video") {
@@ -1752,6 +1788,86 @@ class EditraCore {
     });
 
     return frame;
+  }
+
+  draggableObject(target) {
+    const element = target instanceof Element ? target : target?.parentElement;
+    const frame = element?.closest(".editra-media-frame");
+    if (frame && this.editor.contains(frame)) return frame;
+    const draggable = element?.closest('[data-editra-draggable="true"]');
+    return draggable && this.editor.contains(draggable) ? draggable : null;
+  }
+
+  handleObjectDragStart(event) {
+    if (event.target.closest?.(".editra-resize-handle")) {
+      event.preventDefault();
+      return;
+    }
+    const object = this.draggableObject(event.target);
+    if (!object) return;
+    this.draggedObject = object;
+    object.classList.add("is-object-dragging");
+    this.selectObject(object);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", object.textContent || object.dataset.editraMedia || "Editra object");
+    }
+  }
+
+  handleObjectDragOver(event) {
+    if (!this.draggedObject?.isConnected) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+  }
+
+  rangeFromPoint(x, y) {
+    if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
+    const position = document.caretPositionFromPoint?.(x, y);
+    if (!position) return null;
+    const range = document.createRange();
+    range.setStart(position.offsetNode, position.offset);
+    range.collapse(true);
+    return range;
+  }
+
+  handleObjectDrop(event) {
+    const object = this.draggedObject;
+    if (!object?.isConnected) return;
+    event.preventDefault();
+    const range = this.rangeFromPoint(event.clientX, event.clientY);
+    if (!range || !this.isRangeInside(range) || object.contains(range.startContainer)) {
+      this.handleObjectDragEnd();
+      return;
+    }
+    if (object.classList.contains("editra-media-frame")) {
+      let block =
+        range.startContainer.nodeType === Node.ELEMENT_NODE
+          ? range.startContainer
+          : range.startContainer.parentElement;
+      while (block?.parentElement && block.parentElement !== this.editor) {
+        block = block.parentElement;
+      }
+      if (block && block !== object && block.parentElement === this.editor) {
+        const rect = block.getBoundingClientRect();
+        block[event.clientY < rect.top + rect.height / 2 ? "before" : "after"](object);
+      } else {
+        this.editor.append(object);
+      }
+    } else {
+      range.insertNode(object);
+    }
+    this.selectObject(object);
+    this.recordHistory();
+    this.scheduleUpdate("object-move", () => {
+      this.emitChange();
+      this.refreshPageLayout();
+    });
+    this.handleObjectDragEnd();
+  }
+
+  handleObjectDragEnd() {
+    this.draggedObject?.classList.remove("is-object-dragging");
+    this.draggedObject = null;
   }
 
   handleResizePointerDown(event) {
@@ -1953,6 +2069,18 @@ class EditraCore {
         const kind = media.tagName === "IMG" ? "image" : "video";
         this.makeMediaResizable(media, kind);
       });
+    this.editor
+      .querySelectorAll(".editra-barcode, .editra-qr-code")
+      .forEach((code) => {
+        const kind = code.classList.contains("editra-barcode") ? "barcode" : "qr";
+        this.makeMediaResizable(code, kind);
+      });
+    this.editor.querySelectorAll(".editra-emoji-object").forEach((emoji) => {
+      emoji.contentEditable = "false";
+      emoji.draggable = true;
+      emoji.dataset.editraSelectable = "true";
+      emoji.dataset.editraDraggable = "true";
+    });
 
     this.plugins.forEach((plugin) => {
       if (typeof plugin.action?.hydrate === "function") {
@@ -2209,6 +2337,10 @@ class EditraCore {
       italic: queryState("italic"),
       underline: queryState("underline"),
       strikethrough: queryState("strikeThrough"),
+      superscript: queryState("superscript"),
+      subscript: queryState("subscript"),
+      bulletList: queryState("insertUnorderedList"),
+      numberList: queryState("insertOrderedList"),
       heading: queryValue("formatBlock"),
       alignment: queryState("justifyCenter")
         ? "center"
@@ -2394,6 +2526,10 @@ class EditraCore {
     this.editor.removeEventListener("paste", this.handlePaste);
     this.editor.removeEventListener("keydown", this.handleKeydown, true);
     this.editor.removeEventListener("pointerdown", this.handleResizePointerDown);
+    this.editor.removeEventListener("dragstart", this.handleObjectDragStart);
+    this.editor.removeEventListener("dragover", this.handleObjectDragOver);
+    this.editor.removeEventListener("drop", this.handleObjectDrop);
+    this.editor.removeEventListener("dragend", this.handleObjectDragEnd);
     this.editor.removeEventListener("focus", this.handleFocus);
     this.editor.removeEventListener("blur", this.handleBlur);
     document.removeEventListener("selectionchange", this.handleSelectionChange);

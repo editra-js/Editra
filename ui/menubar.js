@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Builds the configurable Editra menu bar and command menus.
  * Licensing: MIT License (open source)
@@ -72,6 +71,7 @@
         ["footnote", "Footnote"],
         ["bookmark", "Bookmark"],
         ["insertEmoji", "Emoji"],
+        ["insertDateTime", "Date and time"],
         ["media", "Media"],
         ["template", "Template"],
         ["special-characters", "Special characters"],
@@ -121,6 +121,9 @@
         null,
         ["setHeading", "Headings H1-H6"],
         ["strikethrough", "Strikethrough"],
+        ["superscript", "Superscript"],
+        ["subscript", "Subscript"],
+        ["blockQuote", "Block quote"],
         ["setAlignment", "Alignment"],
         ["setLineHeight", "Line Height"],
         null,
@@ -186,6 +189,7 @@
     footnote: "structure",
     bookmark: "structure",
     insertEmoji: "structure",
+    insertDateTime: "structure",
     media: "image",
     template: "structure",
     "special-characters": "structure",
@@ -213,6 +217,9 @@
     formatPainter: "productivity",
     setHeading: "headings",
     strikethrough: "formatting",
+    superscript: "formatting",
+    subscript: "formatting",
+    blockQuote: "formatting",
     setAlignment: "formatting",
     setLineHeight: "formatting",
     bulletList: "lists",
@@ -273,6 +280,36 @@
       options: Object.freeze([
         ["portrait", "Portrait"],
         ["landscape", "Landscape"],
+      ]),
+    }),
+    bulletList: Object.freeze({
+      type: "select",
+      label: "Bullet style",
+      options: Object.freeze([
+        ["disc", "Filled circle"],
+        ["circle", "Hollow circle"],
+        ["square", "Square"],
+        ["none", "No marker"],
+      ]),
+    }),
+    numberList: Object.freeze({
+      type: "select",
+      label: "Number style",
+      options: Object.freeze([
+        ["decimal", "1, 2, 3"],
+        ["lower-alpha", "a, b, c"],
+        ["upper-alpha", "A, B, C"],
+        ["lower-roman", "i, ii, iii"],
+        ["upper-roman", "I, II, III"],
+      ]),
+    }),
+    insertDateTime: Object.freeze({
+      type: "select",
+      label: "Date and time",
+      options: Object.freeze([
+        ["date", "Current date"],
+        ["time", "Current time"],
+        ["datetime", "Current date and time"],
       ]),
     }),
   });
@@ -459,6 +496,12 @@
           `command.${command}`,
           label,
         );
+        const control = MENU_CONTROLS[command] || this.core.toolbar.getControl(command);
+        if (control?.type === "select" || control?.type === "color") {
+          button.classList.add("has-submenu");
+          button.setAttribute("aria-haspopup", "dialog");
+          button.setAttribute("aria-expanded", "false");
+        }
         items.append(button);
       });
 
@@ -481,8 +524,8 @@
       const item = event.target.closest("[data-command]");
       if (!item || !this.element.contains(item)) return;
       const control =
-        this.core.toolbar.getControl(item.dataset.command) ||
-        MENU_CONTROLS[item.dataset.command];
+        MENU_CONTROLS[item.dataset.command] ||
+        this.core.toolbar.getControl(item.dataset.command);
       if (control?.type === "select" || control?.type === "color") {
         this.openChooser(item, control);
         return;
@@ -498,7 +541,9 @@
       const command = item.dataset.command;
       this.core.executeCommand(
         command,
-        HELP_COMMANDS.has(command) || command === "insertEmoji"
+        HELP_COMMANDS.has(command) ||
+          command === "insertEmoji" ||
+          command === "special-characters"
           ? { anchor: item, anchorRect }
           : undefined,
       );
@@ -507,24 +552,41 @@
     openChooser(item, control) {
       const rect = item.getBoundingClientRect();
       const cardRect = this.card.getBoundingClientRect();
+      const menuHost = item.closest(".editra-menu");
+      const host = menuHost || this.card;
+      const hostRect = host.getBoundingClientRect();
       const command = item.dataset.command;
-      this.closeMenus();
       this.closeChooser();
       const chooser = document.createElement("div");
       chooser.className = `editra-menu-chooser editra-popup editra-menu-chooser--${normalize(command)}`;
       chooser.dataset.editraUi = "true";
       chooser.setAttribute("role", "dialog");
       chooser.setAttribute("aria-label", control.label);
-      const preferredLeft = rect.right - cardRect.left + 6;
-      const placedLeft =
-        preferredLeft + 250 <= cardRect.width
-          ? preferredLeft
-          : rect.left - cardRect.left - 248;
-      chooser.style.left = `${Math.max(
-        8,
-        Math.min(placedLeft, cardRect.width - 250),
-      )}px`;
-      chooser.style.top = `${Math.max(8, rect.top - cardRect.top)}px`;
+      chooser.dataset.parentCommand = command;
+      item.setAttribute("aria-expanded", "true");
+      chooser.style.position = "absolute";
+      chooser.style.width = "242px";
+      chooser.style.right = "auto";
+      if (menuHost) {
+        const opensRight = rect.right + 250 <= innerWidth - 8;
+        chooser.style.left = `${
+          opensRight
+            ? rect.right - hostRect.left + 6
+            : rect.left - hostRect.left - 248
+        }px`;
+        chooser.style.top = `${rect.top - hostRect.top}px`;
+      } else {
+        const preferredLeft = rect.right - cardRect.left + 6;
+        const placedLeft =
+          preferredLeft + 250 <= cardRect.width
+            ? preferredLeft
+            : rect.left - cardRect.left - 248;
+        chooser.style.left = `${Math.max(
+          8,
+          Math.min(placedLeft, cardRect.width - 250),
+        )}px`;
+        chooser.style.top = `${Math.max(8, rect.top - cardRect.top)}px`;
+      }
       const heading = document.createElement("header");
       heading.textContent = control.label;
       const choices = document.createElement("div");
@@ -586,8 +648,9 @@
         chooser._editraAdvanced = { input: advancedInput, advancedChange };
         advancedInput.addEventListener("change", advancedChange);
       }
-      this.card.append(chooser);
+      host.append(chooser);
       this.chooser = chooser;
+      this.chooserParent = item;
       const choose = (event) => {
         const choice = event.target.closest("[data-menu-value]");
         if (!choice) return;
@@ -608,6 +671,8 @@
       }
       this.chooser.remove();
       this.chooser = null;
+      this.chooserParent?.setAttribute("aria-expanded", "false");
+      this.chooserParent = null;
     }
 
     toggleMenu(menu) {
@@ -630,6 +695,7 @@
 
     closeMenus() {
       if (!this.openMenu) return;
+      this.closeChooser();
       this.openMenu.querySelector(".editra-menu-list").hidden = true;
       this.openMenu
         .querySelector(".editra-menu-trigger")

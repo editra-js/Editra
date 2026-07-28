@@ -1,2 +1,2 @@
-<!-- Product: Editra | Author: Editra Team | Version: 1.17.0 | Purpose: Image toolbar icon. | License: MIT -->
+<!-- Product: Editra | Version: 1.17.0 | Purpose: Image toolbar icon. | License: MIT -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#050505" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m4 18 5-5 3 3 3-3 5 5"/></svg>

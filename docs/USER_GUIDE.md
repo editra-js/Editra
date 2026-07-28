@@ -10,14 +10,14 @@ Version 1.17.0
 The intended public package command is:
 
 ```bash
-npm install @editra-js/editra
+npm install editra-js
 ```
 
 Import the ES-module entry and premium theme, then initialize with a selector and options:
 
 ```js
-import Editra from "@editra-js/editra";
-import "@editra-js/editra/themes/premium.css";
+import Editra from "editra-js";
+import "editra-js/themes/premium.css";
 
 const editor = await Editra.init("#editra-editor", {
   theme: "premium"
@@ -27,7 +27,7 @@ const editor = await Editra.init("#editra-editor", {
 CommonJS projects use the same API:
 
 ```js
-const Editra = require("@editra-js/editra");
+const Editra = require("editra-js");
 
 const editor = await Editra.init("#editra-editor", {
   plugins: ["bold", "italic", "underline"]
@@ -36,7 +36,7 @@ const editor = await Editra.init("#editra-editor", {
 
 The entry also accepts the original configuration-object form: `Editra.init({ selector: "#editra-editor" })`.
 
-The package is published under the scoped `@editra-js/editra` name. Install the locally generated package archive when you need a pre-release check, and use the scoped package name in production integrations.
+The package is published under the unscoped `editra-js` name. Install the locally generated package archive when you need a pre-release check, and use `editra-js` in production integrations.
 
 ### CDN
 
@@ -54,13 +54,13 @@ The currently published GitHub-backed jsDelivr build is:
 </script>
 ```
 
-After this package is published under the `@editra-js/editra` name, jsDelivr usage is:
+After this package is published under the `editra-js` name, jsDelivr usage is:
 
 ```html
 <div id="editra-editor"></div>
 <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@editra-js/editra/themes/premium.css">
-<script src="https://cdn.jsdelivr.net/npm/@editra-js/editra/dist/editra.min.js"></script>
+      href="https://cdn.jsdelivr.net/npm/editra-js/themes/premium.css">
+<script src="https://cdn.jsdelivr.net/npm/editra-js/dist/editra.min.js"></script>
 <script>
   Editra.init("#editra-editor", {
     theme: "premium"
@@ -72,8 +72,8 @@ The equivalent unpkg links are:
 
 ```html
 <link rel="stylesheet"
-      href="https://unpkg.com/@editra-js/editra/themes/premium.css">
-<script src="https://unpkg.com/@editra-js/editra/dist/editra.min.js"></script>
+      href="https://unpkg.com/editra-js/themes/premium.css">
+<script src="https://unpkg.com/editra-js/dist/editra.min.js"></script>
 ```
 
 Both npm CDNs must serve the complete release treeâ€”`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra@1.0.0/` instead of `/editra/` when deterministic production builds are required.
@@ -339,13 +339,14 @@ French, German, Portuguese, Chinese, Japanese, and Korean. Urdu and Arabic
 automatically use right-to-left direction. Hosts can observe
 `onLanguageChange`.
 
-QR and barcode support was deprecated and removed in Step 24. The editor no
-longer provides related controls, commands, markup interpretation, assets, or
-export rendering.
+Barcode controls generate validated Code 128, Code 39, and EAN-13 SVG output.
+QR controls generate UTF-8, error-corrected SVG matrices. Both retain their
+encoded value in document metadata and persist through HTML and PDF rendering.
 
-Images, videos, tables, and structural blocks can be selected as complete
-objects. Their selection outline is not persisted or exported; Delete or
-Backspace removes the selected object while preserving a valid caret position.
+Images, videos, QR codes, barcodes, emoji, tables, and structural blocks can be
+selected as complete objects. Draggable objects can move across the document;
+resizable objects expose corner handles. Selection outlines are not persisted
+or exported, and Delete or Backspace removes the selected object safely.
 
 ### Review
 
@@ -387,7 +388,7 @@ All untrusted HTML is sanitized in the enterprise profile. See the [paste handli
 ## Troubleshooting
 
 - Serve Editra over HTTP; never use `file://`.
-- If `npm install @editra-js/editra` fails, use the locally packed release or confirm the package publication completed.
+- If `npm install editra-js` fails, use the locally packed release or confirm the package publication completed.
 - If a jsDelivr or unpkg URL returns 404, confirm that the correct Editra package has been published and includes `dist/editra.js`.
 - If feedback is not retained, verify that browser storage is enabled and the page is served from the same origin.
 - Confirm plugin names and relative paths.

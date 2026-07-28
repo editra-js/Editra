@@ -1,10 +1,10 @@
 Version: 2.0.0
 # Editra
 
-![npm version](https://img.shields.io/npm/v/@editra-js/editra?cacheSeconds=3600)
-![npm downloads](https://img.shields.io/npm/dt/@editra-js/editra?cacheSeconds=3600)
-![npm downloads per week](https://img.shields.io/npm/dw/@editra-js/editra?cacheSeconds=3600)
-![npm downloads per month](https://img.shields.io/npm/dm/@editra-js/editra?cacheSeconds=3600)
+![npm version](https://img.shields.io/npm/v/editra-js?cacheSeconds=3600)
+![npm downloads](https://img.shields.io/npm/dt/editra-js?cacheSeconds=3600)
+![npm downloads per week](https://img.shields.io/npm/dw/editra-js?cacheSeconds=3600)
+![npm downloads per month](https://img.shields.io/npm/dm/editra-js?cacheSeconds=3600)
 ![GitHub release](https://img.shields.io/github/v/release/editra-js/editra?sort=semver&cacheSeconds=3600)
 ![Chromium](https://img.shields.io/badge/chromium-151.0-blue?cacheSeconds=3600)
 ![Firefox](https://img.shields.io/badge/firefox-153.0-orange?cacheSeconds=3600)
@@ -15,8 +15,6 @@ Version: 2.0.0
 Editra is a premium open‑source WYSIWYG editor for the web, offering Word‑style text editing, pagination control, tables, media embedding, and export to PDF/Word/HTML. Available via npm or CDN, it delivers enterprise‑grade features with a clean, developer‑friendly API.
 
 Editra is a premium, modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 2.0.0 is licensed under the MIT License.
-
-Author: Editra Team  
 Package version: 2.0.0
 
 ## Quick start
@@ -45,17 +43,17 @@ Do not open the examples with `file://`; browsers block dynamically loaded plugi
 ### Package integration
 
 ```bash
-npm install @editra-js/editra
+npm install editra-js
 ```
 
 ```js
-import Editra from "@editra-js/editra";
-import "@editra-js/editra/themes/premium.css";
+import Editra from "editra-js";
+import "editra-js/themes/premium.css";
 
 await Editra.init("#editra-editor", { theme: "premium" });
 ```
 
-The scoped package is published under the `@editra-js` namespace. A local release archive can be verified with `npm run pack:check`.
+The package is published as `editra-js`. A local release archive can be verified with `npm run pack:check`.
 
 ### CDN integration
 
@@ -72,8 +70,8 @@ Currently published through the GitHub-backed jsDelivr endpoint:
 The npm-backed URLs, available after npm publication, are:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@editra-js/editra/themes/premium.css">
-<script src="https://cdn.jsdelivr.net/npm/@editra-js/editra/dist/editra.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/editra-js/themes/premium.css">
+<script src="https://cdn.jsdelivr.net/npm/editra-js/dist/editra.min.js"></script>
 <script>
   Editra.init("#editra-editor", { theme: "premium" });
 </script>
@@ -82,10 +80,10 @@ The npm-backed URLs, available after npm publication, are:
 unpkg alternative:
 
 ```html
-<script src="https://unpkg.com/@editra-js/editra/dist/editra.min.js"></script>
+<script src="https://unpkg.com/editra-js/dist/editra.min.js"></script>
 ```
 
-These npm CDN paths become valid for this project only after registry ownership is resolved and this package is published. The existing unscoped registry package is unrelated.
+These npm CDN paths become valid after `editra-js` is published to the npm registry.
 
 See the [feedback form](examples/feedback-form.html) for localStorage persistence, live HTML/plain-text output, and end-user form integration.
 

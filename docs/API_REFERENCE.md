@@ -110,8 +110,10 @@ editor.executeCommand("setLanguage", "ur");
 const languages = await editor.executeCommand("getLanguages");
 ```
 
-QR/barcode commands and render-span interpretation were deprecated and removed
-in Step 24.
+Code commands are `insertBarcode({ value, format })` and
+`insertQrCode({ value })`. Barcode formats are `CODE128`, `CODE39`, and
+`EAN13`. Generated SVG markup retains encoded values in `data-editra-*`
+attributes for persistence.
 
 Object selection commands are `selectObject(element)` and
 `deleteSelectedObject`. Pressing Delete or Backspace invokes the same deletion

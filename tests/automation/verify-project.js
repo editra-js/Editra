@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Enforces Editra release metadata, headers, documentation, demos, and JavaScript syntax.
  * Licensing: MIT License (open source)
@@ -20,7 +19,6 @@ const packageVersion =
   versionFile.match(/^package_version=(.+)$/m)?.[1]?.trim();
 const requiredHeader = [
   "Product: Editra",
-  "Author: Editra Team",
   `Version: ${version}`,
   "Purpose:",
   "Licensing: MIT License (open source)",
@@ -46,7 +44,11 @@ function requireFile(file) {
 }
 
 if (!version) errors.push("version.prop has no version value");
-["product=Editra", "release_date=2026-07-27"].forEach((value) => {
+[
+  "product=Editra",
+  "author=",
+  "release_date=2026-07-27",
+].forEach((value) => {
   if (!versionFile.includes(value)) errors.push(`version.prop missing ${value}`);
 });
 

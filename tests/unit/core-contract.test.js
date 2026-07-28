@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Verifies the documented Editra public API and command routing contract.
  * Licensing: MIT License (open source)

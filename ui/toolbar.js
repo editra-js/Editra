@@ -1,7 +1,6 @@
 // Version: 2.0.0
 /**
  * Product: Editra
- * Author: Editra Team
  * Version: 2.0.0
  * Purpose: Builds the configurable Editra toolbar and its accessible controls.
  * Licensing: MIT License (open source)
@@ -31,6 +30,9 @@
     palette: "palette.svg",
     highlighter: "highlighter.svg",
     strikethrough: "strikethrough.svg",
+    superscript: "superscript.svg",
+    subscript: "subscript.svg",
+    blockQuote: "block-quote.svg",
     bulletList: "bullet-list.svg",
     numberList: "number-list.svg",
     multilevelList: "multilevel-list.svg",
@@ -38,6 +40,10 @@
     indent: "indent.svg",
     outdent: "outdent.svg",
     emoji: "emoji.svg",
+    specialCharacters: "special-characters.svg",
+    dateTime: "date-time.svg",
+    barcode: "barcode.svg",
+    qrCode: "qr-code.svg",
     codeBlock: "code-block.svg",
     horizontalLine: "horizontal-line.svg",
     pageBreak: "page-break.svg",
@@ -287,6 +293,16 @@
         if (name === "undo") button.disabled = !state.canUndo;
         else if (name === "redo") button.disabled = !state.canRedo;
         else button.disabled = Boolean(plugin?.disabled);
+        if (
+          name === "bulletList" ||
+          name === "numberList" ||
+          name === "strikethrough" ||
+          name === "superscript" ||
+          name === "subscript"
+        ) {
+          button.setAttribute("aria-pressed", String(Boolean(state[name])));
+          button.classList.toggle("is-active", Boolean(state[name]));
+        }
       });
     }
 
