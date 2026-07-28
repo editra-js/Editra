@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Provides document-language selection, Unicode metadata, and RTL direction handling.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 

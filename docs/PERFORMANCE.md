@@ -1,11 +1,3 @@
-Version: 2.0.0
-<!--
-Product: Editra
-Version: 2.0.0
-Purpose: Documents Editra performance budgets, benchmark methodology, and lifecycle verification.
-Licensing: MIT License (open source)
--->
-
 # Editra Performance and Memory Benchmarks
 
 ## Budgets

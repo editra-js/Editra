@@ -1,5 +1,4 @@
-﻿Version: 2.0.0
-# Editra User Guide
+﻿# Editra User Guide
 
 Version 1.17.0
 
@@ -211,7 +210,7 @@ Images accept local files, clipboard images, data URLs, and web URLs. Videos acc
 
 ## Export and print
 
-File â†’ Export PDF uses the browser print dialog. Export Word produces Word-compatible HTML, while Export HTML preserves fixed page sections. Save uses the page-fidelity HTML exporter. â€œPrint text area onlyâ€ removes unused page height. See [export](../examples/export.html) and [custom print](../examples/custom-print.html).
+File → Export PDF uses the browser print dialog. Export Word produces Word-compatible HTML, while Export HTML preserves fixed page sections. Save uses the page-fidelity HTML exporter. “Print text area only” removes unused page height. QR codes and barcodes remain resolution-independent SVG, while special characters, Format Painter styles, superscript/subscript, block quotes, and semantic date/time elements remain in HTML and PDF print output. See [export](../examples/export.html) and [custom print](../examples/custom-print.html).
 
 Use 100% print scale and disable browser-supplied print headers/footers for best fidelity.
 
@@ -358,7 +357,7 @@ formatting. See the [Feature Guide](FEATURE_GUIDE.md) and
 
 ### Help
 
-Accessibility, About, Documentation, and Shortcuts open accessible dialogs with
+Accessibility, About, Documentation, and Shortcut Keys open accessible dialogs with
 a clear explanation and direct documentation links. See the
 [Feature Guide](FEATURE_GUIDE.md), [help](../examples/help.html), and
 [about](../examples/about.html).

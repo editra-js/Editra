@@ -1,5 +1,4 @@
-﻿Version: 2.0.0
-# Editra API Reference
+﻿# Editra API Reference
 
 Version 1.17.0
 

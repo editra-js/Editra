@@ -1,11 +1,3 @@
-/* Version: 2.0.0 */
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Provides the public premium Editra document and component theme.
- * Licensing: MIT License (open source)
- */
-
 @import url("../ui/icons.css");
 @import url("../ui/theme-premium.css");
 
@@ -425,6 +417,43 @@ body {
   white-space: pre;
 }
 
+.editra-code-block.is-syntax-highlighted {
+  position: relative;
+  color: #dbeafe;
+}
+
+.editra-code-block.is-syntax-highlighted::before {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  color: currentColor;
+  content: attr(data-editra-code-language);
+  font: 600 0.56rem/1.2 Inter, sans-serif;
+  letter-spacing: 0.05em;
+  opacity: 0.58;
+  text-transform: uppercase;
+}
+
+.editra-code-token--comment {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.editra-code-token--string,
+.editra-code-token--tag {
+  color: #86efac;
+}
+
+.editra-code-token--keyword,
+.editra-code-token--property {
+  color: #93c5fd;
+}
+
+.editra-code-token--number,
+.editra-code-token--literal {
+  color: #fcd34d;
+}
+
 .editra-horizontal-line {
   margin: 2em 0;
   border: 0;
@@ -513,6 +542,11 @@ body {
   transform-origin: top left;
 }
 
+.editra-menu-chooser {
+  animation: editra-submenu-enter 110ms ease-out;
+  transform-origin: center left;
+}
+
 .editra-popup--emoji {
   border-top: 3px solid #7357d6;
 }
@@ -589,6 +623,35 @@ body {
   font-size: 0.72rem;
   font-weight: 650;
   text-decoration: none;
+}
+
+.editra-shortcut-list {
+  display: grid;
+  grid-template-columns: max-content minmax(130px, 1fr);
+  gap: 6px 12px;
+  max-height: 310px;
+  margin: 12px 0;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid var(--editra-line);
+  border-radius: 7px;
+  font-size: 0.7rem;
+}
+
+.editra-shortcut-list dt,
+.editra-shortcut-list dd {
+  margin: 0;
+}
+
+.editra-shortcut-list kbd {
+  display: inline-block;
+  padding: 2px 5px;
+  border: 1px solid var(--editra-line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--editra-canvas);
+  font: 600 0.66rem/1.3 "SFMono-Regular", Consolas, monospace;
+  white-space: nowrap;
 }
 
 @keyframes editra-popup-enter {

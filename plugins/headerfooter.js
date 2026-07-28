@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Implements the Editra headerfooter plugin and its editor commands.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 

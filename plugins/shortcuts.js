@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Implements the Editra shortcuts plugin and its editor commands.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 
@@ -20,6 +12,25 @@
     k: "link",
   });
   const NATIVE_SHORTCUTS = new Set(["c", "x", "v"]);
+  const SHORTCUT_REFERENCE = Object.freeze([
+    ["Ctrl/Cmd+B", "Bold"],
+    ["Ctrl/Cmd+I", "Italic"],
+    ["Ctrl/Cmd+U", "Underline"],
+    ["Ctrl/Cmd+S", "Save"],
+    ["Ctrl/Cmd+A", "Select all"],
+    ["Ctrl/Cmd+F", "Find and replace"],
+    ["Ctrl/Cmd+K", "Insert link"],
+    ["Ctrl/Cmd+P", "Print"],
+    ["Ctrl/Cmd+Z", "Undo"],
+    ["Ctrl/Cmd+Shift+Z", "Redo"],
+    ["Ctrl/Cmd+Y", "Redo"],
+    ["Ctrl/Cmd+Shift+7", "Numbered list"],
+    ["Ctrl/Cmd+Shift+8", "Bulleted list"],
+    ["Ctrl/Cmd+C / X / V", "Native copy, cut, and paste"],
+    ["Tab", "Next table cell or insert tab"],
+    ["Shift+Tab", "Previous table cell or decrease indent"],
+    ["Delete / Backspace", "Delete the selected object or table"],
+  ]);
 
   function cellForSelection(core) {
     const selection = global.getSelection();
@@ -179,6 +190,10 @@
         "shift+7": "numberList",
         "shift+8": "bulletList",
         tab: "tab",
+        reference: SHORTCUT_REFERENCE.map(([keys, description]) => ({
+          keys,
+          description,
+        })),
       }),
       { plugin: "shortcuts", source: "plugin" },
     );

@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Verifies Editra package metadata, demo integration actions, feedback persistence, and premium styling.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const assert = require("node:assert");

@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Generates minified distribution aliases for the public package.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const fs = require("node:fs");
@@ -16,14 +8,6 @@ const bundle = path.join(root, "dist", "editra.js");
 const minifiedBundle = path.join(root, "dist", "editra.min.js");
 const theme = path.join(root, "themes", "premium.css");
 const minifiedTheme = path.join(root, "themes", "premium.min.css");
-const header = `/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Provides the browser-ready Editra UMD distribution for npm CDNs.
- * Licensing: MIT License (open source)
- */
-`;
-
 function minifyCss(source) {
   const header = source.match(/^(?:\s*\/\*[\s\S]*?\*\/\s*)+/)?.[0] ?? "";
   const stylesheet = source.slice(header.length);
@@ -75,9 +59,6 @@ function minifyCss(source) {
 }
 
 const bundleSource = fs.readFileSync(bundle, "utf8");
-const bundledOutput = bundleSource.includes("Product: Editra")
-  ? bundleSource
-  : `${header}${bundleSource}`;
-fs.writeFileSync(bundle, bundledOutput);
-fs.writeFileSync(minifiedBundle, bundledOutput);
+fs.writeFileSync(bundle, bundleSource);
+fs.writeFileSync(minifiedBundle, bundleSource);
 fs.writeFileSync(minifiedTheme, minifyCss(fs.readFileSync(theme, "utf8")));

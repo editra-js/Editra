@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Implements the Editra core runtime, initialization, state, history, commands, and plugin loading.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 
@@ -379,6 +371,7 @@
     insertTableOfContents: "structure",
     updateTableOfContents: "structure",
     insertCodeBlock: "structure",
+    setCodeBlockBackground: "structure",
     structureStressTest: "structure",
     setPaginationRules: "pagination",
     toggleKeepTogether: "pagination",
@@ -1211,7 +1204,7 @@ class EditraCore {
     ["template", "toc"].forEach((name) =>
       register(name, () => this.dispatchCommand(name)),
     );
-    ["accessibility", "about", "documentation", "shortcuts"].forEach((name) =>
+    ["accessibility", "about", "documentation", "shortcutKeys"].forEach((name) =>
       register(name, (options = {}) => this.openHelpDialog(name, options)),
     );
   }
@@ -1242,10 +1235,10 @@ class EditraCore {
           ["API reference", "docs/API_REFERENCE.md"],
         ],
       },
-      shortcuts: {
-        title: "Keyboard Shortcuts",
+      shortcutKeys: {
+        title: "Shortcut Keys",
         purpose:
-          "Lists Word-like commands including Ctrl/Cmd+B, I, U, Z, Y, S, A, F, P, and table-aware Tab navigation.",
+          "Available shortcuts use Ctrl on Windows and Linux, or Cmd on macOS. Native clipboard behavior remains browser-controlled.",
         links: [
           ["Shortcut reference", "docs/HELP.md"],
           ["Working shortcuts demo", "examples/shortcuts.html"],
@@ -1274,6 +1267,19 @@ class EditraCore {
     header.append(title, closeButton);
     const purpose = document.createElement("p");
     purpose.textContent = definition.purpose;
+    const shortcutData =
+      type === "shortcutKeys" ? this.executeCommand("getShortcuts") : null;
+    const shortcutList = document.createElement("dl");
+    shortcutList.className = "editra-shortcut-list";
+    (shortcutData?.reference ?? []).forEach(({ keys, description }) => {
+      const term = document.createElement("dt");
+      const key = document.createElement("kbd");
+      key.textContent = keys;
+      term.append(key);
+      const detail = document.createElement("dd");
+      detail.textContent = description;
+      shortcutList.append(term, detail);
+    });
     const links = document.createElement("div");
     links.className = "editra-help-links";
     definition.links.forEach(([label, path]) => {
@@ -1284,7 +1290,9 @@ class EditraCore {
       link.textContent = label;
       links.append(link);
     });
-    dialog.append(header, purpose, links);
+    dialog.append(header, purpose);
+    if (shortcutList.childElementCount) dialog.append(shortcutList);
+    dialog.append(links);
     this.toolbar.card.append(dialog);
 
     const anchorRect =
@@ -2571,7 +2579,7 @@ class EditraCore {
   }
 }
 
-  EditraCore.VERSION = "2.0.0";
+  EditraCore.VERSION = "2.0.1";
   EditraCore.PRODUCT = "Editra";
   global.EditraCore = EditraCore;
   global.Editra = EditraCore;

@@ -1,4 +1,3 @@
-Version: 2.0.0
 # Contributing to Editra
 
 ## Fork and clone

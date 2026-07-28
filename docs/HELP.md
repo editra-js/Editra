@@ -1,4 +1,3 @@
-Version: 2.0.0
 # Editra Help
 
 ## Frequently asked questions
@@ -45,7 +44,14 @@ Use Ctrl/Cmd+Z or Edit → Undo. Applications should also persist `getCode()` re
 | Find/replace | Ctrl+F | Cmd+F |
 | Insert link | Ctrl+K | Cmd+K |
 | Print | Ctrl+P | Cmd+P |
+| Numbered list | Ctrl+Shift+7 | Cmd+Shift+7 |
+| Bulleted list | Ctrl+Shift+8 | Cmd+Shift+8 |
+| Copy / Cut / Paste | Ctrl+C / X / V | Cmd+C / X / V |
 | Move through table | Tab / Shift+Tab | Tab / Shift+Tab |
+| Delete selected object or table | Delete / Backspace | Delete / Backspace |
+
+The configurable **Help → Shortcut Keys** dialog presents this reference inside
+the editor and uses the same command registry as the keyboard handler.
 
 ## Support
 

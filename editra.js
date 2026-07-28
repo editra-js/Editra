@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Loads the Editra browser runtime from a package or CDN distribution root.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 

@@ -1,11 +1,3 @@
-Version: 2.0.0
-<!--
-Product: Editra
-Version: 2.0.0
-Purpose: Explains Editra features, contextual behavior, and review workflows.
-Licensing: MIT License (open source)
--->
-
 # Editra Feature Guide
 
 ## Editing and formatting
@@ -24,6 +16,11 @@ share options between menus and toolbar controls; background/highlighter
 pickers include **No Fill** plus an advanced color chooser. Format Painter is a
 one-shot tool: select formatted source text, activate it, then select the
 target. Escape cancels it.
+
+**Code Block** is available from Insert, Format, and configured toolbars.
+Choose plain text or a language presentation mode, then use **Code Block
+Background** to apply any palette or custom color. Text contrast adjusts for
+light and dark backgrounds, and the selected mode and color persist in exports.
 
 ## Lists and indentation
 
@@ -122,9 +119,10 @@ the document to host applications.
 
 - **Accessibility** explains keyboard, focus, screen-reader, RTL, and compliance
   support.
-- **About** identifies Editra, its version, author, and MIT licensing.
+- **About** identifies Editra and its MIT licensing.
 - **Documentation** links to the user guide and API reference.
-- **Shortcuts** describes Word-like keyboard commands and table navigation.
+- **Shortcut Keys** lists every enabled Word-like keyboard command, native
+  clipboard shortcut, object deletion key, and table-navigation key.
 
 Each Help item opens an accessible, dismissible dialog near its menu item and
 provides direct links to the corresponding documentation.

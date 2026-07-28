@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Implements the Editra structure plugin and its editor commands.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 
@@ -122,6 +114,16 @@
 
   function openSpecialCharacterPicker(core, state, options = {}) {
     if (options.character) return insertCharacterValue(core, options.character);
+    const trigger = options.anchor;
+    if (
+      options.explicit !== true ||
+      !(trigger instanceof Element) ||
+      !trigger.isConnected ||
+      trigger.dataset.command !== "special-characters"
+    ) {
+      return false;
+    }
+    state.emojiOverlay?.dispatchEvent(new CustomEvent("editra:close"));
     state.characterOverlay?.dispatchEvent(new CustomEvent("editra:close"));
     const overlay = document.createElement("div");
     overlay.className = "editra-emoji-picker editra-popup editra-popup--characters";
@@ -375,13 +377,132 @@
     return insertAtSelection(core, line);
   }
 
-  function insertCodeBlock(core, options = {}) {
+  function codeBlockAtSelection(core) {
+    const selection = global.getSelection();
+    if (!selection?.rangeCount) return null;
+    const node = selection.getRangeAt(0).startContainer;
+    const element =
+      node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    const block = element?.closest(".editra-code-block");
+    return block && core.editor.contains(block) ? block : null;
+  }
+
+  function normalizeCodeBlockOptions(options) {
+    if (typeof options !== "string") return options || {};
+    if (options === "plain") {
+      return { language: "text", highlight: false };
+    }
+    return { language: options, highlight: true };
+  }
+
+  function codeBlockTextColor(background) {
+    const match = String(background).match(/^#([\da-f]{6})$/i);
+    if (!match) return "";
+    const value = Number.parseInt(match[1], 16);
+    const red = (value >> 16) & 255;
+    const green = (value >> 8) & 255;
+    const blue = value & 255;
+    const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+    return luminance > 150 ? "#1f2937" : "#f8fafc";
+  }
+
+  function syntaxPattern(language) {
+    if (language === "html") {
+      return /<!--[\s\S]*?-->|<\/?[a-z][^>]*>|&(?:#\d+|#x[\da-f]+|[a-z]+);/gi;
+    }
+    if (language === "css") {
+      return /\/\*[\s\S]*?\*\/|#[\da-f]{3,8}\b|--?[\w-]+(?=\s*:)|"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|\b\d+(?:\.\d+)?(?:px|rem|em|%|s|ms)?\b/gi;
+    }
+    if (language === "json") {
+      return /"(?:\\.|[^"])*"(?=\s*:)|"(?:\\.|[^"])*"|\b(?:true|false|null)\b|-?\b\d+(?:\.\d+)?(?:e[+-]?\d+)?\b/gi;
+    }
+    return /\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|`(?:\\.|[^`])*`|\b(?:async|await|break|case|class|const|continue|default|else|export|extends|false|for|from|function|if|import|let|new|null|return|switch|this|throw|true|try|typeof|undefined|var|while)\b|\b\d+(?:\.\d+)?\b/g;
+  }
+
+  function syntaxTokenType(value) {
+    if (/^(?:\/[/*]|<!--)/.test(value)) return "comment";
+    if (/^["'`]/.test(value)) return "string";
+    if (/^(?:<\/?|&)/.test(value)) return "tag";
+    if (/^-?\d|^#[\da-f]/i.test(value)) return "number";
+    if (/^(?:true|false|null|undefined)$/.test(value)) return "literal";
+    if (/^--?[\w-]+$/.test(value)) return "property";
+    return "keyword";
+  }
+
+  function renderSyntax(code, language, highlighted) {
+    const source = code.textContent;
+    if (!highlighted) {
+      code.textContent = source;
+      return;
+    }
+    const pattern = syntaxPattern(language);
+    const fragment = document.createDocumentFragment();
+    let offset = 0;
+    source.replace(pattern, (value, index) => {
+      if (index > offset) fragment.append(document.createTextNode(source.slice(offset, index)));
+      const token = document.createElement("span");
+      token.className = `editra-code-token editra-code-token--${syntaxTokenType(value)}`;
+      token.textContent = value;
+      fragment.append(token);
+      offset = index + value.length;
+      return value;
+    });
+    if (offset < source.length) fragment.append(document.createTextNode(source.slice(offset)));
+    code.replaceChildren(fragment);
+  }
+
+  function applyCodeBlockPresentation(pre, options = {}) {
+    const code = pre.querySelector("code");
+    const language = String(options.language || code?.dataset.language || "text");
+    const highlighted = options.highlight ?? language !== "text";
+    if (code) {
+      code.dataset.language = language;
+      code.className = highlighted ? `language-${language}` : "";
+      renderSyntax(code, language, highlighted);
+    }
+    pre.dataset.editraCodeLanguage = language;
+    pre.dataset.editraSyntax = highlighted ? "highlighted" : "plain";
+    pre.classList.toggle("is-syntax-highlighted", highlighted);
+    if (options.background) {
+      pre.style.backgroundColor = String(options.background);
+      pre.dataset.editraCodeBackground = String(options.background);
+      const textColor = codeBlockTextColor(options.background);
+      if (textColor) pre.style.color = textColor;
+    }
+    return pre;
+  }
+
+  function setCodeBlockBackground(core, color) {
+    core.restoreSelection();
+    const block = codeBlockAtSelection(core);
+    if (!block) return false;
+    const value = String(color || "");
+    if (value === "transparent") {
+      block.style.removeProperty("background-color");
+      block.style.removeProperty("color");
+      delete block.dataset.editraCodeBackground;
+    } else {
+      block.style.backgroundColor = value;
+      block.dataset.editraCodeBackground = value;
+      const textColor = codeBlockTextColor(value);
+      if (textColor) block.style.color = textColor;
+    }
+    return commit(core);
+  }
+
+  function insertCodeBlock(core, rawOptions = {}) {
+    const options = normalizeCodeBlockOptions(rawOptions);
     core.restoreSelection();
     const selection = global.getSelection();
     const range =
       selection?.rangeCount && core.isRangeInside(selection.getRangeAt(0))
         ? selection.getRangeAt(0)
         : null;
+    const existing = codeBlockAtSelection(core);
+    if (existing && options.code === undefined) {
+      applyCodeBlockPresentation(existing, options);
+      return commit(core);
+    }
     const codeText = String(
       options.code ?? (range && !range.collapsed ? range.toString() : ""),
     );
@@ -391,6 +512,7 @@
     code.dataset.language = String(options.language || "text");
     code.textContent = codeText || "Enter code here";
     pre.append(code);
+    applyCodeBlockPresentation(pre, options);
     if (range && !range.collapsed) range.deleteContents();
     return insertAtSelection(core, pre);
   }
@@ -536,6 +658,7 @@
       insertTableOfContents: (options) => insertTableOfContents(core, options),
       updateTableOfContents: (options) => updateTableOfContents(core, options),
       insertCodeBlock: (options) => insertCodeBlock(core, options),
+      setCodeBlockBackground: (color) => setCodeBlockBackground(core, color),
       structureStressTest: (options) => structureStressTest(core, options),
     };
     Object.entries(commands).forEach(([name, handler]) => {

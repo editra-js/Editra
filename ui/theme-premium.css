@@ -1,11 +1,3 @@
-/* Version: 2.0.0 */
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Defines premium light and dark UI styling for Editra controls and dialogs.
- * Licensing: MIT License (open source)
- */
-
 /* Editra formal premium UI layer. Imported by themes/premium.css. */
 body,
 .editra-card,
@@ -62,6 +54,9 @@ body,
   padding-inline: 6px !important;
   border-radius: 5px !important;
   color: #050505 !important;
+  border: 1px solid transparent !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(244, 246, 249, 0.72)) !important;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08) !important;
 }
 
 .editra-tool-icon {
@@ -71,7 +66,26 @@ body,
   object-fit: contain;
   pointer-events: none;
   user-select: none;
-  filter: none !important;
+  opacity: 0.92;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.75)) !important;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.editra-tool:hover:not(:disabled) {
+  border-color: rgba(43, 120, 212, 0.24) !important;
+  background: linear-gradient(180deg, #fff, #eaf2ff) !important;
+  box-shadow: 0 3px 8px rgba(26, 79, 163, 0.14) !important;
+}
+
+.editra-tool:hover:not(:disabled) .editra-tool-icon {
+  opacity: 1;
+  transform: translateY(-0.5px) scale(1.04);
+}
+
+.editra-tool.is-active {
+  border-color: rgba(43, 120, 212, 0.34) !important;
+  background: linear-gradient(180deg, #edf5ff, #dbeafe) !important;
+  box-shadow: inset 0 1px 2px rgba(26, 79, 163, 0.12) !important;
 }
 
 .editra-tool-select {
@@ -243,29 +257,21 @@ body,
 .editra-menu-chooser {
   position: absolute;
   z-index: 1200;
-  width: 242px;
+  width: max-content;
+  min-width: 168px;
+  max-width: min(320px, calc(100vw - 16px));
   max-height: 310px;
-  padding: 8px;
+  padding: 5px;
   overflow: auto;
   border: 1px solid #161616;
-  border-radius: 7px;
+  border-radius: 3px;
   color: var(--editra-ink);
   background: var(--editra-paper);
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.16);
+  animation: editra-submenu-enter 110ms ease-out;
   scroll-behavior: smooth;
   scrollbar-color: #7d8590 #f1f2f4;
   scrollbar-width: thin;
-}
-
-.editra-menu-chooser--setfontsize,
-.editra-menu-chooser--setfontfamily {
-  border-top: 3px solid #2864dc;
-}
-
-.editra-menu-chooser--setforecolor,
-.editra-menu-chooser--setbackgroundcolor,
-.editra-menu-chooser--highlighttext {
-  border-top: 3px solid #7357d6;
 }
 
 .editra-menu-list {
@@ -307,6 +313,8 @@ body,
 }
 
 .editra-menu-option-list button {
+  width: 100%;
+  white-space: nowrap;
   min-height: 30px;
   padding: 5px 8px;
   border: 0;
@@ -327,18 +335,18 @@ body,
 
 .editra-menu-color-grid {
   display: grid;
-  grid-template-columns: repeat(10, 16px);
-  gap: 4px;
-  padding: 5px;
+  grid-template-columns: repeat(10, 13px);
+  gap: 2px;
+  padding: 3px;
 }
 
 .editra-menu-color-grid button {
   aspect-ratio: 1;
   padding: 0;
   border: 1px solid rgba(0, 0, 0, 0.22);
-  width: 16px;
-  min-width: 16px;
-  border-radius: 2px;
+  width: 13px;
+  min-width: 13px;
+  border-radius: 1px;
   background: var(--editra-choice-color);
   cursor: pointer;
 }
@@ -347,6 +355,17 @@ body,
 .editra-menu-color-grid button:focus {
   outline: 2px solid var(--editra-accent);
   outline-offset: 2px;
+}
+
+@keyframes editra-submenu-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .editra-theme-dark .editra-menu-chooser {

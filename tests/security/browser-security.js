@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Exercises browser-enforced security, accessibility, i18n, limits, and cleanup contracts.
- * Licensing: MIT License (open source)
- */
-
 (async function () {
   "use strict";
 
@@ -65,7 +57,12 @@
     const colorMenuItem = document.querySelector(
       '.editra-menu.is-open [data-command="setForeColor"]',
     );
-    colorMenuItem?.click();
+    colorMenuItem?.dispatchEvent(
+      new PointerEvent("pointerover", {
+        bubbles: true,
+        relatedTarget: formatTrigger,
+      }),
+    );
     const inlineChooser = document.querySelector(".editra-menu-chooser");
     const itemRect = colorMenuItem?.getBoundingClientRect();
     const chooserRect = inlineChooser?.getBoundingClientRect();
@@ -80,6 +77,26 @@
     assert(
       colorMenuItem?.closest(".editra-menu")?.classList.contains("is-open"),
       "parent menu closed while its submenu was open",
+    );
+    assert(
+      inlineChooser &&
+        [...inlineChooser.querySelectorAll("button")].every(
+          (button) => button.scrollWidth <= button.clientWidth + 1,
+        ),
+      "submenu width did not fit its widest item",
+    );
+    const textColorSwatch = inlineChooser?.querySelector(
+      ".editra-menu-color-grid button",
+    );
+    assert(
+      textColorSwatch &&
+        Number.parseFloat(getComputedStyle(textColorSwatch).width) <= 13,
+      `text color swatches are not compact Word-style squares (${getComputedStyle(textColorSwatch).width})`,
+    );
+    assert(
+      getComputedStyle(inlineChooser).borderTopWidth ===
+        getComputedStyle(inlineChooser).borderLeftWidth,
+      "submenu retained card-like top-border styling",
     );
     assert(
       chooserRect &&
@@ -98,6 +115,38 @@
       })})`,
     );
     instance.menubar.closeMenus();
+
+    const shortcutDialog = await instance.executeCommand("shortcutKeys");
+    assert(
+      shortcutDialog?.querySelectorAll(".editra-shortcut-list kbd").length >= 17 &&
+        shortcutDialog.textContent.includes("Ctrl/Cmd+Shift+8") &&
+        shortcutDialog.textContent.includes("Delete / Backspace"),
+      "Shortcut Keys dialog did not explain all available shortcuts",
+    );
+    shortcutDialog.dispatchEvent(new CustomEvent("editra:close"));
+
+    const untriggeredCharacters = await instance.executeCommand(
+      "special-characters",
+    );
+    assert(
+      untriggeredCharacters === false &&
+        !document.querySelector(".editra-popup--characters"),
+      "Special Characters opened without an explicit menu or toolbar trigger",
+    );
+    const insertTrigger = [...document.querySelectorAll(".editra-menu-trigger")]
+      .find((trigger) => trigger.textContent.trim() === "Insert");
+    insertTrigger?.click();
+    document
+      .querySelector('.editra-menu.is-open [data-command="special-characters"]')
+      ?.click();
+    const characterPicker = document.querySelector(
+      ".editra-popup--characters",
+    );
+    assert(
+      characterPicker?.isConnected,
+      "Special Characters did not open from its menu item",
+    );
+    characterPicker?.dispatchEvent(new CustomEvent("editra:close"));
 
     instance.setCode(
       '<p id="constructor" onclick="alert(1)">Safe</p>' +
@@ -414,6 +463,23 @@
         pdfCodes.html.includes("<svg"),
       "PDF render input did not preserve generated codes",
     );
+    for (const [format, exported] of Object.entries({
+      html: exportedCodes,
+      pdf: pdfCodes,
+    })) {
+      const exportDocument = new DOMParser().parseFromString(
+        exported.html,
+        "text/html",
+      );
+      const qrPath = exported.html.match(/<path[^>]+d="([^"]+)"/i)?.[1] || "";
+      assert(
+        (exported.html.match(/<rect\b/gi) || []).length > 20 &&
+          /viewBox="0 0 \d+ \d+"/i.test(exported.html) &&
+          qrPath.length > 200 &&
+          !exported.html.includes("editra-resize-handle"),
+        `${format} export damaged vector code geometry or retained editor UI`,
+      );
+    }
 
     instance.placeCaretAtEnd();
     await instance.executeCommand("insertEmoji", { emoji: "\u{1F642}" });
@@ -433,6 +499,92 @@
       instance.editor.textContent.includes("\u20AC") &&
         instance.editor.querySelector("time[datetime]"),
       "special character or date insertion failed",
+    );
+    instance.editor.insertAdjacentHTML(
+      "beforeend",
+      '<p data-export-semantics>Formula <sup>2</sup> and H<sub>2</sub>O</p>' +
+        '<blockquote data-export-quote>Exported quotation</blockquote>',
+    );
+    const semanticHTMLExport = await instance.executeCommand("exportHTML", {
+      download: false,
+      returnHTML: true,
+    });
+    const semanticPDFExport = await instance.executeCommand("exportPDF", {
+      print: false,
+      returnHTML: true,
+    });
+    for (const [format, exported] of Object.entries({
+      html: semanticHTMLExport,
+      pdf: semanticPDFExport,
+    })) {
+      const exportDocument = new DOMParser().parseFromString(
+        exported.html,
+        "text/html",
+      );
+      assert(
+        exportDocument.querySelector("sup") &&
+          exportDocument.querySelector("sub") &&
+          exportDocument.querySelector("blockquote") &&
+          exportDocument.querySelector("time[datetime]") &&
+          exportDocument.body.textContent.includes("\u20AC") &&
+          exportDocument.querySelector(".editra-emoji-object"),
+        `${format} export lost semantic or special-character content`,
+      );
+      assert(
+        !exportDocument.querySelector(".editra-resize-handle"),
+        `${format} export retained editor resize controls`,
+      );
+      assert(
+        exported.html.includes(".editra-barcode svg") &&
+          exported.html.includes("shape-rendering: crispEdges") &&
+          exported.html.includes("break-inside: avoid"),
+        `${format} export omitted stable code layout styles`,
+      );
+    }
+
+    instance.setCode("<p>const answer = 42;</p>");
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+    const sourceParagraph = instance.editor.querySelector("p");
+    const codeRange = document.createRange();
+    codeRange.selectNodeContents(sourceParagraph);
+    globalThis.getSelection().removeAllRanges();
+    globalThis.getSelection().addRange(codeRange);
+    instance.selection = codeRange.cloneRange();
+    await instance.executeCommand("insertCodeBlock", "javascript");
+    const configurableCodeBlock =
+      instance.editor.querySelector(".editra-code-block");
+    assert(
+      configurableCodeBlock?.dataset.editraSyntax === "highlighted" &&
+        configurableCodeBlock.dataset.editraCodeLanguage === "javascript" &&
+        configurableCodeBlock.querySelector(
+          "code.language-javascript .editra-code-token",
+        ),
+      "Code Block highlighting mode was not applied",
+    );
+    const codeCaret = document.createRange();
+    codeCaret.selectNodeContents(configurableCodeBlock.querySelector("code"));
+    codeCaret.collapse(true);
+    globalThis.getSelection().removeAllRanges();
+    globalThis.getSelection().addRange(codeCaret);
+    instance.selection = codeCaret.cloneRange();
+    await instance.executeCommand("setCodeBlockBackground", "#eaf2ff");
+    await instance.executeCommand("insertCodeBlock", "plain");
+    assert(
+      configurableCodeBlock.style.backgroundColor === "rgb(234, 242, 255)" &&
+        configurableCodeBlock.dataset.editraSyntax === "plain" &&
+        !configurableCodeBlock.classList.contains("is-syntax-highlighted"),
+      "Code Block background or plain-text mode is not configurable",
+    );
+    const codeBlockExport = await instance.executeCommand("exportHTML", {
+      download: false,
+      returnHTML: true,
+    });
+    assert(
+      codeBlockExport.html.includes("data-editra-code-background") &&
+        codeBlockExport.html.includes("background-color: rgb(234, 242, 255)"),
+      "Code Block background did not persist in export",
     );
 
     instance.setCode("<p>Toggle formatting</p>");
@@ -540,6 +692,15 @@
         paintedTarget.style.fontWeight === "700",
       "Format Painter did not copy source formatting to the target selection",
     );
+    const paintedExport = await instance.executeCommand("exportHTML", {
+      download: false,
+      returnHTML: true,
+    });
+    assert(
+      paintedExport.html.includes('font-size: 20px') &&
+        paintedExport.html.includes('font-weight: 700'),
+      "HTML export did not preserve Format Painter styles",
+    );
 
     const backgroundControl = document.querySelector(
       '.editra-color-tool[data-command="setBackgroundColor"]',
@@ -556,6 +717,14 @@
         ) &&
         colorChooser.querySelector(".editra-advanced-color input[type='color']"),
       "Word-style background palette, No Fill, or advanced chooser is missing",
+    );
+    const backgroundSwatch = colorChooser?.querySelector(
+      ".editra-menu-color-grid button",
+    );
+    assert(
+      backgroundSwatch &&
+        Number.parseFloat(getComputedStyle(backgroundSwatch).width) <= 13,
+      `background color swatches are not compact Word-style squares (${getComputedStyle(backgroundSwatch).width})`,
     );
     colorChooser?.dispatchEvent(new CustomEvent("editra:close"));
 

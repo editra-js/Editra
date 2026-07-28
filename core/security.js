@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Enforces HTML sanitization, document limits, safe URLs, Trusted Types, and security telemetry.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 

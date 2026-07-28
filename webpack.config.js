@@ -1,15 +1,6 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Builds the browser-ready Editra UMD distribution with Webpack.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const path = require("node:path");
-const webpack = require("webpack");
 
 module.exports = {
   mode: "production",
@@ -27,12 +18,4 @@ module.exports = {
   optimization: {
     minimize: true,
   },
-  plugins: [
-    new webpack.BannerPlugin({
-      banner: `Product: Editra
-Version: 2.0.0
-Purpose: Provides the browser-ready Editra UMD distribution for npm CDNs.
-Licensing: MIT License (open source)`,
-    }),
-  ],
 };

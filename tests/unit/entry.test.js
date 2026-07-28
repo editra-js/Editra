@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Verifies CommonJS package exports and selector-based initialization.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const test = require("node:test");

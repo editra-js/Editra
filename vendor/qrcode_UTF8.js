@@ -1,10 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Vendors UTF-8 byte encoding support for QR data.
- * Licensing: MIT License (open source); qrcode-generator UTF-8 support 2.0.4 remains MIT.
- */
 //---------------------------------------------------------------------
 //
 // QR Code Generator for JavaScript UTF8 Support (optional)

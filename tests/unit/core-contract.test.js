@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Verifies the documented Editra public API and command routing contract.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const fs = require("node:fs");

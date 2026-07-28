@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Covers barcode and QR code resource and persistence contracts.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const test = require("node:test");

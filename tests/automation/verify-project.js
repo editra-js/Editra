@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Enforces Editra release metadata, headers, documentation, demos, and JavaScript syntax.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const fs = require("node:fs");
@@ -17,13 +9,13 @@ const versionFile = fs.readFileSync(path.join(root, "version.prop"), "utf8");
 const version = versionFile.match(/^version=(.+)$/m)?.[1]?.trim();
 const packageVersion =
   versionFile.match(/^package_version=(.+)$/m)?.[1]?.trim();
-const requiredHeader = [
-  "Product: Editra",
-  `Version: ${version}`,
-  "Purpose:",
-  "Licensing: MIT License (open source)",
-];
 const sourceExtensions = new Set([".js", ".mjs", ".css", ".html", ".cmd"]);
+const metadataExtensions = new Set([
+  ...sourceExtensions,
+  ".md",
+  ".svg",
+  ".txt",
+]);
 const ignoredDirectories = new Set([".git", ".npm-cache", "node_modules"]);
 const errors = [];
 
@@ -189,26 +181,22 @@ sourceFiles
     }
   });
 
-sourceFiles.forEach((file) => {
+walk(root)
+  .filter((file) => metadataExtensions.has(path.extname(file).toLowerCase()))
+  .forEach((file) => {
   const content = fs.readFileSync(file, "utf8");
-  const extension = path.extname(file).toLowerCase();
-  const startsWithHeader =
-    extension === ".html"
-      ? content.trimStart().startsWith("<!--")
-      : extension === ".cmd"
-      ? content.trimStart().startsWith("REM")
-        : content.trimStart().startsWith("// Version:") ||
-          content.trimStart().startsWith("/**") ||
-          content.trimStart().startsWith("/*");
-  if (!startsWithHeader) {
-    errors.push(`${relative(file)} does not begin with a header block`);
+  const beginning = content.slice(0, 900);
+  if (
+    /^(?:\/\/|\/\*|<!--|REM)?[ \t]*Version:[ \t]*\d+\.\d+\.\d+/i.test(
+      beginning,
+    ) ||
+    /^(?:\/\*{1,2}|<!--)[\s\S]*?Product:[ \t]*Editra[\s\S]*?Purpose:/i.test(
+      beginning,
+    )
+  ) {
+    errors.push(`${relative(file)} contains redundant release metadata`);
   }
-  requiredHeader.forEach((field) => {
-    if (!content.slice(0, 700).includes(field)) {
-      errors.push(`${relative(file)} missing header field: ${field}`);
-    }
   });
-});
 
 sourceFiles
   .filter((file) => [".js", ".mjs"].includes(path.extname(file).toLowerCase()))

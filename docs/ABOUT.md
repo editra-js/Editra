@@ -1,5 +1,4 @@
-﻿Version: 2.0.0
-# About Editra
+﻿# About Editra
 
 ## Project overview
 
@@ -21,9 +20,8 @@ Editra is a standalone premium browser-based WYSIWYG document editor. It provide
 - Optional application-provided collaboration transport
 - Node.js only for the local static server and automated checks
 
-## Product and authorship
+## Release metadata
 
 - Product: Editra
-- Project metadata: `version.prop`
-- Current version: 1.17.0
+- Version and authorship source: `version.prop`
 - License: MIT

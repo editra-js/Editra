@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Implements the Editra export plugin and its editor commands.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 
@@ -298,8 +290,33 @@
       h1 { font-size: 2em; } h2 { font-size: 1.5em; } h3 { font-size: 1.17em; }
       h4 { font-size: 1em; } h5 { font-size: .83em; } h6 { font-size: .67em; }
       h1,h2,h3,h4,h5,h6 { line-height: 1.2; break-after: avoid; }
+      sup,sub { position: relative; font-size: .75em; line-height: 0; vertical-align: baseline; }
+      sup { top: -.5em; } sub { bottom: -.25em; }
+      blockquote {
+        margin: 1.7em 0; padding-left: 1.25em; border-left: 3px solid #7357d6;
+        color: #5b554b; font-style: italic; break-inside: avoid;
+      }
+      time { color: inherit; font: inherit; }
       table { border-collapse: collapse; max-width: 100%; } td,th { border: 1px solid #111; }
       img,video,iframe { max-width: 100%; } .editra-page-break { display: none; }
+      .editra-export-content { min-width: 0; }
+      .editra-media-frame {
+        display: block; max-width: 100%; margin: 1.8em auto; line-height: 0;
+        break-inside: avoid; page-break-inside: avoid;
+      }
+      .editra-barcode,.editra-qr-code {
+        display: inline-block; max-width: 100%; margin: 0; overflow: visible;
+        color: #000; background: #fff; vertical-align: middle;
+      }
+      .editra-barcode svg,.editra-qr-code svg {
+        display: block; width: 100%; max-width: 100%; height: auto;
+        overflow: visible; background: #fff;
+      }
+      .editra-qr-code svg { shape-rendering: crispEdges; }
+      .editra-emoji-object {
+        display: inline-block; font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+        font-style: normal; line-height: 1; vertical-align: -.08em;
+      }
       img,video,iframe,canvas,svg,form,object,embed,figure,
       [data-editra-indivisible="true"],[data-editra-keep-together="true"] {
         break-inside: avoid; page-break-inside: avoid;

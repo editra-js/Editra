@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Builds the configurable Editra menu bar and command menus.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 
@@ -124,6 +116,8 @@
         ["superscript", "Superscript"],
         ["subscript", "Subscript"],
         ["blockQuote", "Block quote"],
+        ["insertCodeBlock", "Code Block"],
+        ["setCodeBlockBackground", "Code Block Background"],
         ["setAlignment", "Alignment"],
         ["setLineHeight", "Line Height"],
         null,
@@ -156,7 +150,7 @@
         ["accessibility", "Accessibility"],
         ["about", "About"],
         ["documentation", "Documentation"],
-        ["shortcuts", "Shortcuts"],
+        ["shortcutKeys", "Shortcut Keys"],
       ],
     },
   ]);
@@ -194,6 +188,7 @@
     template: "structure",
     "special-characters": "structure",
     insertCodeBlock: "structure",
+    setCodeBlockBackground: "structure",
     insertHorizontalLine: "structure",
     insertPageBreak: "structure",
     insertTableOfContents: "structure",
@@ -248,7 +243,7 @@
     "accessibility",
     "about",
     "documentation",
-    "shortcuts",
+    "shortcutKeys",
   ]);
   const MENU_CONTROLS = Object.freeze({
     setPageSize: Object.freeze({
@@ -311,6 +306,22 @@
         ["time", "Current time"],
         ["datetime", "Current date and time"],
       ]),
+    }),
+    insertCodeBlock: Object.freeze({
+      type: "select",
+      label: "Code Block",
+      options: Object.freeze([
+        ["plain", "Plain text"],
+        ["javascript", "JavaScript highlighting"],
+        ["html", "HTML highlighting"],
+        ["css", "CSS highlighting"],
+        ["json", "JSON highlighting"],
+      ]),
+    }),
+    setCodeBlockBackground: Object.freeze({
+      type: "color",
+      label: "Code Block Background",
+      value: "#24262b",
     }),
   });
   const COLOR_SWATCHES = Object.freeze([
@@ -413,6 +424,8 @@
       this.chooser = null;
       this.handleClick = this.handleClick.bind(this);
       this.handlePointerDown = this.handlePointerDown.bind(this);
+      this.handlePointerOver = this.handlePointerOver.bind(this);
+      this.handlePointerOut = this.handlePointerOut.bind(this);
       this.handleDocumentPointer = this.handleDocumentPointer.bind(this);
       this.handleKeydown = this.handleKeydown.bind(this);
       this.refreshContext = this.refreshContext.bind(this);
@@ -434,6 +447,8 @@
 
       this.element.addEventListener("click", this.handleClick);
       this.element.addEventListener("mousedown", this.handlePointerDown);
+      this.element.addEventListener("pointerover", this.handlePointerOver);
+      this.element.addEventListener("pointerout", this.handlePointerOut);
       document.addEventListener("pointerdown", this.handleDocumentPointer);
       document.addEventListener("keydown", this.handleKeydown);
       this.contextObserver = new MutationObserver(() =>
@@ -514,6 +529,42 @@
       if (event.target.closest("button")) event.preventDefault();
     }
 
+    controlFor(item) {
+      return (
+        MENU_CONTROLS[item?.dataset.command] ||
+        this.core.toolbar.getControl(item?.dataset.command)
+      );
+    }
+
+    handlePointerOver(event) {
+      const item = event.target.closest(".editra-menu-item.has-submenu");
+      if (!item || !this.element.contains(item) || !this.openMenu) return;
+      if (item.contains(event.relatedTarget)) return;
+      const control = this.controlFor(item);
+      if (control?.type === "select" || control?.type === "color") {
+        this.openChooser(item, control, { focus: false });
+      }
+    }
+
+    handlePointerOut(event) {
+      const item =
+        event.target.closest?.(".editra-menu-item.has-submenu") ||
+        (event.currentTarget === this.chooser ? this.chooserParent : null);
+      if (!item || item !== this.chooserParent) return;
+      if (
+        item.contains(event.relatedTarget) ||
+        this.chooser?.contains(event.relatedTarget)
+      ) {
+        return;
+      }
+      clearTimeout(this.chooserCloseTimer);
+      this.chooserCloseTimer = setTimeout(() => {
+        if (!item.matches(":hover") && !this.chooser?.matches(":hover")) {
+          this.closeChooser();
+        }
+      }, 140);
+    }
+
     handleClick(event) {
       const trigger = event.target.closest("[data-menu-index]");
       if (trigger && this.element.contains(trigger)) {
@@ -523,11 +574,9 @@
 
       const item = event.target.closest("[data-command]");
       if (!item || !this.element.contains(item)) return;
-      const control =
-        MENU_CONTROLS[item.dataset.command] ||
-        this.core.toolbar.getControl(item.dataset.command);
+      const control = this.controlFor(item);
       if (control?.type === "select" || control?.type === "color") {
-        this.openChooser(item, control);
+        this.openChooser(item, control, { focus: true });
         return;
       }
       const itemRect = item.getBoundingClientRect();
@@ -544,12 +593,17 @@
         HELP_COMMANDS.has(command) ||
           command === "insertEmoji" ||
           command === "special-characters"
-          ? { anchor: item, anchorRect }
+          ? {
+              anchor: item,
+              anchorRect,
+              explicit: command === "special-characters",
+            }
           : undefined,
       );
     }
 
-    openChooser(item, control) {
+    openChooser(item, control, options = {}) {
+      if (this.chooserParent === item && this.chooser?.isConnected) return;
       const rect = item.getBoundingClientRect();
       const cardRect = this.card.getBoundingClientRect();
       const menuHost = item.closest(".editra-menu");
@@ -565,28 +619,7 @@
       chooser.dataset.parentCommand = command;
       item.setAttribute("aria-expanded", "true");
       chooser.style.position = "absolute";
-      chooser.style.width = "242px";
       chooser.style.right = "auto";
-      if (menuHost) {
-        const opensRight = rect.right + 250 <= innerWidth - 8;
-        chooser.style.left = `${
-          opensRight
-            ? rect.right - hostRect.left + 6
-            : rect.left - hostRect.left - 248
-        }px`;
-        chooser.style.top = `${rect.top - hostRect.top}px`;
-      } else {
-        const preferredLeft = rect.right - cardRect.left + 6;
-        const placedLeft =
-          preferredLeft + 250 <= cardRect.width
-            ? preferredLeft
-            : rect.left - cardRect.left - 248;
-        chooser.style.left = `${Math.max(
-          8,
-          Math.min(placedLeft, cardRect.width - 250),
-        )}px`;
-        chooser.style.top = `${Math.max(8, rect.top - cardRect.top)}px`;
-      }
       const heading = document.createElement("header");
       heading.textContent = control.label;
       const choices = document.createElement("div");
@@ -623,7 +656,8 @@
         }
         choices.append(button);
       });
-      chooser.append(heading, choices);
+      if (!menuHost) chooser.append(heading);
+      chooser.append(choices);
       if (control.type === "color") {
         const advanced = document.createElement("label");
         advanced.className = "editra-advanced-color";
@@ -649,6 +683,27 @@
         advancedInput.addEventListener("change", advancedChange);
       }
       host.append(chooser);
+      const chooserWidth = Math.ceil(chooser.getBoundingClientRect().width);
+      if (menuHost) {
+        const opensRight = rect.right + chooserWidth + 6 <= innerWidth - 8;
+        chooser.style.left = `${
+          opensRight
+            ? rect.right - hostRect.left + 4
+            : rect.left - hostRect.left - chooserWidth - 4
+        }px`;
+        chooser.style.top = `${rect.top - hostRect.top}px`;
+      } else {
+        const preferredLeft = rect.right - cardRect.left + 4;
+        const placedLeft =
+          preferredLeft + chooserWidth <= cardRect.width
+            ? preferredLeft
+            : rect.left - cardRect.left - chooserWidth - 4;
+        chooser.style.left = `${Math.max(
+          8,
+          Math.min(placedLeft, cardRect.width - chooserWidth - 8),
+        )}px`;
+        chooser.style.top = `${Math.max(8, rect.top - cardRect.top)}px`;
+      }
       this.chooser = chooser;
       this.chooserParent = item;
       const choose = (event) => {
@@ -659,12 +714,18 @@
       };
       chooser._editraChoose = choose;
       chooser.addEventListener("click", choose);
-      choices.querySelector("button")?.focus({ preventScroll: true });
+      chooser.addEventListener("pointerleave", this.handlePointerOut);
+      if (options.focus) {
+        choices.querySelector("button")?.focus({ preventScroll: true });
+      }
     }
 
     closeChooser() {
+      clearTimeout(this.chooserCloseTimer);
+      this.chooserCloseTimer = null;
       if (!this.chooser) return;
       this.chooser.removeEventListener("click", this.chooser._editraChoose);
+      this.chooser.removeEventListener("pointerleave", this.handlePointerOut);
       if (this.chooser._editraAdvanced) {
         const { input, advancedChange } = this.chooser._editraAdvanced;
         input.removeEventListener("change", advancedChange);
@@ -782,6 +843,8 @@
       this.closeChooser();
       this.element.removeEventListener("click", this.handleClick);
       this.element.removeEventListener("mousedown", this.handlePointerDown);
+      this.element.removeEventListener("pointerover", this.handlePointerOver);
+      this.element.removeEventListener("pointerout", this.handlePointerOut);
       document.removeEventListener("pointerdown", this.handleDocumentPointer);
       document.removeEventListener("keydown", this.handleKeydown);
       this.contextObserver?.disconnect();

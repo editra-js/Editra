@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Builds the configurable Editra toolbar and its accessible controls.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 
@@ -277,7 +269,12 @@
       }
       this.core.executeCommand(
         command,
-        command === "insertEmoji" ? { anchor: control } : undefined,
+        command === "insertEmoji" || command === "special-characters"
+          ? {
+              anchor: control,
+              explicit: command === "special-characters",
+            }
+          : undefined,
       );
     }
 

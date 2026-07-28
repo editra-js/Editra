@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Copies the pinned security browser runtime into the vendor folder.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const fs = require("node:fs");
@@ -75,16 +67,6 @@ const assets = [
   },
 ];
 
-function header(asset) {
-  return `/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: ${asset.purpose}
- * Licensing: MIT License (open source); ${asset.name} remains ${asset.license}.
- */
-`;
-}
-
 fs.mkdirSync(targetDirectory, { recursive: true });
 assets.forEach((asset) => {
   if (!fs.existsSync(asset.source)) {
@@ -96,10 +78,7 @@ assets.forEach((asset) => {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   if (asset.raw) fs.copyFileSync(asset.source, target);
   else {
-    fs.writeFileSync(
-      target,
-      `${header(asset)}${fs.readFileSync(asset.source, "utf8")}`,
-    );
+    fs.copyFileSync(asset.source, target);
   }
 });
 console.log(`Synchronized ${assets.map((asset) => asset.name).join(" and ")}.`);

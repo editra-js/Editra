@@ -1,11 +1,3 @@
-/* Version: 2.0.0 */
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Defines shared Editra icon presentation rules.
- * Licensing: MIT License (open source)
- */
-
 .editra-icon {
   display: inline-grid;
   min-width: 1.2em;

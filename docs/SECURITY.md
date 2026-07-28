@@ -1,11 +1,3 @@
-Version: 2.0.0
-<!--
-Product: Editra
-Version: 2.0.0
-Purpose: Defines the Editra security model, controls, deployment requirements, and vulnerability process.
-Licensing: MIT License (open source)
--->
-
 # Editra Security
 
 ## Security posture

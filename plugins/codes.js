@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Adds toolbar-driven, standards-compliant barcode and QR code insertion.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 

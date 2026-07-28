@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Synchronizes release metadata and version headers from version.prop.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const fs = require("node:fs");
@@ -25,6 +17,8 @@ const supportedExtensions = new Set([
   ".html",
   ".md",
   ".cmd",
+  ".svg",
+  ".txt",
 ]);
 const ignoredDirectories = new Set([".git", ".npm-cache", "node_modules"]);
 
@@ -35,72 +29,28 @@ function readVersion() {
   return version;
 }
 
-function headerFor(extension, version) {
-  switch (extension) {
-    case ".js":
-    case ".mjs":
-      return `// Version: ${version}`;
-    case ".css":
-      return `/* Version: ${version} */`;
-    case ".html":
-      return `<!-- Version: ${version} -->`;
-    case ".md":
-      return `Version: ${version}`;
-    case ".cmd":
-      return `REM Version: ${version}`;
-    default:
-      throw new Error(`Unsupported version header extension: ${extension}`);
-  }
-}
-
-function headerPattern(extension) {
-  switch (extension) {
-    case ".js":
-    case ".mjs":
-      return /^\/\/ Version:.*(?:\r?\n|$)/;
-    case ".css":
-      return /^\/\* Version:.*?\*\/(?:\r?\n|$)/;
-    case ".html":
-      return /^<!-- Version:.*?-->(?:\r?\n|$)/;
-    case ".md":
-      return /^Version:.*(?:\r?\n|$)/;
-    case ".cmd":
-      return /^REM Version:.*(?:\r?\n|$)/;
-    default:
-      throw new Error(`Unsupported version header extension: ${extension}`);
-  }
-}
-
-function updateHeader(file, version) {
-  const extension = path.extname(file).toLowerCase();
+function removeGeneratedMetadata(file) {
   const original = fs.readFileSync(file, "utf8");
   const bom = original.startsWith("\uFEFF") ? "\uFEFF" : "";
-  const contents = (bom ? original.slice(1) : original).replace(/\r\n?/g, "\n");
-  const newline = "\n";
-  const header = headerFor(extension, version);
-  const metadataVersions = contents.replace(
-    /^(\s*(?:(?:\/\/|REM|\*)\s*)?Version:\s*).*(?:\r?\n|$)/gm,
-    `$1${version}${newline}`,
-  );
-  const escapedAuthor = author.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const authorLine = new RegExp(
-    `^[ \\t]*(?:(?:\\/\\/|REM|\\*|<!--)[ \\t]*)?Author:[ \\t]*${escapedAuthor}[ \\t]*(?:-->)?[ \\t]*(?:\\n|$)`,
-    "gim",
-  );
-  const inlineAuthor = new RegExp(
-    `[ \\t]*Author:[ \\t]*${escapedAuthor}[ \\t]*\\|`,
-    "gi",
-  );
-  const authoredBy = new RegExp(`authored by ${escapedAuthor}`, "gi");
-  const withoutAuthor = metadataVersions
-    .replace(authorLine, "")
-    .replace(inlineAuthor, " ")
-    .replace(authoredBy, "maintained by the Editra contributors");
-  const updated = headerPattern(extension).test(withoutAuthor)
-    ? withoutAuthor.replace(headerPattern(extension), `${header}${newline}`)
-    : `${header}${newline}${withoutAuthor}`;
-
-  const serialized = `${bom}${updated}`;
+  let updated = (bom ? original.slice(1) : original).replace(/\r\n?/g, "\n");
+  updated = updated
+    .replace(
+      /^(?:\/\/|\/\*|<!--)?[ \t]*Version:[^\n]*(?:\*\/|-->)?[ \t]*\n/i,
+      "",
+    )
+    .replace(
+      /^(?:\/\*{1,2}|<!--)[\s\S]*?Product:[ \t]*Editra[\s\S]*?Purpose:[\s\S]*?(?:Licensing|License):[\s\S]*?(?:\*\/|-->)[ \t]*\n*/i,
+      "",
+    )
+    .replace(
+      /^(?:REM[ \t]+(?:Product|Version|Purpose|Licensing):[^\n]*\n)+/i,
+      "",
+    )
+    .replace(
+      /^<!--[ \t]*Product:[ \t]*Editra[ \t]*\|[^\n]*-->[ \t]*\n?/i,
+      "",
+    );
+  const serialized = `${bom}${updated.replace(/^\n+/, "")}`;
   if (serialized !== original) fs.writeFileSync(file, serialized);
 }
 
@@ -187,8 +137,10 @@ const version = readVersion();
 const files = [];
 walk(root, files);
 updatePackageVersion(version);
-files.sort().forEach((file) => updateHeader(file, version));
+files.sort().forEach((file) => removeGeneratedMetadata(file));
 updateRuntimeVersions(version);
 updateAdditionalMetadata();
 
-console.log(`Synchronized version ${version} in package metadata and ${files.length} headers.`);
+console.log(
+  `Synchronized version ${version} in package metadata and removed redundant metadata headers from ${files.length} files.`,
+);

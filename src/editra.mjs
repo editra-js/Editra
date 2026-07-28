@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Exposes an ES-module loader for npm-based Editra integrations.
- * Licensing: MIT License (open source)
- */
-
 const runtimeURL = new URL("../core/editor.js", import.meta.url);
 
 const ready =

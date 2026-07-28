@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Provides an optional distribution loader for the canonical Editra core runtime.
- * Licensing: MIT License (open source)
- */
-
 (function (global) {
   "use strict";
 

@@ -1,11 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Configures Chromium, Firefox, and WebKit enterprise browser verification.
- * Licensing: MIT License (open source)
- */
-
 "use strict";
 
 const { defineConfig } = require("@playwright/test");

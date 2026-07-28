@@ -1,10 +1,3 @@
-// Version: 2.0.0
-/**
- * Product: Editra
- * Version: 2.0.0
- * Purpose: Vendors the pure JavaScript QR matrix encoder.
- * Licensing: MIT License (open source); qrcode-generator 2.0.4 remains MIT.
- */
 //---------------------------------------------------------------------
 //
 // QR Code Generator for JavaScript
