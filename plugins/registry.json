@@ -1,0 +1,58 @@
+{
+  "$schema": "./registry.schema.json",
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-07-31T00:00:00Z",
+  "plugins": [
+    {
+      "id": "formatting",
+      "name": "Formatting",
+      "version": "2.0.1",
+      "author": "Editra",
+      "description": "Text colors, highlighting, alignment, line height, and inline formatting.",
+      "compatibility": ">=2.0.1",
+      "type": "builtin",
+      "entry": "./formatting.js",
+      "style": "./formatting.css"
+    },
+    {
+      "id": "table",
+      "name": "Tables",
+      "version": "2.0.1",
+      "author": "Editra",
+      "description": "Table insertion, editing, selection, borders, and pagination support.",
+      "compatibility": ">=2.0.1",
+      "type": "builtin",
+      "entry": "./table.js",
+      "style": "./table.css"
+    },
+    {
+      "id": "image",
+      "name": "Images",
+      "version": "2.0.1",
+      "author": "Editra",
+      "description": "Secure image insertion, upload handling, and resizing.",
+      "compatibility": ">=2.0.1",
+      "type": "builtin",
+      "entry": "./image.js",
+      "style": "./image.css"
+    },
+    {
+      "id": "spell-checker",
+      "name": "Spell Checker",
+      "version": "1.0.0",
+      "author": "Community Dev",
+      "description": "Demonstrates sandboxed document analysis through the public capability API.",
+      "compatibility": ">=2.0.1",
+      "type": "community",
+      "entry": "/community/spell-checker/index.html",
+      "integrity": "sha256-Lcf8a6e16qNniFbOvrgcJzPFJ8pmTjQaGYp1+j+aXv8=",
+      "permissions": ["document.readText", "ui.notify"],
+      "allowedCommands": [],
+      "homepage": "../docs/PLUGIN_DEVELOPER_GUIDE.md",
+      "ui": {
+        "visible": true,
+        "title": "Spell Checker"
+      }
+    }
+  ]
+}

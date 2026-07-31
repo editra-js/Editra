@@ -956,6 +956,78 @@
     minimal.destroy();
     minimalHost.remove();
 
+    const form = document.createElement("form");
+    const textarea = document.createElement("textarea");
+    textarea.name = "content";
+    textarea.defaultValue =
+      '<p>Textarea content</p><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" onerror="globalThis.textareaXss=true"><script>globalThis.textareaXss=true</script>';
+    textarea.value = textarea.defaultValue;
+    form.append(textarea);
+    document.body.append(form);
+    const textareaEditor = await Editra.init({
+      selector: textarea,
+      theme: "Classic",
+      plugins: ["bold", "structure"],
+      toolbar: "bold insertPageBreak",
+    });
+    assert(textarea.hidden, "textarea host was not hidden while active");
+    assert(
+      !textareaEditor.getCode().includes("onerror") &&
+        !textareaEditor.getCode().includes("<script") &&
+        globalThis.textareaXss !== true,
+      "textarea initial HTML bypassed sanitization",
+    );
+    assert(
+      textareaEditor.host === textarea &&
+        textareaEditor.options.theme === "Classic" &&
+        textareaEditor.toolbar.card.classList.contains("editra-theme-classic"),
+      "Classic textarea surface was not configured",
+    );
+    assert(
+      textareaEditor.state.pageCount === null,
+      "Classic theme introduced automatic page numbering",
+    );
+    textareaEditor.setCode("<p>Updated textarea</p>");
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+    assert(
+      textarea.value.includes("Updated textarea"),
+      "textarea value did not synchronize editor changes",
+    );
+    form.reset();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+    assert(
+      textareaEditor.getCode().includes("Textarea content"),
+      "form reset did not restore textarea default content",
+    );
+    textareaEditor.destroy();
+    assert(
+      !textarea.hidden && textarea.style.display === "" && !textarea.editraInstance,
+      "textarea host was not restored after destroy",
+    );
+    form.remove();
+
+    const wordHost = document.createElement("div");
+    document.body.append(wordHost);
+    const wordEditor = await Editra.init({
+      selector: wordHost,
+      theme: "Word",
+      plugins: ["bold"],
+      toolbar: "bold",
+    });
+    assert(
+      wordEditor.options.theme === "Word" &&
+        wordEditor.toolbar.card.classList.contains("editra-theme-word") &&
+        wordEditor.state.pageCount >= 1,
+      "Word theme was not configured",
+    );
+    wordEditor.destroy();
+    wordHost.remove();
+
     const benchmark = await EditraCore.stressTest({ paragraphs: 1000 });
     assert(benchmark.paragraphs === 1000, "stress benchmark did not complete");
     document.body.dataset.benchmark = JSON.stringify(benchmark);

@@ -1,0 +1,23 @@
+body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 18px;
+  color: #20242a;
+  background: #f8fafc;
+  font: 14px/1.4 "Segoe UI", sans-serif;
+}
+
+button {
+  padding: 7px 11px;
+  border: 1px solid #2864dc;
+  border-radius: 5px;
+  color: #fff;
+  background: #2864dc;
+  cursor: pointer;
+}
+
+output {
+  color: #505761;
+}

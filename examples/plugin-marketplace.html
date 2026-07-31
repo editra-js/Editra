@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../themes/word.css">
+  <link rel="stylesheet" href="./demo.css">
+  <link rel="stylesheet" href="./plugin-marketplace.css">
+  <title>Editra Plugin Marketplace</title>
+</head>
+<body>
+  <main class="marketplace-shell">
+    <header class="demo-intro">
+      <h1>Editra Plugin Marketplace</h1>
+      <p>Browse reviewed built-in and sandboxed community plugins.</p>
+      <nav class="demo-links"><a href="./modular-loading.html">Modular loading</a><a href="../docs/PLUGIN_DEVELOPER_GUIDE.md">Build a plugin</a></nav>
+    </header>
+    <label class="marketplace-search">Search plugins <input type="search" id="plugin-search" placeholder="Formatting, tables, spell checker…"></label>
+    <section id="plugin-list" class="marketplace-grid" aria-live="polite"></section>
+    <section class="marketplace-editor">
+      <h2>Sandbox preview</h2>
+      <div id="marketplace-editor"></div>
+    </section>
+  </main>
+  <script src="../core/editor.js"></script>
+  <script src="./plugin-marketplace.js"></script>
+</body>
+</html>

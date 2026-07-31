@@ -26,12 +26,12 @@ test("normalizes selector and options", async () => {
     },
   };
   assert.equal(
-    await Editra.init("#editra-editor", { theme: "premium" }),
+    await Editra.init("#editra-editor", { theme: "Word" }),
     instance,
   );
   assert.deepEqual(calls[0], {
     selector: "#editra-editor",
-    theme: "premium",
+    theme: "Word",
   });
 });
 

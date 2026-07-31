@@ -4,6 +4,30 @@
 
 Release date: 2026-07-27
 
+### Themes and textarea integrations
+
+- Standardized the public theme names as `Word` for the page-like modern
+  experience and `Classic` for a continuous editor without automatic pages.
+- Added tested textarea examples for Word modular loading and Classic
+  single-bundle loading while preserving existing div-host initialization.
+- Confirmed initial and synchronized textarea HTML uses the same sanitization
+  path as div-host content.
+- Standardized public initialization snippets on the configuration-object
+  pattern and added a tested Word modular div example alongside the Classic
+  single-bundle textarea example.
+
+### Modular loading and plugin ecosystem
+
+- Added `editra-core.js` and `editra-core.css` modular distribution entries,
+  declared-plugin-only CSS loading, and on-demand built-in plugin JavaScript.
+- Preserved the existing single-entry initialization and complete default UI.
+- Added a versioned JSON plugin registry and schema, automated metadata and
+  integrity validation, a searchable marketplace, and explicit update checks.
+- Added sandboxed community plugin execution with source-checked messaging,
+  SHA-256 entry verification, and manifest-approved capabilities.
+- Added modular, marketplace, and spell-checker examples plus developer,
+  registry, marketplace, contribution, help, and security documentation.
+
 ### Barcode, QR, and editing improvements
 
 - Added lazy, client-side QR Code, Code 128, Code 39, and EAN-13 generation
@@ -114,7 +138,7 @@ Release date: 2026-07-26
 - Added live HTML and plain-text feedback previews plus saved-record rendering.
 - Added npm package metadata, a browser distribution loader, and an ES-module loader.
 - Added documented npm and CDN integration paths.
-- Added automated distribution, demo, package-content, and premium-style checks.
+- Added automated distribution, demo, package-content, and Word-style checks.
 
 ### Bugs fixed
 

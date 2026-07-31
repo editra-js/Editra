@@ -70,6 +70,12 @@ const requiredFiles = [
   "editra.js",
   "package.json",
   "plugins/pagination.js",
+  "plugins/ecosystem.js",
+  "plugins/registry.json",
+  "plugins/registry.schema.json",
+  "docs/PLUGIN_DEVELOPER_GUIDE.md",
+  "docs/PLUGIN_REGISTRY_SPEC.md",
+  "docs/PLUGIN_MARKETPLACE.md",
   "plugins/languages.js",
   "core/security.js",
   "vendor/purify.min.js",
@@ -112,10 +118,12 @@ if (indexHTML.includes("\ufffd")) {
 const examples = [
   "full", "hidden-menu", "custom-tools", "sized-editor", "media",
   "multipage", "header-footer", "page-sizes", "custom-print", "tables",
-  "shortcuts", "minimal", "premium-ui", "help", "about", "bold",
+  "shortcuts", "minimal", "word-theme", "classic-theme", "help", "about", "bold",
   "italic", "underline", "ruler", "margins", "export", "theme", "image",
   "video", "formatting", "headings", "lists", "structure", "code-view",
   "productivity", "collaboration", "paste", "feedback-form", "pagination",
+  "modular-loading", "plugin-marketplace", "word-div-modular", "word-textarea-modular",
+  "classic-textarea-single",
 ];
 examples.forEach((name) => requireFile(`examples/${name}.html`));
 

@@ -27,7 +27,7 @@ Editra targets WCAG 2.1 AA integration:
 - Toolbar and menu use native buttons/selects, toolbar/menu roles, labels, expanded state, focus management, and keyboard operation.
 - Commands announce completion through a polite ARIA live region.
 - Word-like shortcuts include bold, italic, underline, undo/redo, save, selection, indentation, and navigation behavior.
-- The premium theme provides visible focus and Word-style selection.
+- The Word theme provides visible focus and Word-style selection.
 - Motion is not required to operate the editor.
 
 The host must provide page-level landmarks, skip links, sufficient contrast after theme customization, accessible validation, captions/transcripts for media, alternative text policy, zoom/reflow testing, and assistive-technology user testing. Automated tests do not prove WCAG conformance.
@@ -69,4 +69,3 @@ Editra has no analytics, tracking pixel, cloud upload, or automatic draft persis
 - `tests/playwright/enterprise.spec.js`: Chromium/Firefox/WebKit matrix.
 - `.github/workflows/security.yml`: audits, dependency review, CodeQL, browser matrix, build, and package inspection.
 - `docs/PERFORMANCE.md`: benchmark procedure, budgets, and results.
-

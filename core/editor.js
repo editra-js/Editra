@@ -4,8 +4,9 @@
   const bootstrapScript = document.currentScript;
   const projectBase = new URL("../", bootstrapScript.src);
   const scriptPromises = new Map();
-  let loaderPolicy = null;
-  if (global.trustedTypes?.createPolicy) {
+  const loaderPolicySymbol = Symbol.for("editra.loaderPolicy");
+  let loaderPolicy = global[loaderPolicySymbol] ?? null;
+  if (!loaderPolicy && global.trustedTypes?.createPolicy) {
     try {
       loaderPolicy = global.trustedTypes.createPolicy("editra-loader", {
         createScriptURL(value) {
@@ -20,7 +21,7 @@
       loaderPolicy = null;
     }
   }
-  global[Symbol.for("editra.loaderPolicy")] = loaderPolicy;
+  global[loaderPolicySymbol] = loaderPolicy;
 
   const PLUGIN_DEFINITIONS = Object.freeze({
     bold: {
@@ -43,6 +44,7 @@
     },
     table: {
       file: "plugins/table.js",
+      css: "plugins/table.css",
       label: "Insert table",
       icon: "table",
       command: "insertTable",
@@ -55,6 +57,7 @@
     },
     image: {
       file: "plugins/image.js",
+      css: "plugins/image.css",
       label: "Insert image",
       icon: "image",
       command: "insertImage",
@@ -104,6 +107,7 @@
     },
     formatting: {
       file: "plugins/formatting.js",
+      css: "plugins/formatting.css",
       label: "Text color",
       command: "setForeColor",
       lazy: true,
@@ -282,6 +286,18 @@
         { name: "margins", command: "setMargin", label: "Margins", type: "select", value: "normal", options: [["normal", "Normal"], ["narrow", "Narrow"], ["moderate", "Moderate"], ["wide", "Wide"]] },
       ],
     },
+    ecosystem: {
+      file: "plugins/ecosystem.js",
+      label: "Plugin ecosystem",
+      command: "installCommunityPlugin",
+      aliases: [
+        "uninstallCommunityPlugin",
+        "getInstalledCommunityPlugins",
+        "checkCommunityPluginUpdates",
+      ],
+      hidden: true,
+      lazy: true,
+    },
   });
 
   const DEFAULT_PLUGINS = Object.freeze(Object.keys(PLUGIN_DEFINITIONS));
@@ -415,12 +431,17 @@
     "toggle-theme": "theme",
     setTheme: "theme",
     getTheme: "theme",
+    installCommunityPlugin: "ecosystem",
+    uninstallCommunityPlugin: "ecosystem",
+    getInstalledCommunityPlugins: "ecosystem",
+    checkCommunityPluginUpdates: "ecosystem",
   });
   const SYSTEM_PLUGINS = Object.freeze([
     "paste",
     "uiConfig",
     "theme",
     "shortcuts",
+    "ecosystem",
   ]);
 
   function loadScript(relativePath, securityConfig = null) {
@@ -466,26 +487,101 @@
     return promise;
   }
 
+  function loadStyle(relativePath, securityConfig = null) {
+    const key = `style:${relativePath}`;
+    if (scriptPromises.has(key)) return scriptPromises.get(key);
+    const promise = new Promise((resolve, reject) => {
+      const url = new URL(relativePath, projectBase);
+      const allowedOrigins =
+        securityConfig?.allowedPluginOrigins ?? [global.location.origin];
+      if (!allowedOrigins.includes(url.origin)) {
+        reject(new TypeError(`Editra blocked plugin style origin: ${url.origin}`));
+        return;
+      }
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = url.href;
+      const integrity = securityConfig?.pluginIntegrity?.[relativePath];
+      if (securityConfig?.requirePluginIntegrity && !integrity) {
+        reject(
+          new TypeError(`Editra requires an integrity hash for ${relativePath}.`),
+        );
+        return;
+      }
+      if (integrity) {
+        link.integrity = integrity;
+        link.crossOrigin = "anonymous";
+      }
+      link.addEventListener("load", resolve, { once: true });
+      link.addEventListener(
+        "error",
+        () => reject(new Error(`Unable to load Editra style: ${relativePath}`)),
+        { once: true },
+      );
+      document.head.append(link);
+    });
+    scriptPromises.set(key, promise);
+    return promise;
+  }
+
 class EditraCore {
+  static normalizeTheme(value) {
+    const name = String(value ?? "Word").trim().toLowerCase();
+    if (name === "word") return "Word";
+    if (name === "classic") return "Classic";
+    throw new RangeError(
+      `Unknown Editra theme: ${String(value)}. Use "Word" or "Classic".`,
+    );
+  }
+
+  static createEditorSurface(host) {
+    if (!(host instanceof HTMLTextAreaElement)) {
+      return { editor: host, host, initialHTML: host.innerHTML };
+    }
+
+    const editor = document.createElement("div");
+    editor.className = "editra-textarea-surface";
+    editor.dataset.editraContainer = "textarea";
+    host.after(editor);
+    const originalState = {
+      hidden: host.hidden,
+      display: host.style.display,
+    };
+    host.hidden = true;
+    host.style.display = "none";
+    return {
+      editor,
+      host,
+      initialHTML: host.value,
+      textareaState: originalState,
+    };
+  }
+
   static async init(config = {}) {
     if (!config || typeof config !== "object" || Array.isArray(config)) {
       throw new TypeError("Editra.init requires a configuration object.");
     }
+    if (
+      config.communityPlugins !== undefined &&
+      !Array.isArray(config.communityPlugins)
+    ) {
+      throw new TypeError("communityPlugins must be an array of manifests.");
+    }
 
     const selector = config.selector;
-    const editor =
+    const host =
       typeof selector === "string"
         ? document.querySelector(selector)
         : selector;
 
-    if (!(editor instanceof HTMLElement)) {
+    if (!(host instanceof HTMLElement)) {
       throw new TypeError(
         `Editra could not find an editor for selector: ${String(selector)}`,
       );
     }
 
-    if (editor.editraInstance && !editor.editraInstance.destroyed) {
-      return editor.editraInstance;
+    if (host.editraInstance && !host.editraInstance.destroyed) {
+      return host.editraInstance;
     }
 
     await loadScript("vendor/purify.min.js");
@@ -501,6 +597,10 @@ class EditraCore {
     await Promise.all([
       loadScript("ui/toolbar.js", securityConfig),
       loadScript("ui/menubar.js", securityConfig),
+      ...pluginNames
+        .map((name) => PLUGIN_DEFINITIONS[name].css)
+        .filter(Boolean)
+        .map((file) => loadStyle(file, securityConfig)),
       ...eagerPluginNames.map((name) =>
         loadScript(PLUGIN_DEFINITIONS[name].file, securityConfig),
       ),
@@ -523,12 +623,24 @@ class EditraCore {
       };
     });
 
-    const instance = new EditraCore(editor, {
-      ...config,
-      theme: config.theme || "premium",
-      plugins,
-    });
-    editor.editraInstance = instance;
+    const surface = EditraCore.createEditorSurface(host);
+    let instance;
+    try {
+      instance = new EditraCore(surface.editor, {
+        ...config,
+        theme: EditraCore.normalizeTheme(config.theme),
+        plugins,
+      }, surface);
+    } catch (error) {
+      if (host instanceof HTMLTextAreaElement) {
+        surface.editor.remove();
+        host.hidden = surface.textareaState.hidden;
+        host.style.display = surface.textareaState.display;
+      }
+      throw error;
+    }
+    host.editraInstance = instance;
+    surface.editor.editraInstance = instance;
     if (
       config.editorWidth !== undefined ||
       config.editorHeight !== undefined
@@ -574,6 +686,11 @@ class EditraCore {
         "connectCollaboration",
         config.collaboration,
       );
+    }
+    if (Array.isArray(config.communityPlugins)) {
+      for (const manifest of config.communityPlugins) {
+        await instance.installCommunityPlugin(manifest);
+      }
     }
     return instance;
   }
@@ -714,8 +831,10 @@ class EditraCore {
     return uniqueNames;
   }
 
-  constructor(editor, options) {
+  constructor(editor, options, surface = {}) {
     this.editor = editor;
+    this.host = surface.host ?? editor;
+    this.textareaState = surface.textareaState ?? null;
     const editorHeightFixed =
       options.editorHeightFixed ??
       Object.prototype.hasOwnProperty.call(options, "editorHeight");
@@ -762,6 +881,13 @@ class EditraCore {
       security: {},
       ...options,
     };
+    if (
+      this.options.placeholder === undefined &&
+      this.host instanceof HTMLTextAreaElement &&
+      this.host.placeholder
+    ) {
+      this.options.placeholder = this.host.placeholder;
+    }
     this.plugins = new Map(
       options.plugins.map((plugin) => [plugin.name, plugin]),
     );
@@ -786,7 +912,7 @@ class EditraCore {
     this.draggedObject = null;
     this.security = new global.EditraSecurity(this, this.options);
     this.editor.innerHTML = this.security.trustedHTML(
-      this.editor.innerHTML,
+      surface.initialHTML ?? this.editor.innerHTML,
       "initial content",
     );
 
@@ -801,6 +927,7 @@ class EditraCore {
     this.handleObjectDragEnd = this.handleObjectDragEnd.bind(this);
     this.handleFocus = this.handleFocus.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
+    this.handleFormReset = this.handleFormReset.bind(this);
 
     this.configureSurface();
     this.registerBuiltInCommands();
@@ -814,7 +941,9 @@ class EditraCore {
       [...this.plugins.values()],
       this.options.toolbar,
     );
-    this.toolbar.card.classList.add(`editra-theme-${this.options.theme}`);
+    this.toolbar.card.classList.add(
+      `editra-theme-${this.options.theme.toLowerCase()}`,
+    );
     this.liveRegion = document.createElement("div");
     this.liveRegion.className = "editra-sr-only";
     this.liveRegion.dataset.editraUi = "true";
@@ -930,19 +1059,20 @@ class EditraCore {
       this.options.editorHeight,
       "1056px",
     );
-    const explicitPages =
-      this.editor.querySelectorAll(".editra-page-break").length + 1;
+    const explicitBreaks =
+      this.editor.querySelectorAll(".editra-page-break").length;
+    const explicitPages = explicitBreaks + 1;
     const contentHeight = Math.max(pageHeight, this.editor.scrollHeight);
-    const pageCount = Math.max(
-      explicitPages,
-      Math.ceil(contentHeight / pageHeight),
-    );
+    const classic = this.options.theme === "Classic";
+    const pageCount = classic
+      ? (explicitBreaks ? explicitPages : null)
+      : Math.max(explicitPages, Math.ceil(contentHeight / pageHeight));
     const signature = `${pageCount}:${Math.round(pageHeight)}:${this.options.editorWidth}`;
     if (signature === this.pageGuideSignature) return;
     const previousSignature = this.pageGuideSignature;
     this.pageGuideSignature = signature;
     const fragment = document.createDocumentFragment();
-    for (let page = 0; page < pageCount; page += 1) {
+    for (let page = 0; page < (pageCount ?? 0); page += 1) {
       const guide = document.createElement("div");
       guide.className = "editra-page-guide";
       guide.style.top = `${Math.round(page * pageHeight)}px`;
@@ -955,7 +1085,7 @@ class EditraCore {
     this.pageGuides.replaceChildren(fragment);
     this.toolbar.workspace.style.setProperty(
       "--editra-page-count",
-      String(pageCount),
+      String(pageCount ?? 0),
     );
     const detail = {
       pageCount,
@@ -1066,6 +1196,7 @@ class EditraCore {
     this.editor.addEventListener("dragend", this.handleObjectDragEnd);
     this.editor.addEventListener("focus", this.handleFocus);
     this.editor.addEventListener("blur", this.handleBlur);
+    this.host.form?.addEventListener("reset", this.handleFormReset);
     document.addEventListener("selectionchange", this.handleSelectionChange);
     this.mediaObserver = new MutationObserver(() => {
       this.scheduleUpdate("media-removal-cleanup", () =>
@@ -2212,6 +2343,14 @@ class EditraCore {
     }
   }
 
+  handleFormReset() {
+    setTimeout(() => {
+      if (!this.destroyed && this.host instanceof HTMLTextAreaElement) {
+        this.setCode(this.host.value);
+      }
+    }, 0);
+  }
+
   captureSelection() {
     const selection = window.getSelection();
     if (!selection || !selection.rangeCount) return;
@@ -2313,9 +2452,13 @@ class EditraCore {
   }
 
   emitChange() {
+    const html = this.serializeHTML();
+    if (this.host instanceof HTMLTextAreaElement) {
+      this.host.value = html;
+    }
     if (typeof this.options.onChange === "function") {
       this.options.onChange({
-        html: this.serializeHTML(),
+        html,
         text: this.editor.textContent ?? "",
         editor: this.editor,
       });
@@ -2522,12 +2665,35 @@ class EditraCore {
     return this.executeCommand("toggleCodeView", options);
   }
 
+  async installCommunityPlugin(manifest) {
+    await this.ensurePlugin("ecosystem");
+    return this.executeCommand("installCommunityPlugin", manifest);
+  }
+
+  async uninstallCommunityPlugin(id) {
+    await this.ensurePlugin("ecosystem");
+    return this.executeCommand("uninstallCommunityPlugin", id);
+  }
+
+  async getInstalledCommunityPlugins() {
+    await this.ensurePlugin("ecosystem");
+    return this.executeCommand("getInstalledCommunityPlugins");
+  }
+
+  async checkCommunityPluginUpdates(registryUrl) {
+    await this.ensurePlugin("ecosystem");
+    return this.executeCommand("checkCommunityPluginUpdates", registryUrl);
+  }
+
   focus() {
     if (!this.destroyed) this.editor.focus();
   }
 
   destroy() {
     if (this.destroyed) return;
+    if (this.host instanceof HTMLTextAreaElement) {
+      this.host.value = this.getCode();
+    }
     this.destroyed = true;
 
     this.editor.removeEventListener("input", this.handleInput);
@@ -2540,6 +2706,7 @@ class EditraCore {
     this.editor.removeEventListener("dragend", this.handleObjectDragEnd);
     this.editor.removeEventListener("focus", this.handleFocus);
     this.editor.removeEventListener("blur", this.handleBlur);
+    this.host.form?.removeEventListener("reset", this.handleFormReset);
     document.removeEventListener("selectionchange", this.handleSelectionChange);
     this.mediaObserver?.disconnect();
     this.pageResizeObserver?.disconnect();
@@ -2563,6 +2730,12 @@ class EditraCore {
     this.objectUrls.forEach((_, url) => URL.revokeObjectURL(url));
     this.objectUrls.clear();
     delete this.editor.editraInstance;
+    delete this.host.editraInstance;
+    if (this.host instanceof HTMLTextAreaElement) {
+      this.editor.remove();
+      this.host.hidden = this.textareaState?.hidden ?? false;
+      this.host.style.display = this.textareaState?.display ?? "";
+    }
     this.options.onChange = null;
     this.options.onStateChange = null;
     this.options.onCommand = null;

@@ -41,4 +41,7 @@ requiredCommands.forEach((command) =>
   assert.ok(core.includes(command), `Missing command route ${command}`),
 );
 assert.ok(core.includes(`EditraCore.VERSION = "${version}"`));
+assert.ok(core.includes('return "Word"'));
+assert.ok(core.includes('return "Classic"'));
+assert.ok(core.includes("HTMLTextAreaElement"));
 console.log("Editra core API contract passed.");

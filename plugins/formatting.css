@@ -1,0 +1,12 @@
+/* Formatting plugin styles loaded only when formatting is declared. */
+.editra-editor .editra-highlight {
+  padding: 0 0.08em;
+  border-radius: 0.12em;
+}
+
+.editra-editor blockquote {
+  margin: 1.7em 0;
+  padding-left: 1.25em;
+  border-left: 3px solid var(--editra-accent);
+  font-style: italic;
+}

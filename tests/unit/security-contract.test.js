@@ -10,6 +10,7 @@ const security = read("core/security.js");
 const core = read("core/editor.js");
 const paste = read("plugins/paste.js");
 const exportPlugin = read("plugins/export.js");
+const ecosystem = read("plugins/ecosystem.js");
 const toolbar = read("ui/toolbar.js");
 const server = read("serve.js");
 const packageMetadata = JSON.parse(read("package.json"));
@@ -24,6 +25,7 @@ for (const token of [
   "maxMediaBytes",
   "allowedPluginOrigins",
   "requirePluginIntegrity",
+  "requireCommunityPluginIntegrity",
   "csrfToken",
   "editra:security-violation",
 ]) {
@@ -36,6 +38,11 @@ assert.ok(core.includes("this.security.trustedHTML"));
 assert.ok(core.includes("this.security?.destroy()"));
 assert.ok(paste.includes("core.sanitizeHTML"));
 assert.ok(exportPlugin.includes("core.sanitizeHTML"));
+assert.ok(ecosystem.includes('frame.sandbox = "allow-scripts"'));
+assert.ok(ecosystem.includes("allowedPluginOrigins"));
+assert.ok(ecosystem.includes("crypto.subtle.digest"));
+assert.ok(ecosystem.includes("CAPABILITIES"));
+assert.ok(!ecosystem.includes("allow-same-origin"));
 assert.ok(!exportPlugin.includes("frameDocument.write"));
 assert.ok(toolbar.includes("../assets/icons/"));
 assert.ok(toolbar.includes('document.createElement("img")'));

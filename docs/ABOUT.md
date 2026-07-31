@@ -2,7 +2,7 @@
 
 ## Project overview
 
-Editra is a standalone premium browser-based WYSIWYG document editor. It provides familiar word-processing behavior without a framework dependency.
+Editra is a standalone browser-based WYSIWYG document editor. It provides familiar word-processing behavior without a framework dependency.
 
 ## Goals
 

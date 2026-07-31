@@ -56,7 +56,7 @@ const server = http.createServer((request, response) => {
         "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
       "Cross-Origin-Opener-Policy": "same-origin",
       "Content-Security-Policy":
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'",
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src 'self' blob: https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'",
     };
     if (isHttps) {
       headers["Strict-Transport-Security"] =

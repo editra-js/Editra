@@ -8,7 +8,7 @@
       <tbody>
         <tr><td>Feature</td><td>Status</td><td>Owner</td></tr>
         <tr><td>Page fidelity</td><td>Ready</td><td>Editra</td></tr>
-        <tr><td>Premium theme</td><td>Ready</td><td>Editorial</td></tr>
+        <tr><td>Word theme</td><td>Ready</td><td>Editorial</td></tr>
       </tbody>
     </table>`;
   const flowingTableHTML = `
@@ -158,11 +158,18 @@
       config: { plugins: ["bold", "italic", "underline"], showMenuBar: false, toolbar: "bold italic underline" },
       content: "<p>A minimal integration can still provide familiar rich-text formatting.</p>",
     },
-    "premium-ui": {
-      title: "Premium UI",
-      description: "Formal borders, Word-like typography, responsive toolbar wrapping, and premium menus.",
+    "word-theme": {
+      title: "Word Theme",
+      description: "A page-like document surface with Word-style typography, margins, and automatic page guides.",
+      config: { theme: "Word" },
       actions: [["Toggle theme", "toggleTheme"], ["Show ruler", "toggleRuler"]],
-      content: "<h1>Premium document surface</h1><p>Resize the browser to observe toolbar wrapping without horizontal scrolling.</p>",
+      content: "<h1>Word document surface</h1><p>Resize the browser to observe the page canvas and toolbar wrapping without horizontal scrolling.</p>",
+    },
+    "classic-theme": {
+      title: "Classic Theme",
+      description: "A continuous editor surface similar to TinyMCE, Quill, and CKEditor, shown with a textarea host.",
+      config: { theme: "Classic" },
+      content: "<h1>Continuous editor surface</h1><p>Content grows naturally without automatic page guides. Insert a page break only when the document needs one.</p>",
     },
     help: {
       title: "Help",
@@ -495,12 +502,14 @@
     document.querySelector("[data-demo-description]").textContent =
       definition.description;
     const host = document.querySelector("#editra-editor");
-    host.innerHTML = definition.content;
+    const textareaHost = host instanceof HTMLTextAreaElement;
+    if (textareaHost) host.value = definition.content;
     const editor = await Editra.init({
       selector: host,
       pagination: {},
       ...definition.config,
     });
+    if (!textareaHost) editor.setCode(definition.content);
     for (const plugin of definition.preload || []) {
       await editor.ensurePlugin(plugin);
     }

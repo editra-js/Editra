@@ -1,5 +1,16 @@
 # Editra Feature Guide
 
+## Plugin delivery and ecosystem
+
+Applications may retain the existing single-entry loader or use the modular
+core distribution with an explicit plugin list. Formatting, table, and image
+styles have separate plugin entry points, and lazy JavaScript loads when its
+command is used. Reviewed built-ins retain the established UI and lifecycle.
+Community extensions use the registry, semantic compatibility metadata,
+SHA-256 entry verification, and sandbox capability API. Browse the
+[marketplace](../examples/plugin-marketplace.html) or see the
+[developer guide](PLUGIN_DEVELOPER_GUIDE.md).
+
 ## Editing and formatting
 
 | Feature | Purpose | Expected behavior |

@@ -1,6 +1,24 @@
 const host = globalThis;
 const moduleRoot = new URL("./", import.meta.url);
 let runtimePromise = null;
+const loaderPolicySymbol = Symbol.for("editra.loaderPolicy");
+let loaderPolicy = host[loaderPolicySymbol] ?? null;
+if (!loaderPolicy && host.trustedTypes?.createPolicy) {
+  try {
+    loaderPolicy = host.trustedTypes.createPolicy("editra-loader", {
+      createScriptURL(value) {
+        const url = new URL(String(value), document.baseURI);
+        if (url.origin !== host.location.origin) {
+          throw new TypeError("Editra blocked a cross-origin runtime script.");
+        }
+        return url.href;
+      },
+    });
+  } catch {
+    loaderPolicy = null;
+  }
+}
+host[loaderPolicySymbol] = loaderPolicy;
 
 function load(baseUrl) {
   if (host.EditraCore?.init) return Promise.resolve(host.EditraCore);
@@ -20,7 +38,9 @@ function load(baseUrl) {
   const coreURL = new URL("core/editor.js", root);
   runtimePromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = coreURL.href;
+    script.src = loaderPolicy?.createScriptURL
+      ? loaderPolicy.createScriptURL(coreURL.href)
+      : coreURL.href;
     script.async = true;
     script.addEventListener(
       "load",

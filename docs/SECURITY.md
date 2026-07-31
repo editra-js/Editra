@@ -6,6 +6,12 @@ Editra 1.17.0 treats all document HTML, pasted content, imported content, source
 
 DOMPurify 3.4.12 is pinned in the lockfile and distributed locally. Sanitization is enabled by default and cannot be bypassed through `sanitizePaste: false`. A host can explicitly disable the entire security layer for a trusted offline migration, but that mode is not enterprise-safe.
 
+The same sanitization path applies to `<div>` and `<textarea>` hosts. A
+textarea's initial value is treated as untrusted HTML before it reaches the
+editable surface, and its synchronized form value contains the sanitized
+serialized editor content; applications must still sanitize and authorize
+stored content server-side.
+
 > Assurance statement: “Editra is safe to integrate into enterprise applications without weakening host security” when the mandatory host controls in this document are implemented and the security layer remains enabled.
 
 No software can guarantee the absence of every future vulnerability. This assurance is a documented integration posture, not a security certification, HIPAA attestation, regulatory opinion, or replacement for an application threat model and penetration test.
@@ -22,7 +28,7 @@ No software can guarantee the absence of every future vulnerability. This assura
 | Untrusted media | `file:` and executable data URLs are rejected; image data URLs use an image-only base64 pattern. |
 | Embedded players | Iframes are denied by default. Hosts must opt in to exact domains; accepted frames receive a restrictive sandbox and referrer policy. |
 | Oversized input | Configurable byte, DOM-node, depth, media-size, history-byte, and command-rate limits fail closed. |
-| Plugin compromise | Only built-in plugin identifiers resolve; script origins are allowlisted; CSP nonces and Subresource Integrity hashes are supported. |
+| Plugin compromise | Built-ins resolve through a frozen manifest with origin/integrity controls. Community plugins use validated metadata, SHA-256 entry verification, sandboxed iframes, source-checked messages, and capability allowlists. |
 | DOM sink abuse | Trusted Types support uses `editra-loader`, `dompurify`, and a sanitized `default` policy when the host enforces Trusted Types. |
 | Memory leaks | `destroy()` cancels animation frames, disconnects observers, removes document listeners, revokes object URLs, destroys UI, removes sanitizer hooks, clears maps/history, and releases callbacks. |
 | Slow updates | Input state, serialization, layout, and plugin work use keyed `requestAnimationFrame` batching. |
@@ -62,7 +68,7 @@ If external plugin delivery is approved, enable `requirePluginIntegrity` and pro
 The application server, reverse proxy, or gateway—not a JavaScript component—must send security headers. A strict starting policy is:
 
 ```http
-Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{RANDOM}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src 'none'; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'
+Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{RANDOM}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src 'self'; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'
 X-Content-Type-Options: nosniff
 Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
@@ -71,6 +77,11 @@ X-Frame-Options: DENY
 ```
 
 `frame-ancestors 'none'` and `X-Frame-Options: DENY` protect a top-level authoring application from clickjacking. If the application intentionally embeds its editor route, replace `frame-ancestors 'none'` with an explicit allowlist and use `X-Frame-Options: SAMEORIGIN` where compatible. JavaScript “frame busting” is not a substitute for headers.
+
+`frame-src 'self'` permits reviewed same-origin community sandboxes. If an
+application does not use community plugins, reduce it to `frame-src 'none'`.
+Cross-origin plugin frames require an explicit origin in both CSP and
+`allowedPluginOrigins`.
 
 ## Host responsibilities
 
@@ -86,7 +97,28 @@ Editra cannot safely implement server controls on behalf of its host:
 
 ## Plugin policy
 
-Editra does not use `eval`, `new Function`, or string timers. Plugin names resolve only through the frozen built-in manifest. Arbitrary downloaded code is not accepted as a plugin object. Approved cross-origin scripts require an allowlisted origin and SRI hash. For third-party or tenant-authored logic, run it outside Editra in a sandboxed iframe or Worker with a narrow message schema, CSP, quotas, and origin validation.
+Editra does not use `eval`, `new Function`, or string timers. Built-in plugin
+names resolve only through the frozen manifest. Approved built-in scripts use
+origin allowlists and optional SRI. Community code is never accepted as a
+plugin object and never receives the editor core. It runs in an iframe with
+`sandbox="allow-scripts"` and no `allow-same-origin`; messages are matched to
+the installed frame and filtered through declared capabilities and command
+allowlists. Community entry documents require SHA-256 metadata verification by
+default. Use immutable URLs to prevent changes between verification and frame
+navigation.
+
+### Sanitized HTML and CSS
+
+Document content uses DOMPurify's HTML/SVG profiles. `script`, `style`,
+`object`, `embed`, `applet`, `base`, `meta`, `link`, and `form` are always
+forbidden. `iframe` is forbidden unless the host enables it and allowlists the
+exact hostname. Attributes beginning with `on`, plus `srcdoc`, `action`,
+`formaction`, `nonce`, and `ping`, are removed. URL attributes accept only
+approved HTTP(S), mail, telephone, restricted image data, and managed blob
+URLs. Inline CSS containing `expression`, `url()`, `@import`, browser behavior,
+bindings, or executable protocols is removed. Node, depth, byte, media, and
+command-rate limits fail closed. Plugin sandbox documents are not inserted
+into editor content and receive no sanitizer exemption.
 
 ## Supply-chain policy
 

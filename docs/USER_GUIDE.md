@@ -1,4 +1,4 @@
-﻿# Editra User Guide
+# Editra User Guide
 
 Version 1.17.0
 
@@ -12,14 +12,16 @@ The intended public package command is:
 npm install editra-js
 ```
 
-Import the ES-module entry and premium theme, then initialize with a selector and options:
+Import the ES-module entry and Word theme, then initialize with a selector and options:
 
 ```js
 import Editra from "editra-js";
-import "editra-js/themes/premium.css";
+import "editra-js/themes/word.css";
 
-const editor = await Editra.init("#editra-editor", {
-  theme: "premium"
+const editor = await Editra.init({
+  selector: "#editra-editor",
+  theme: "Word",
+  plugins: ["formatting", "table", "image"]
 });
 ```
 
@@ -28,12 +30,14 @@ CommonJS projects use the same API:
 ```js
 const Editra = require("editra-js");
 
-const editor = await Editra.init("#editra-editor", {
+const editor = await Editra.init({
+  selector: "#editra-editor",
   plugins: ["bold", "italic", "underline"]
 });
 ```
 
-The entry also accepts the original configuration-object form: `Editra.init({ selector: "#editra-editor" })`.
+The configuration-object form is the documented initialization pattern. The
+legacy positional selector overload remains supported for compatibility.
 
 The package is published under the unscoped `editra-js` name. Install the locally generated package archive when you need a pre-release check, and use `editra-js` in production integrations.
 
@@ -44,11 +48,12 @@ The currently published GitHub-backed jsDelivr build is:
 ```html
 <div id="editra-editor"></div>
 <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/themes/premium.css">
+      href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/themes/word.css">
 <script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js"></script>
 <script>
-  Editra.init("#editra-editor", {
-    theme: "premium"
+  Editra.init({
+    selector: "#editra-editor",
+    theme: "Word"
   });
 </script>
 ```
@@ -58,11 +63,12 @@ After this package is published under the `editra-js` name, jsDelivr usage is:
 ```html
 <div id="editra-editor"></div>
 <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/editra-js/themes/premium.css">
+      href="https://cdn.jsdelivr.net/npm/editra-js/themes/word.css">
 <script src="https://cdn.jsdelivr.net/npm/editra-js/dist/editra.min.js"></script>
 <script>
-  Editra.init("#editra-editor", {
-    theme: "premium"
+  Editra.init({
+    selector: "#editra-editor",
+    theme: "Word"
   });
 </script>
 ```
@@ -71,7 +77,7 @@ The equivalent unpkg links are:
 
 ```html
 <link rel="stylesheet"
-      href="https://unpkg.com/editra-js/themes/premium.css">
+      href="https://unpkg.com/editra-js/themes/word.css">
 <script src="https://unpkg.com/editra-js/dist/editra.min.js"></script>
 ```
 
@@ -79,18 +85,61 @@ Both npm CDNs must serve the complete release treeâ€”`dist/`, `core/`, `plu
 
 ### Local files
 
-Copy `core/`, `plugins/`, `ui/`, and `themes/` into the same web project. Add one editor host, the premium stylesheet, the core script, and initialization:
+Copy `core/`, `plugins/`, `ui/`, and `themes/` into the same web project. Add one editor host, the Word stylesheet, the core script, and initialization:
 
 ```html
 <div id="editra-editor"></div>
-<link rel="stylesheet" href="./themes/premium.css">
+<link rel="stylesheet" href="./themes/word.css">
 <script src="./core/editor.js"></script>
 <script>
-  Editra.init({ selector: "#editra-editor" });
+  Editra.init({ selector: "#editra-editor", theme: "Word" });
 </script>
 ```
 
 Use an HTTP server. From this project run `start-editra.cmd`, then open [the full demo](../examples/full.html). Browsers block dynamic plugin scripts when pages are opened with `file://`.
+
+## Themes and editor containers
+
+Choose `Word` for a page-like document editor with page guides, or `Classic`
+for a continuous editor layout similar to TinyMCE, Quill, and CKEditor.
+Classic mode only introduces a page boundary when the user inserts an
+explicit page break.
+
+Import `themes/word.css` for Word integrations or `themes/classic.css` for
+Classic integrations. Both entry points include Editra's shared controls and
+icons.
+
+Runnable examples:
+
+- [Word theme with a div host](../examples/word-theme.html)
+- [Word div with modular loading](../examples/word-div-modular.html)
+- [Classic theme with a textarea host](../examples/classic-theme.html)
+- [Word textarea with modular loading](../examples/word-textarea-modular.html)
+- [Classic textarea with single-bundle loading](../examples/classic-textarea-single.html)
+- [Modular plugin loading](../examples/modular-loading.html)
+- [Plugin marketplace](../examples/plugin-marketplace.html)
+
+```js
+Editra.init({ selector: "#document-editor", theme: "Word" });
+Editra.init({ selector: "#message-editor", theme: "Classic" });
+```
+
+Both existing div hosts and textarea form controls work without a separate
+container option:
+
+```html
+<div id="document-editor"></div>
+
+<form>
+  <textarea id="message-editor" name="message"><p>Initial HTML</p></textarea>
+  <button type="submit">Save</button>
+</form>
+```
+
+For textarea hosts, Editra reads the initial value as HTML and keeps the
+textarea value synchronized so normal form submission continues to work. A
+form reset restores the textarea's default content in the editor. Calling
+`editor.destroy()` writes back the latest HTML and restores the textarea. The
 
 ## Basic usage
 
@@ -275,8 +324,8 @@ Use 100% print scale and disable browser-supplied print headers/footers for best
 
 | Item | Purpose | Demo |
 |---|---|---|
-| Zoom | Change editing zoom | [Premium UI](../examples/premium-ui.html) |
-| Fullscreen | Expand the editor | [Premium UI](../examples/premium-ui.html) |
+| Zoom | Change editing zoom | [Word theme](../examples/word-theme.html) |
+| Fullscreen | Expand the editor | [Word theme](../examples/word-theme.html) |
 | Merge fields preview | Resolve placeholder values | [Productivity](../examples/productivity.html) |
 | Show Comments | Toggle the comment sidebar | [Collaboration](../examples/collaboration.html) |
 | HTML Code / Normal View | Switch source and WYSIWYG modes | [Code view](../examples/code-view.html) |

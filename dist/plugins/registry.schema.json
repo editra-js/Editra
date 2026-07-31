@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://editra.example/schemas/plugin-registry.schema.json",
+  "title": "Editra Plugin Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "plugins"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "plugins": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/plugin" }
+    }
+  },
+  "$defs": {
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version", "author", "description", "compatibility", "type"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "maxLength": 80 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$" },
+        "author": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "compatibility": { "type": "string", "pattern": "^>=\\d+\\.\\d+\\.\\d+$" },
+        "type": { "enum": ["builtin", "community"] },
+        "entry": { "type": "string", "maxLength": 2048 },
+        "style": { "type": "string", "maxLength": 2048 },
+        "integrity": { "type": "string", "pattern": "^sha256-[A-Za-z0-9+/]+={0,2}$" },
+        "permissions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["document.readText", "document.readHTML", "commands.execute", "ui.notify"] }
+        },
+        "allowedCommands": {
+          "type": "array",
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": { "type": "string", "maxLength": 80 }
+        },
+        "homepage": { "type": "string", "maxLength": 2048 },
+        "ui": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "visible": { "type": "boolean" },
+            "title": { "type": "string", "maxLength": 100 }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "community" } } },
+          "then": { "required": ["entry", "integrity", "permissions"] }
+        }
+      ]
+    }
+  }
+}

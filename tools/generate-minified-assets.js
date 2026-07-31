@@ -6,8 +6,7 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const bundle = path.join(root, "dist", "editra.js");
 const minifiedBundle = path.join(root, "dist", "editra.min.js");
-const theme = path.join(root, "themes", "premium.css");
-const minifiedTheme = path.join(root, "themes", "premium.min.css");
+const themes = ["word", "classic"];
 function minifyCss(source) {
   const header = source.match(/^(?:\s*\/\*[\s\S]*?\*\/\s*)+/)?.[0] ?? "";
   const stylesheet = source.slice(header.length);
@@ -61,4 +60,12 @@ function minifyCss(source) {
 const bundleSource = fs.readFileSync(bundle, "utf8");
 fs.writeFileSync(bundle, bundleSource);
 fs.writeFileSync(minifiedBundle, bundleSource);
-fs.writeFileSync(minifiedTheme, minifyCss(fs.readFileSync(theme, "utf8")));
+themes.forEach((name) => {
+  const theme = path.join(root, "themes", `${name}.css`);
+  const minifiedTheme = path.join(root, "themes", `${name}.min.css`);
+  let output = minifyCss(fs.readFileSync(theme, "utf8"));
+  if (name === "classic") {
+    output = output.replace('./word.css', './word.min.css');
+  }
+  fs.writeFileSync(minifiedTheme, output);
+});

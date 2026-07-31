@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../dist/editra-core.css">
+  <link rel="stylesheet" href="./demo.css">
+  <title>Word Theme Textarea — Modular</title>
+</head>
+<body>
+  <main class="demo-shell">
+    <header class="demo-intro">
+      <h1>Word textarea with modular loading</h1>
+      <p>The modular core loads only the declared formatting, table, and image plugins.</p>
+      <nav class="demo-links"><a href="./classic-textarea-single.html">Classic single-bundle example</a><a href="./modular-loading.html">Modular div example</a></nav>
+    </header>
+    <textarea id="editor" name="content">&lt;h2&gt;Word textarea&lt;/h2&gt;&lt;p&gt;This initial textarea value becomes editable content.&lt;/p&gt;</textarea>
+  </main>
+  <script src="../dist/editra-core.js"></script>
+  <script src="./word-textarea-modular.js"></script>
+</body>
+</html>

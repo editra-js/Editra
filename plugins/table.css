@@ -1,0 +1,13 @@
+/* Table plugin styles loaded only when table is declared. */
+.editra-editor table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.editra-editor td,
+.editra-editor th {
+  min-width: 80px;
+  padding: 10px 12px;
+  border: 1px solid #1f1f1f;
+  vertical-align: top;
+}

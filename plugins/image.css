@@ -1,0 +1,8 @@
+/* Image plugin styles loaded only when image is declared. */
+.editra-editor img,
+.editra-editor .editra-media-frame {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.8em auto;
+}

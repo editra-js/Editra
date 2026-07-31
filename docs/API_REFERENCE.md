@@ -32,9 +32,11 @@ Selector-bearing options are resolved inside the editor surface. Pagination refl
 Package entry (`import Editra from "editra"` or `require("editra")`):
 
 ```js
-const editor = await Editra.init("#editra-editor", {
-  plugins: ["bold", "italic", "table"],
-  toolbar: "bold italic | table undo redo",
+const editor = await Editra.init({
+  selector: "#editra-editor",
+  theme: "Word",
+  plugins: ["formatting", "table", "image"],
+  toolbar: "foreColor highlighter | table image | undo redo",
   showMenuBar: true
 });
 ```
@@ -44,6 +46,7 @@ Direct `core/editor.js` integrations and existing applications may continue usin
 ```js
 const editor = await Editra.init({
   selector: "#editra-editor",
+  theme: "Word",
   plugins: ["bold", "italic", "table"],
   toolbar: "bold italic | table undo redo",
   showMenuBar: true,
@@ -51,19 +54,37 @@ const editor = await Editra.init({
 });
 ```
 
-`selector` accepts a CSS selector or an HTML element. An empty or omitted `plugins` array enables all plugins. Explicit arrays enable only the named plugins plus required system plugins.
+`selector` accepts a CSS selector or an HTML element. The selected host may be
+a `<div>` or `<textarea>`. Textarea values are treated as the initial editor
+HTML, synchronized after changes, submitted with their containing form, and
+restored as a visible textarea when the editor is destroyed. An empty or
+omitted `plugins` array enables all plugins. Explicit arrays enable only the
+named plugins plus required system plugins.
+
+Layout themes are selected during initialization:
+
+```js
+Editra.init({ selector: "#document-editor", theme: "Word" });
+Editra.init({ selector: "#message-editor", theme: "Classic" });
+```
+
+`Word` provides a page-like Word-processing surface with automatic page
+guides. `Classic` provides a continuous editor like TinyMCE, Quill, or
+CKEditor; it does not automatically paginate content, though explicit page
+breaks remain available.
 
 ## Configuration
 
 | Option | Type | Default | Purpose |
 |---|---|---|---|
-| `selector` | string/HTMLElement | required | Editor host |
+| `selector` | string/HTMLElement | required | `<div>` or `<textarea>` editor host |
 | `plugins` | string[] | all | Enabled plugins |
+| `communityPlugins` | object[] | `[]` | Validated sandbox plugin manifests installed during initialization |
 | `disabledPlugins` | string[] | `[]` | Explicit exclusions |
 | `toolbar` | string | generated | Toolbar layout; `|` separates groups |
 | `menu` | object | all menus | Allowed menu names/items |
 | `showMenuBar` | boolean | `true` | Show the top menu |
-| `theme` | string | `premium` | Theme asset name |
+| `theme` | `Word`/`Classic` | `Word` | Page-like or continuous editor layout |
 | `colorScheme` | light/dark/system | `light` | UI color mode |
 | `editorWidth` | CSS length | `816px` | Custom page width |
 | `editorHeight` | CSS length | `1056px` | Custom page height |
@@ -89,6 +110,10 @@ const editor = await Editra.init({
 | `destroy()` | Remove listeners, observers, UI, and object URLs |
 | `sanitizeHTML(html)` | Sanitize untrusted HTML with the active enterprise policy |
 | `secureRequest(url, options)` | Make an origin-checked request with CSRF enforcement |
+| `installCommunityPlugin(manifest)` | Validate and install a sandboxed community plugin |
+| `uninstallCommunityPlugin(id)` | Remove a community plugin iframe and capabilities |
+| `getInstalledCommunityPlugins()` | Return frozen validated manifest data |
+| `checkCommunityPluginUpdates(url)` | Compare installed versions with a registry |
 
 ## Commands
 
@@ -177,6 +202,11 @@ DOM events use the same names prefixed by `editra:`, such as `editra:themeToggle
 ## Plugin registration
 
 Plugins expose a function through `window.EditraPlugins` and register commands during `install(core)`. Every listener or observer must be released through `core.registerCleanup(callback)`.
+
+This direct lifecycle is restricted to reviewed built-in plugins. Community
+plugins use validated registry manifests and the sandbox capability protocol;
+they never receive `core`. See the
+[plugin developer guide](PLUGIN_DEVELOPER_GUIDE.md).
 
 ## Storage
 
