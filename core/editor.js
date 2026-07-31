@@ -2752,7 +2752,7 @@ class EditraCore {
   }
 }
 
-  EditraCore.VERSION = "2.0.1";
+  EditraCore.VERSION = "2.0.2";
   EditraCore.PRODUCT = "Editra";
   global.EditraCore = EditraCore;
   global.Editra = EditraCore;

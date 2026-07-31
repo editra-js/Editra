@@ -1,6 +1,6 @@
 # Editra Release Notes
 
-## Version 2.0.1
+## Version 2.0.2
 
 Release date: 2026-07-27
 
