@@ -9,6 +9,7 @@ const versionFile = fs.readFileSync(path.join(root, "version.prop"), "utf8");
 const version = versionFile.match(/^version=(.+)$/m)?.[1]?.trim();
 const packageVersion =
   versionFile.match(/^package_version=(.+)$/m)?.[1]?.trim();
+const releaseDate = versionFile.match(/^release_date=(.+)$/m)?.[1]?.trim();
 const sourceExtensions = new Set([".js", ".mjs", ".css", ".html", ".cmd"]);
 const metadataExtensions = new Set([
   ...sourceExtensions,
@@ -39,10 +40,12 @@ if (!version) errors.push("version.prop has no version value");
 [
   "product=Editra",
   "author=",
-  "release_date=2026-07-27",
 ].forEach((value) => {
   if (!versionFile.includes(value)) errors.push(`version.prop missing ${value}`);
 });
+if (!/^\d{4}-\d{2}-\d{2}$/.test(releaseDate || "")) {
+  errors.push("version.prop release_date must use YYYY-MM-DD");
+}
 
 const requiredFiles = [
   "README.md",
@@ -58,6 +61,7 @@ const requiredFiles = [
   "docs/SECURITY.md",
   "docs/COMPLIANCE.md",
   "docs/PERFORMANCE.md",
+  "docs/CDN_MIGRATION.md",
   "docs/FEATURE_GUIDE.md",
   "src/editra.js",
   "src/editra.mjs",
@@ -131,19 +135,33 @@ const files = walk(root);
 const removedBrand = [109, 105, 110, 115, 111, 102, 116]
   .map((code) => String.fromCharCode(code))
   .join("");
+const formerSurname = [116, 97, 110, 103, 101, 100, 117, 112, 97, 108, 108, 101]
+  .map((code) => String.fromCharCode(code))
+  .join("");
+const formerGivenName = [97, 115, 105, 102]
+  .map((code) => String.fromCharCode(code))
+  .join("");
+const removedIdentities = [
+  [formerSurname, formerGivenName].join("-"),
+  [formerSurname, formerGivenName].join(""),
+  [formerSurname, "mahammad", formerGivenName].join(" "),
+  [formerSurname, formerGivenName].join("."),
+];
 files
   .filter((file) =>
     [".js", ".mjs", ".css", ".html", ".md", ".json", ".prop", ".cmd"]
       .includes(path.extname(file).toLowerCase()),
   )
   .forEach((file) => {
-    if (
-      fs.readFileSync(file, "utf8")
-        .toLowerCase()
-        .includes(removedBrand)
-    ) {
+    const contents = fs.readFileSync(file, "utf8").toLowerCase();
+    if (contents.includes(removedBrand)) {
       errors.push(`${relative(file)} contains removed company branding`);
     }
+    removedIdentities.forEach((identity) => {
+      if (contents.includes(identity)) {
+        errors.push(`${relative(file)} contains removed identity ${identity}`);
+      }
+    });
   });
 const sourceFiles = files.filter((file) =>
   sourceExtensions.has(path.extname(file).toLowerCase()),
@@ -221,7 +239,31 @@ const releaseNotes = fs.readFileSync(path.join(root, "RELEASE_NOTES.md"), "utf8"
 if (!releaseNotes.includes(`Version ${version}`)) {
   errors.push("RELEASE_NOTES.md version does not match version.prop");
 }
+if (!releaseNotes.includes(`Release date: ${releaseDate}`)) {
+  errors.push("RELEASE_NOTES.md release date does not match version.prop");
+}
 const guide = fs.readFileSync(path.join(root, "docs/USER_GUIDE.md"), "utf8");
+if (!guide.includes(`Version ${version}`)) {
+  errors.push("USER_GUIDE.md version does not match version.prop");
+}
+const apiReference = fs.readFileSync(
+  path.join(root, "docs/API_REFERENCE.md"),
+  "utf8",
+);
+if (!apiReference.includes(`Version ${version}`)) {
+  errors.push("API_REFERENCE.md version does not match version.prop");
+}
+const securityGuide = fs.readFileSync(path.join(root, "docs/SECURITY.md"), "utf8");
+if (!securityGuide.includes(`Editra ${version} treats`)) {
+  errors.push("SECURITY.md version does not match version.prop");
+}
+const complianceGuide = fs.readFileSync(
+  path.join(root, "docs/COMPLIANCE.md"),
+  "utf8",
+);
+if (!complianceGuide.includes(`Editra ${version}. It is not`)) {
+  errors.push("COMPLIANCE.md version does not match version.prop");
+}
 examples.forEach((name) => {
   if (!guide.includes(`examples/${name}.html`) && !["about", "help"].includes(name)) {
     errors.push(`USER_GUIDE.md does not link examples/${name}.html`);
@@ -249,6 +291,12 @@ if (
   "git+https://github.com/editra-js/Editra.git"
 ) {
   errors.push("package.json repository does not match the Git origin");
+}
+if (packageMetadata.author !== "Editra Team") {
+  errors.push("package.json author must identify the Editra Team");
+}
+if (packageMetadata.homepage !== "https://editra.in") {
+  errors.push("package.json homepage must use the Editra domain");
 }
 const requiredKeywords = ["wysiwyg", "editor", "html", "pdf", "word"];
 if (

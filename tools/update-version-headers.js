@@ -69,7 +69,7 @@ function updatePackageVersion(version) {
   const packageMetadata = JSON.parse(fs.readFileSync(packageFile, "utf8"));
   packageMetadata.version = version;
   packageMetadata.name = packageName;
-  delete packageMetadata.author;
+  packageMetadata.author = author;
   fs.writeFileSync(packageFile, `${JSON.stringify(packageMetadata, null, 2)}\n`);
 }
 
@@ -106,6 +106,31 @@ function updateRuntimeVersions(version) {
     path.join(root, "README.md"),
     /Package version: .+/,
     `Package version: ${version}`,
+  );
+  replaceInFile(
+    path.join(root, "docs", "USER_GUIDE.md"),
+    /^Version .+$/m,
+    `Version ${version}`,
+  );
+  replaceInFile(
+    path.join(root, "docs", "API_REFERENCE.md"),
+    /^Version .+$/m,
+    `Version ${version}`,
+  );
+  replaceInFile(
+    path.join(root, "docs", "SECURITY.md"),
+    /Editra [\d.]+ treats/,
+    `Editra ${version} treats`,
+  );
+  replaceInFile(
+    path.join(root, "docs", "COMPLIANCE.md"),
+    /Editra [\d.]+\. It is not/,
+    `Editra ${version}. It is not`,
+  );
+  replaceInFile(
+    path.join(root, "docs", "CDN_MIGRATION.md"),
+    /\/v[\d.]+\//g,
+    `/v${version}/`,
   );
 }
 

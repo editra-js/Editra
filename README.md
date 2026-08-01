@@ -4,7 +4,7 @@
 ![npm downloads](https://img.shields.io/npm/dt/editra-js?cacheSeconds=3600)
 ![npm downloads per week](https://img.shields.io/npm/dw/editra-js?cacheSeconds=3600)
 ![npm downloads per month](https://img.shields.io/npm/dm/editra-js?cacheSeconds=3600)
-![GitHub release](https://img.shields.io/github/v/release/editra-js/editra?sort=semver&cacheSeconds=3600)
+![GitHub release](https://img.shields.io/github/v/release/editra-js/Editra?sort=semver&cacheSeconds=3600)
 ![Chromium](https://img.shields.io/badge/chromium-151.0-blue?cacheSeconds=3600)
 ![Firefox](https://img.shields.io/badge/firefox-153.0-orange?cacheSeconds=3600)
 ![WebKit](https://img.shields.io/badge/webkit-26.5-green?cacheSeconds=3600)
@@ -13,8 +13,8 @@
 
 Editra is an open-source WYSIWYG editor for the web, offering Word-style text editing, pagination control, tables, media embedding, and export to PDF/Word/HTML. Available via npm or CDN, it delivers enterprise-grade features with a clean, developer-friendly API.
 
-Editra is a modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 2.0.2 is licensed under the MIT License.
-Package version: 2.0.2
+Editra is a modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.0.0 is licensed under the MIT License.
+Package version: 1.0.0
 
 ## Quick start
 
@@ -89,6 +89,11 @@ unpkg alternative:
 ```
 
 These npm CDN paths become valid after `editra-js` is published to the npm registry.
+
+The project website is [editra.in](https://editra.in). The planned first-party
+CDN will use versioned URLs under `https://cdn.editra.in`; see the
+[CDN migration guide](docs/CDN_MIGRATION.md) for DNS, deployment, caching, and
+rollout details.
 
 Use `theme: "Classic"` for a continuous editor layout without automatic
 pages, and use `themes/classic.css` as its named stylesheet entry point. Both

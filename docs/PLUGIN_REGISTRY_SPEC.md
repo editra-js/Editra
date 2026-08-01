@@ -23,7 +23,7 @@ Example:
   "version": "1.0.0",
   "author": "Community Dev",
   "description": "Adds spell checking support",
-  "compatibility": ">=2.0.1",
+  "compatibility": ">=1.0.0",
   "type": "community",
   "entry": "/plugins/spell-checker/1.0.0/index.html",
   "integrity": "sha256-BASE64_DIGEST",

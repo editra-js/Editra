@@ -15,6 +15,7 @@ const classicTheme = read("themes/classic.css");
 const demos = read("examples/demo.js");
 const feedback = read("examples/feedback-form.html");
 const guide = read("docs/USER_GUIDE.md");
+const cdnMigration = read("docs/CDN_MIGRATION.md");
 const pagination = read("plugins/pagination.js");
 const tablePlugin = read("plugins/table.js");
 const exportPlugin = read("plugins/export.js");
@@ -30,6 +31,8 @@ assert.equal(
   metadata.repository.url,
   "git+https://github.com/editra-js/Editra.git",
 );
+assert.equal(metadata.author, "Editra Team");
+assert.equal(metadata.homepage, "https://editra.in");
 assert.deepEqual(metadata.keywords, [
   "wysiwyg",
   "editor",
@@ -92,6 +95,8 @@ assert(
     "https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js",
   ),
 );
+assert(guide.includes("https://cdn.editra.in"));
+assert(cdnMigration.includes(`https://cdn.editra.in/v${version}/dist/editra.min.js`));
 assert(guide.includes("../examples/feedback-form.html"));
 assert(guide.includes("../examples/pagination.html"));
 

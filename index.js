@@ -111,8 +111,8 @@ async function init(selector, options) {
 const api = {
   init,
   load: loadRuntime,
-  version: "2.0.2",
-  packageVersion: "2.0.2",
+  version: "1.0.0",
+  packageVersion: "1.0.0",
 };
 api.default = api;
 Object.freeze(api);

@@ -6,10 +6,10 @@
     {
       "id": "formatting",
       "name": "Formatting",
-      "version": "2.0.1",
-      "author": "Editra",
+      "version": "1.0.0",
+      "author": "Editra Team",
       "description": "Text colors, highlighting, alignment, line height, and inline formatting.",
-      "compatibility": ">=2.0.1",
+      "compatibility": ">=1.0.0",
       "type": "builtin",
       "entry": "./formatting.js",
       "style": "./formatting.css"
@@ -17,10 +17,10 @@
     {
       "id": "table",
       "name": "Tables",
-      "version": "2.0.1",
-      "author": "Editra",
+      "version": "1.0.0",
+      "author": "Editra Team",
       "description": "Table insertion, editing, selection, borders, and pagination support.",
-      "compatibility": ">=2.0.1",
+      "compatibility": ">=1.0.0",
       "type": "builtin",
       "entry": "./table.js",
       "style": "./table.css"
@@ -28,10 +28,10 @@
     {
       "id": "image",
       "name": "Images",
-      "version": "2.0.1",
-      "author": "Editra",
+      "version": "1.0.0",
+      "author": "Editra Team",
       "description": "Secure image insertion, upload handling, and resizing.",
-      "compatibility": ">=2.0.1",
+      "compatibility": ">=1.0.0",
       "type": "builtin",
       "entry": "./image.js",
       "style": "./image.css"
@@ -40,9 +40,9 @@
       "id": "spell-checker",
       "name": "Spell Checker",
       "version": "1.0.0",
-      "author": "Community Dev",
+      "author": "Editra Team",
       "description": "Demonstrates sandboxed document analysis through the public capability API.",
-      "compatibility": ">=2.0.1",
+      "compatibility": ">=1.0.0",
       "type": "community",
       "entry": "/community/spell-checker/index.html",
       "integrity": "sha256-Lcf8a6e16qNniFbOvrgcJzPFJ8pmTjQaGYp1+j+aXv8=",

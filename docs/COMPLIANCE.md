@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document is a technical control mapping for Editra 1.17.0. It is not a certification. Compliance belongs to the complete deployed application, including identity, APIs, storage, infrastructure, monitoring, policies, and operating procedures.
+This document is a technical control mapping for Editra 1.0.0. It is not a certification. Compliance belongs to the complete deployed application, including identity, APIs, storage, infrastructure, monitoring, policies, and operating procedures.
 
 ## OWASP mapping
 

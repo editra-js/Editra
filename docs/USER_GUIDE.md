@@ -1,6 +1,6 @@
 # Editra User Guide
 
-Version 1.17.0
+Version 1.0.0
 
 ## Installation
 
@@ -84,6 +84,11 @@ The equivalent unpkg links are:
 Both npm CDNs must serve the complete release treeâ€”`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra@1.0.0/` instead of `/editra/` when deterministic production builds are required.
 
 ### Local files
+
+The planned first-party CDN will serve immutable, versioned assets from
+`https://cdn.editra.in`. Until its deployment is verified, use one of the
+published endpoints above. Deployment and migration details are documented in
+[CDN_MIGRATION.md](CDN_MIGRATION.md).
 
 Copy `core/`, `plugins/`, `ui/`, and `themes/` into the same web project. Add one editor host, the Word stylesheet, the core script, and initialization:
 

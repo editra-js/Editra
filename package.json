@@ -1,6 +1,6 @@
 {
   "name": "editra-js",
-  "version": "2.0.2",
+  "version": "1.0.0",
   "description": "Word-style WYSIWYG Editor for the Web",
   "main": "index.js",
   "module": "index.mjs",
@@ -53,7 +53,8 @@
   "bugs": {
     "url": "https://github.com/editra-js/Editra/issues"
   },
-  "homepage": "https://github.com/editra-js/Editra#readme",
+  "homepage": "https://editra.in",
+  "author": "Editra Team",
   "keywords": [
     "wysiwyg",
     "editor",

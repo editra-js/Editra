@@ -1,8 +1,30 @@
 # Editra Release Notes
 
-## Version 2.0.2
+## Version 1.0.0
 
-Release date: 2026-07-27
+Release date: 2026-08-01
+
+### Official launch
+
+- Launched Editra as a new application maintained by the Editra Team.
+- Prepared the `editra-js` package and GitHub release artifacts for the
+  `v1.0.0` public release.
+- Included dynamic modular plugin loading, standardized Word and Classic
+  themes, textarea initialization examples, and updated developer and
+  contributor documentation.
+- Aligned release metadata and automated governance checks with the official
+  `1.0.0` package version.
+
+### Repository, domain, and team identity
+
+- Moved the canonical repository to `https://github.com/editra-js/Editra` and
+  aligned package metadata, documentation, tests, and the local Git remote.
+- Established `https://editra.in` as the project homepage and reserved
+  `https://cdn.editra.in` for the planned first-party asset CDN.
+- Replaced former personal attribution and contact details with `Editra Team`
+  and team-owned project channels.
+- Documented DNS, provider, immutable versioning, caching, integrity, and
+  rollout checks for the CDN migration.
 
 ### Themes and textarea integrations
 
@@ -94,11 +116,16 @@ Release date: 2026-07-27
 
 See [Security](docs/SECURITY.md), [Compliance](docs/COMPLIANCE.md), and [Performance](docs/PERFORMANCE.md).
 
-## Version 1.16.0
+## Pre-launch development history
+
+The entries below describe internal development snapshots that preceded the
+official public `1.0.0` release; they were not public Editra releases.
+
+### Version 1.16.0
 
 Release date: 2026-07-26
 
-### Features added
+#### Features added
 
 - Added page-aware automatic flow for indivisible media, charts, forms, embeds, and explicitly kept blocks.
 - Added paragraph, list-item, table-row, complete-table, and code-block splitting policies.
@@ -111,14 +138,14 @@ Release date: 2026-07-26
 - Added a Webpack UMD build at `dist/editra.js` for npm-backed CDNs.
 - Added Jest entry tests and verified installation from the generated package archive.
 
-### Bugs fixed
+#### Bugs fixed
 
 - Explicit page breaks now consume the remaining page space and force subsequent content onto the next page.
 - Temporary pagination spacers are excluded from saved and exported document HTML.
 - Large pagination passes are processed in animation-frame batches.
 - Removed former company branding from source headers, documentation, examples, package metadata, and repository files.
 
-### Known issues
+#### Known issues
 
 - Extremely tall indivisible blocks that exceed one configured page remain scrollable because they cannot fit intact on any page.
 - Browser print engines can make small font-metric adjustments that affect the final row distribution.
@@ -127,11 +154,11 @@ Release date: 2026-07-26
 
 See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for pagination configuration and distribution guidance.
 
-## Version 1.15.0
+### Version 1.15.0
 
 Release date: 2026-07-26
 
-### Features added
+#### Features added
 
 - Added shared Get Code, Get HTML, and Insert on Focus actions to every demonstration.
 - Added a responsive feedback form that stores name, gender, rich HTML, and plain text in localStorage.
@@ -140,13 +167,13 @@ Release date: 2026-07-26
 - Added documented npm and CDN integration paths.
 - Added automated distribution, demo, package-content, and Word-style checks.
 
-### Bugs fixed
+#### Bugs fixed
 
 - Removed rounding from the outer editor and editable surface for a flat formal appearance.
 - Standardized editor and code-view selection colors to Word-style blue with white text.
 - Prevented raw HTML demo output from being interpreted as executable page markup.
 
-### Known issues
+#### Known issues
 
 - The unscoped npm name `editra` is owned by an existing package and requires registry ownership or a new scoped package name.
 - GitHub publication requires a target repository/account and authenticated GitHub tooling.
@@ -154,11 +181,11 @@ Release date: 2026-07-26
 
 See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for version 1.15.0 integration and demo guidance.
 
-## Version 1.14.0
+### Version 1.14.0
 
 Release date: 2026-07-26
 
-### Features added
+#### Features added
 
 - Complete modular editor initialization with lazy plugin loading.
 - Dynamic toolbar and menu configuration.
@@ -171,7 +198,7 @@ Release date: 2026-07-26
 - Consistent light, dark, and system theme modes.
 - Documentation, API reference, help, governance, examples, and automated release checks.
 
-### Bugs fixed
+#### Bugs fixed
 
 - Corrected local `file://` module-loading guidance by providing a local HTTP server.
 - Corrected YouTube embedding URL handling and player configuration behavior.
@@ -179,7 +206,7 @@ Release date: 2026-07-26
 - Fixed live ruler dragging, pointer cancellation, margin persistence, tab-stop export, and cleanup.
 - Fixed whole-table Delete/Backspace behavior.
 
-### Known issues
+#### Known issues
 
 - Browser security prevents programmatic clipboard paste without user permission.
 - PDF results can vary slightly with browser print settings, installed fonts, and printer drivers.

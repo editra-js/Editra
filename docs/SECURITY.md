@@ -2,7 +2,7 @@
 
 ## Security posture
 
-Editra 1.17.0 treats all document HTML, pasted content, imported content, source-view content, collaboration operations, revision previews, headers, footers, and exported document content as untrusted.
+Editra 1.0.0 treats all document HTML, pasted content, imported content, source-view content, collaboration operations, revision previews, headers, footers, and exported document content as untrusted.
 
 DOMPurify 3.4.12 is pinned in the lockfile and distributed locally. Sanitization is enabled by default and cannot be bypassed through `sanitizePaste: false`. A host can explicitly disable the entire security layer for a trusted offline migration, but that mode is not enterprise-safe.
 
@@ -130,7 +130,7 @@ into editor content and receive no sanitizer exemption.
 
 ## Vulnerability reporting
 
-Do not disclose exploitable findings in a public issue. Use GitHub private vulnerability reporting for `editra-js/Editra`, or contact `editra.dev@gmail.com` with affected versions, reproduction steps, impact, and suggested remediation. Do not include real personal or regulated data.
+Do not disclose exploitable findings in a public issue. Use GitHub private vulnerability reporting for `editra-js/Editra`, or contact `security@editra.in` with affected versions, reproduction steps, impact, and suggested remediation. Do not include real personal or regulated data.
 
 ## Primary standards references
 
