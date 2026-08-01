@@ -152,7 +152,7 @@ function updateAdditionalMetadata() {
       )
       .replace(
         new RegExp(`Copyright \\(c\\) 2026 ${escapedAuthor}`, "g"),
-        "Copyright (c) 2026 Editra contributors",
+        "Copyright (c) 2026 Editra Team",
       );
     if (updated !== contents) fs.writeFileSync(file, updated);
   });

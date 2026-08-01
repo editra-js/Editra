@@ -1,5 +1,9 @@
 # Editra
 
+A modular, Word-like WYSIWYG editor for teams that need precise documents,
+rich media, page-aware layout, and a clean JavaScript API—without framework
+lock-in.
+
 ![npm version](https://img.shields.io/npm/v/editra-js?cacheSeconds=3600)
 ![npm downloads](https://img.shields.io/npm/dt/editra-js?cacheSeconds=3600)
 ![npm downloads per week](https://img.shields.io/npm/dw/editra-js?cacheSeconds=3600)
