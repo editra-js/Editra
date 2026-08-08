@@ -45,7 +45,7 @@
       "compatibility": ">=1.0.0",
       "type": "community",
       "entry": "/community/spell-checker/index.html",
-      "integrity": "sha256-n4vbyGMzoOTI0JXSOvAUG8tv1ZBhZPVa416V/UfbLt4=",
+      "integrity": "sha256-Lcf8a6e16qNniFbOvrgcJzPFJ8pmTjQaGYp1+j+aXv8=",
       "permissions": ["document.readText", "ui.notify"],
       "allowedCommands": [],
       "homepage": "../docs/PLUGIN_DEVELOPER_GUIDE.md",
