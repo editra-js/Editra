@@ -912,6 +912,7 @@ class EditraCore {
     this.pendingCode = null;
     this.state = Object.create(null);
     this.activeResizeCleanup = null;
+    this.activeObjectDragCleanup = null;
     this.objectUrls = new Map();
     this.mediaObserver = null;
     this.pageResizeObserver = null;
@@ -920,6 +921,8 @@ class EditraCore {
     this.activeResizeFrame = null;
     this.selectedObject = null;
     this.draggedObject = null;
+    this.objectDropTarget = null;
+    this.objectDragGhost = null;
     this.security = new global.EditraSecurity(this, this.options);
     this.editor.innerHTML = this.security.trustedHTML(
       surface.initialHTML ?? this.editor.innerHTML,
@@ -929,6 +932,7 @@ class EditraCore {
     this.handleInput = this.handleInput.bind(this);
     this.handlePaste = this.handlePaste.bind(this);
     this.handleKeydown = this.handleKeydown.bind(this);
+    this.handleEditorClick = this.handleEditorClick.bind(this);
     this.handleSelectionChange = this.handleSelectionChange.bind(this);
     this.handleResizePointerDown = this.handleResizePointerDown.bind(this);
     this.handleObjectDragStart = this.handleObjectDragStart.bind(this);
@@ -1098,6 +1102,15 @@ class EditraCore {
 
   refreshPageLayout() {
     if (this.destroyed || !this.pageGuides?.isConnected) return;
+    const importedPages = [
+      ...this.editor.querySelectorAll(
+        ":scope > section[data-editra-imported-document='docx']",
+      ),
+    ];
+    if (importedPages.length) {
+      this.syncImportedDocumentLayout();
+      return;
+    }
     const pageHeight = this.resolveEditorPixels(
       this.options.editorHeight,
       "1056px",
@@ -1243,6 +1256,7 @@ class EditraCore {
     this.editor.addEventListener("input", this.handleInput);
     this.editor.addEventListener("paste", this.handlePaste);
     this.editor.addEventListener("keydown", this.handleKeydown, true);
+    this.editor.addEventListener("click", this.handleEditorClick);
     this.editor.addEventListener("pointerdown", this.handleResizePointerDown);
     this.editor.addEventListener("dragstart", this.handleObjectDragStart);
     this.editor.addEventListener("dragover", this.handleObjectDragOver);
@@ -1338,11 +1352,11 @@ class EditraCore {
     });
     register("merge-preview", () => this.dispatchCommand("merge-preview"));
     register("toggle-rulers", () => this.executeCommand("toggleRuler"));
-    register("link", () => {
-      const url = global.prompt("Link URL:");
-      return url && this.security.isSafeUrl(url)
-        ? exec("createLink", url)
-        : false;
+    register("link", (options = {}) => {
+      const value = typeof options === "string" ? { url: options } : options;
+      return value?.url
+        ? this.insertLink(value)
+        : this.openLinkDialog(value);
     });
     register("footnote", () =>
       exec(
@@ -1370,7 +1384,7 @@ class EditraCore {
     register("page-break", () =>
       exec(
         "insertHTML",
-        '<div class="editra-page-break" contenteditable="false"></div><p><br></p>',
+        '<div class="editra-page-break" contenteditable="false" draggable="true" data-editra-selectable="true" data-editra-draggable="true"></div><p><br></p>',
       ),
     );
     register("text", () => exec("formatBlock", "p"));
@@ -1551,36 +1565,39 @@ class EditraCore {
             /application\/(?:msword|vnd\.openxmlformats-officedocument\.wordprocessingml\.document)/i.test(
               file.type,
             );
+          const htmlDocument =
+            /\.html?$/i.test(file.name) || file.type === "text/html";
 
-          if (zipContainer || wordDocument) {
+          if (zipContainer || wordDocument || htmlDocument) {
             const plugin = await this.ensurePlugin("productivity");
             if (!plugin) {
               throw new Error(
-                "Word import requires the Editra productivity plugin.",
+                "Styled document import requires the Editra productivity plugin.",
               );
             }
-            await this.executeCommand("importWord", { file });
+            await this.executeCommand(
+              htmlDocument ? "importHTML" : "importWord",
+              { file },
+            );
             return;
           }
 
           const content = await file.text();
           if (this.destroyed) return;
           this.setHTML(
-            /\.html?$/i.test(file.name)
-              ? content
-              : content
-                  .split(/\r?\n/)
-                  .map((line) => {
-                    const paragraph = document.createElement("p");
-                    paragraph.textContent = line || " ";
-                    return paragraph.outerHTML;
-                  })
-                  .join(""),
+            content
+              .split(/\r?\n/)
+              .map((line) => {
+                const paragraph = document.createElement("p");
+                paragraph.textContent = line || " ";
+                return paragraph.outerHTML;
+              })
+              .join(""),
           );
         } catch (error) {
           if (this.destroyed) return;
           const message = `Unable to open ${file.name}: ${error.message}`;
-          this.announce(message);
+          this.showNotice(message, { tone: "error" });
           this.editor.dispatchEvent(
             new CustomEvent("editra:file-open-error", {
               bubbles: true,
@@ -1656,6 +1673,27 @@ class EditraCore {
     this.scheduleUpdate("announcement", () => {
       if (this.liveRegion) this.liveRegion.textContent = String(message);
     });
+  }
+
+  showNotice(message, options = {}) {
+    if (this.destroyed || !this.toolbar?.card) return null;
+    clearTimeout(this.noticeTimer);
+    this.notice?.remove();
+    const notice = document.createElement("div");
+    notice.className = `editra-notice editra-notice--${
+      options.tone === "error" ? "error" : "info"
+    }`;
+    notice.dataset.editraUi = "true";
+    notice.setAttribute("role", options.tone === "error" ? "alert" : "status");
+    notice.textContent = String(message);
+    this.toolbar.card.append(notice);
+    this.notice = notice;
+    this.announce(message);
+    this.noticeTimer = setTimeout(() => {
+      if (this.notice === notice) this.notice = null;
+      notice.remove();
+    }, Math.max(2000, Number(options.duration) || 7000));
+    return notice;
   }
 
   sanitizeHTML(html, options = {}) {
@@ -1961,12 +1999,32 @@ class EditraCore {
     return this.insertNode(this.makeMediaResizable(iframe, "video"));
   }
 
+  ensureObjectMoveHandle(target, label = "object") {
+    if (!(target instanceof Element)) return null;
+    const existing = target.querySelector(
+      ":scope > .editra-object-move-handle",
+    );
+    if (existing) return existing;
+    const handle = document.createElement("span");
+    handle.className = "editra-object-move-handle";
+    handle.dataset.editraUi = "true";
+    handle.dataset.editraDraggable = "true";
+    handle.contentEditable = "false";
+    handle.tabIndex = 0;
+    handle.setAttribute("role", "button");
+    handle.setAttribute("aria-label", `Move ${label}`);
+    handle.title = `Drag to move ${label}`;
+    target.append(handle);
+    return handle;
+  }
+
   makeMediaResizable(media, kind) {
     const existingFrame = media.closest?.(".editra-media-frame");
     if (existingFrame) {
       existingFrame.draggable = true;
       existingFrame.dataset.editraSelectable = "true";
       existingFrame.dataset.editraDraggable = "true";
+      if (kind !== "emoji") this.ensureObjectMoveHandle(existingFrame, kind);
       ["nw", "ne", "sw", "se"].forEach((direction) => {
         if (
           existingFrame.querySelector(
@@ -1985,21 +2043,28 @@ class EditraCore {
       return existingFrame;
     }
 
-    const frame = document.createElement("figure");
-    frame.className = "editra-media-frame";
+    const frame = document.createElement(kind === "emoji" ? "span" : "figure");
+    frame.className = kind === "emoji"
+      ? "editra-media-frame editra-emoji-frame"
+      : "editra-media-frame";
     frame.dataset.editraMedia = kind;
     frame.dataset.editraSelectable = "true";
     frame.dataset.editraDraggable = "true";
     frame.contentEditable = "false";
     frame.draggable = true;
-    frame.style.width = media.style.width || "min(100%, 640px)";
+    frame.style.width = media.style.width || (kind === "emoji" ? "32px" : "min(100%, 640px)");
 
     if (kind === "video") {
       frame.style.aspectRatio = media.dataset.editraAspect || "16 / 9";
+    } else if (kind === "emoji") {
+      frame.style.height = media.style.height || "32px";
+      frame.style.fontSize = media.style.fontSize || "24px";
+      frame.style.aspectRatio = "1 / 1";
     }
 
     if (media.isConnected) media.before(frame);
     frame.append(media);
+    if (kind !== "emoji") this.ensureObjectMoveHandle(frame, kind);
 
     ["nw", "ne", "sw", "se"].forEach((direction) => {
       const handle = document.createElement("span");
@@ -2017,6 +2082,11 @@ class EditraCore {
     const element = target instanceof Element ? target : target?.parentElement;
     const frame = element?.closest(".editra-media-frame");
     if (frame && this.editor.contains(frame)) return frame;
+    const tableHandle = element?.closest(
+      '.editra-table-select-handle[data-editra-draggable="true"]',
+    );
+    const tableFrame = tableHandle?.closest(".editra-table-frame");
+    if (tableFrame && this.editor.contains(tableFrame)) return tableFrame;
     const draggable = element?.closest('[data-editra-draggable="true"]');
     return draggable && this.editor.contains(draggable) ? draggable : null;
   }
@@ -2033,7 +2103,11 @@ class EditraCore {
     this.selectObject(object);
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = "move";
-      event.dataTransfer.setData("text/plain", object.textContent || object.dataset.editraMedia || "Editra object");
+      event.dataTransfer.setData("application/x-editra-object", "move");
+      event.dataTransfer.setData(
+        "text/plain",
+        object.textContent || object.dataset.editraMedia || "Editra object",
+      );
     }
   }
 
@@ -2041,6 +2115,13 @@ class EditraCore {
     if (!this.draggedObject?.isConnected) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+    this.showObjectDropTarget(
+      this.resolveObjectDropTarget(
+        event.clientX,
+        event.clientY,
+        this.draggedObject,
+      ),
+    );
   }
 
   rangeFromPoint(x, y) {
@@ -2053,31 +2134,237 @@ class EditraCore {
     return range;
   }
 
+  resolveObjectDropTarget(x, y, object = this.draggedObject) {
+    const range = this.rangeFromPoint(x, y);
+    if (!range || !this.isRangeInside(range)) return null;
+    const element =
+      range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? range.startContainer
+        : range.startContainer.parentElement;
+    if (!element || object?.contains(element)) return null;
+
+    const otherObject = element.closest(
+      ".editra-media-frame, .editra-table-frame, .editra-page-break, .editra-horizontal-line, .editra-table-of-contents",
+    );
+    const block = otherObject && otherObject !== object
+      ? otherObject
+      : element.closest(
+          "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li,figure,.editra-table-frame,table",
+        );
+    if (block && block !== object && !object?.contains(block)) {
+      const rect = block.getBoundingClientRect();
+      return {
+        target: block,
+        position: y < rect.top + rect.height / 2 ? "before" : "after",
+      };
+    }
+
+    const container = element.closest(
+      "td,th,li,article,section[data-editra-imported-document='docx']",
+    );
+    if (container && !object?.contains(container)) {
+      return { target: container, position: "append" };
+    }
+    return { target: this.editor, position: "append" };
+  }
+
+  showObjectDropTarget(placement) {
+    if (
+      this.objectDropTarget?.target === placement?.target &&
+      this.objectDropTarget?.position === placement?.position
+    ) {
+      return;
+    }
+    this.clearObjectDropTarget();
+    if (!placement?.target || placement.target === this.draggedObject) return;
+    this.objectDropTarget = placement;
+    if (placement.target !== this.editor) {
+      placement.target.classList.add(
+        `editra-object-drop-${placement.position}`,
+      );
+    }
+  }
+
+  clearObjectDropTarget() {
+    const placement = this.objectDropTarget;
+    if (placement?.target instanceof Element) {
+      placement.target.classList.remove(
+        "editra-object-drop-before",
+        "editra-object-drop-after",
+        "editra-object-drop-append",
+      );
+    }
+    this.objectDropTarget = null;
+  }
+
+  createObjectDragGhost(object, pointerX, pointerY) {
+    this.removeObjectDragGhost();
+    const rect = object.getBoundingClientRect();
+    const ghost = object.cloneNode(true);
+    ghost.querySelectorAll("[id]").forEach((element) => {
+      element.removeAttribute("id");
+    });
+    ghost.querySelectorAll("[data-editra-ui]").forEach((element) => {
+      element.remove();
+    });
+    ghost.querySelectorAll("iframe,video,audio").forEach((media) => {
+      media.removeAttribute("src");
+      media.removeAttribute("autoplay");
+      media.removeAttribute("controls");
+    });
+    ghost.classList.remove("is-object-selected", "is-object-dragging");
+    ghost.classList.add("editra-object-drag-ghost");
+    ghost.removeAttribute("contenteditable");
+    ghost.removeAttribute("draggable");
+    ghost.setAttribute("aria-hidden", "true");
+    Object.assign(ghost.style, {
+      height: `${rect.height}px`,
+      left: `${rect.left}px`,
+      margin: "0",
+      maxWidth: "none",
+      position: "fixed",
+      top: `${rect.top}px`,
+      transform: "translate3d(0, 0, 0)",
+      width: `${rect.width}px`,
+      zIndex: "2147483000",
+    });
+    document.body.append(ghost);
+    this.objectDragGhost = {
+      element: ghost,
+      originLeft: rect.left,
+      originTop: rect.top,
+      pointerX,
+      pointerY,
+    };
+    return ghost;
+  }
+
+  updateObjectDragGhost(pointerX, pointerY) {
+    const preview = this.objectDragGhost;
+    if (!preview?.element.isConnected) return;
+    const deltaX = pointerX - preview.pointerX;
+    const deltaY = pointerY - preview.pointerY;
+    preview.element.style.transform =
+      `translate3d(${Math.round(deltaX)}px, ${Math.round(deltaY)}px, 0)`;
+  }
+
+  removeObjectDragGhost() {
+    this.objectDragGhost?.element.remove();
+    this.objectDragGhost = null;
+  }
+
   handleObjectDrop(event) {
     const object = this.draggedObject;
     if (!object?.isConnected) return;
     event.preventDefault();
+    const placement = this.resolveObjectDropTarget(
+      event.clientX,
+      event.clientY,
+      object,
+    );
     const range = this.rangeFromPoint(event.clientX, event.clientY);
-    if (!range || !this.isRangeInside(range) || object.contains(range.startContainer)) {
+    if (!placement || !range || object.contains(range.startContainer)) {
       this.handleObjectDragEnd();
       return;
     }
-    if (object.classList.contains("editra-media-frame")) {
-      let block =
-        range.startContainer.nodeType === Node.ELEMENT_NODE
-          ? range.startContainer
-          : range.startContainer.parentElement;
-      while (block?.parentElement && block.parentElement !== this.editor) {
-        block = block.parentElement;
+    this.placeDraggedObject(object, placement, range, event.clientX);
+    this.handleObjectDragEnd();
+  }
+
+  handleObjectDragEnd() {
+    this.clearObjectDropTarget();
+    this.removeObjectDragGhost();
+    this.draggedObject?.classList.remove("is-object-dragging");
+    this.draggedObject = null;
+  }
+
+  moveSelectedObject(direction) {
+    const object = this.selectedObject;
+    if (!object?.isConnected || !this.editor.contains(object)) return false;
+    if (object.matches('.editra-media-frame[data-editra-media]')) {
+      const matrix = getComputedStyle(object).transform;
+      let x = 0;
+      let y = 0;
+      if (matrix && matrix !== "none") {
+        const translation = new DOMMatrixReadOnly(matrix);
+        x = translation.m41;
+        y = translation.m42;
       }
-      if (block && block !== object && block.parentElement === this.editor) {
-        const rect = block.getBoundingClientRect();
-        block[event.clientY < rect.top + rect.height / 2 ? "before" : "after"](object);
-      } else {
-        this.editor.append(object);
-      }
-    } else {
+      const distance = 8;
+      if (direction === "left") x -= distance;
+      else if (direction === "right") x += distance;
+      else if (direction === "up") y -= distance;
+      else y += distance;
+      object.style.transform =
+        `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+      this.selectObject(object);
+      this.recordHistory();
+      this.scheduleUpdate("object-move", () => {
+        this.emitChange();
+        this.refreshPageLayout();
+      });
+      return true;
+    }
+    const backwards = direction === "up" || direction === "left";
+    let anchor = object;
+    let sibling = backwards ? anchor.previousSibling : anchor.nextSibling;
+    while (
+      !sibling &&
+      anchor.parentElement &&
+      anchor.parentElement !== this.editor &&
+      !anchor.parentElement.matches(
+        "td,th,li,article,section[data-editra-imported-document='docx']",
+      )
+    ) {
+      anchor = anchor.parentElement;
+      sibling = backwards ? anchor.previousSibling : anchor.nextSibling;
+    }
+    if (!sibling) return false;
+    if (backwards) sibling.before(object);
+    else sibling.after(object);
+    this.selectObject(object);
+    this.recordHistory();
+    this.scheduleUpdate("object-move", () => {
+      this.emitChange();
+      this.refreshPageLayout();
+    });
+    return true;
+  }
+
+  placeDraggedObject(object, placement, range = null, pointerX = null) {
+    if (!object?.isConnected || !placement?.target) return false;
+    if (
+      object.matches(
+        ".editra-media-frame, .editra-table-frame, .editra-page-break, .editra-horizontal-line, .editra-table-of-contents",
+      )
+    ) {
+      placement.target[placement.position](object);
+    } else if (range && !object.contains(range.startContainer)) {
       range.insertNode(object);
+    } else {
+      placement.target[placement.position](object);
+    }
+    if (
+      Number.isFinite(pointerX) &&
+      object.matches('.editra-media-frame[data-editra-media]')
+    ) {
+      const container = object.closest(
+        "td,th,li,article,section[data-editra-imported-document='docx']",
+      ) || this.editor;
+      const containerRect = container.getBoundingClientRect();
+      const containerStyle = getComputedStyle(container);
+      const contentLeft =
+        containerRect.left + (Number.parseFloat(containerStyle.paddingLeft) || 0);
+      const contentRight =
+        containerRect.right - (Number.parseFloat(containerStyle.paddingRight) || 0);
+      const objectWidth = object.getBoundingClientRect().width;
+      const available = Math.max(0, contentRight - contentLeft - objectWidth);
+      const offset = Math.min(
+        available,
+        Math.max(0, pointerX - contentLeft - objectWidth / 2),
+      );
+      object.style.marginLeft = `${Math.round(offset)}px`;
+      object.style.marginRight = "0";
     }
     this.selectObject(object);
     this.recordHistory();
@@ -2085,21 +2372,188 @@ class EditraCore {
       this.emitChange();
       this.refreshPageLayout();
     });
-    this.handleObjectDragEnd();
+    return true;
   }
 
-  handleObjectDragEnd() {
-    this.draggedObject?.classList.remove("is-object-dragging");
-    this.draggedObject = null;
+  beginObjectPointerDrag(event, object) {
+    if (
+      event.button !== 0 ||
+      event.buttons !== 1 ||
+      !object?.isConnected ||
+      !this.editor.contains(object)
+    ) {
+      return;
+    }
+    this.activeObjectDragCleanup?.();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const freePosition = object.matches(
+      '.editra-media-frame[data-editra-media]',
+    );
+    const originalTransform = object.style.transform;
+    const computedTransform = getComputedStyle(object).transform;
+    const startTranslation = computedTransform && computedTransform !== "none"
+      ? new DOMMatrixReadOnly(computedTransform)
+      : null;
+    const baseX = startTranslation?.m41 || 0;
+    const baseY = startTranslation?.m42 || 0;
+    const originalPointerEvents = object.style.pointerEvents;
+    const originalWillChange = object.style.willChange;
+    const dragWorkspace = this.toolbar?.workspace;
+    const scrollElement =
+      dragWorkspace?.scrollHeight > dragWorkspace?.clientHeight
+        ? dragWorkspace
+        : document.scrollingElement;
+    const startScrollLeft = scrollElement?.scrollLeft || 0;
+    const startScrollTop = scrollElement?.scrollTop || 0;
+    const livePosition = () => ({
+      x:
+        baseX +
+        latestX -
+        startX +
+        ((scrollElement?.scrollLeft || 0) - startScrollLeft),
+      y:
+        baseY +
+        latestY -
+        startY +
+        ((scrollElement?.scrollTop || 0) - startScrollTop),
+    });
+    const nativeSources = [
+      object,
+      event.target.closest?.("[draggable='true']"),
+    ].filter((item, index, values) => item && values.indexOf(item) === index);
+    const nativeStates = nativeSources.map((item) => [item, item.draggable]);
+    nativeSources.forEach((item) => {
+      item.draggable = false;
+    });
+    let moved = false;
+    let positionCommitted = false;
+    let latestX = startX;
+    let latestY = startY;
+
+    const cleanup = () => {
+      document.removeEventListener("pointermove", pointerMove, true);
+      document.removeEventListener("pointerup", pointerUp, true);
+      document.removeEventListener("pointercancel", pointerCancel, true);
+      nativeStates.forEach(([item, draggable]) => {
+        if (item.isConnected) item.draggable = draggable;
+      });
+      object.style.pointerEvents = originalPointerEvents;
+      object.style.willChange = originalWillChange;
+      delete object.dataset.editraLiveDrag;
+      if (freePosition && moved && !positionCommitted) {
+        object.style.transform = originalTransform;
+      }
+      this.handleObjectDragEnd();
+      this.activeObjectDragCleanup = null;
+    };
+    const pointerMove = (moveEvent) => {
+      if (moveEvent.pointerId !== event.pointerId) return;
+      latestX = moveEvent.clientX;
+      latestY = moveEvent.clientY;
+      if (
+        !moved &&
+        Math.hypot(latestX - startX, latestY - startY) < 5
+      ) {
+        return;
+      }
+      moved = true;
+      moveEvent.preventDefault();
+      if (!freePosition && !this.objectDragGhost) {
+        this.createObjectDragGhost(object, startX, startY);
+      }
+      const workspace = this.toolbar?.workspace;
+      const workspaceRect = workspace?.getBoundingClientRect();
+      if (
+        workspaceRect &&
+        workspace.scrollHeight > workspace.clientHeight
+      ) {
+        const edge = Math.min(64, workspaceRect.height / 4);
+        if (latestY < workspaceRect.top + edge) workspace.scrollTop -= 24;
+        else if (latestY > workspaceRect.bottom - edge) workspace.scrollTop += 24;
+      } else if (latestY < 48) {
+        global.scrollBy(0, -24);
+      } else if (latestY > global.innerHeight - 48) {
+        global.scrollBy(0, 24);
+      }
+      this.draggedObject = object;
+      object.classList.add("is-object-dragging");
+      if (freePosition) {
+        const translated = livePosition();
+        object.dataset.editraLiveDrag = "true";
+        object.style.pointerEvents = "none";
+        object.style.willChange = "transform";
+        object.style.transform = `translate3d(${Math.round(
+          translated.x,
+        )}px, ${Math.round(translated.y)}px, 0)`;
+        this.clearObjectDropTarget();
+      } else {
+        this.updateObjectDragGhost(latestX, latestY);
+        this.showObjectDropTarget(
+          this.resolveObjectDropTarget(latestX, latestY, object),
+        );
+      }
+    };
+    const pointerUp = (upEvent) => {
+      if (upEvent.pointerId !== event.pointerId) return;
+      latestX = upEvent.clientX;
+      latestY = upEvent.clientY;
+      if (moved) {
+        upEvent.preventDefault();
+        if (freePosition) {
+          const translated = livePosition();
+          object.style.transform = `translate3d(${Math.round(
+            translated.x,
+          )}px, ${Math.round(translated.y)}px, 0)`;
+          positionCommitted = true;
+          this.selectObject(object);
+          this.recordHistory();
+          this.scheduleUpdate("object-move", () => {
+            this.emitChange();
+            this.refreshPageLayout();
+          });
+        } else {
+          const placement = this.resolveObjectDropTarget(
+            latestX,
+            latestY,
+            object,
+          );
+          const range = this.rangeFromPoint(latestX, latestY);
+          if (placement && range && !object.contains(range.startContainer)) {
+            this.placeDraggedObject(object, placement, range, latestX);
+          }
+        }
+      }
+      cleanup();
+    };
+    const pointerCancel = (cancelEvent) => {
+      if (cancelEvent.pointerId === event.pointerId) cleanup();
+    };
+
+    this.activeObjectDragCleanup = cleanup;
+    document.addEventListener("pointermove", pointerMove, {
+      capture: true,
+      passive: false,
+    });
+    document.addEventListener("pointerup", pointerUp, {
+      capture: true,
+      passive: false,
+    });
+    document.addEventListener("pointercancel", pointerCancel, true);
   }
 
   handleResizePointerDown(event) {
     const handle = event.target.closest?.(".editra-resize-handle");
     const frame = handle?.closest(".editra-media-frame");
     if (!handle || !frame || !this.editor.contains(frame)) {
-      const selectable = event.target.closest?.(
-        ".editra-media-frame, .editra-table-frame, [contenteditable='false'][data-editra-selectable]",
+      const tableMoveHandle = event.target.closest?.(
+        ".editra-table-select-handle[data-editra-draggable='true']",
       );
+      const selectable = tableMoveHandle
+        ? tableMoveHandle.closest(".editra-table-frame")
+        : event.target.closest?.(
+            ".editra-media-frame, [contenteditable='false'][data-editra-selectable]",
+          );
       if (
         selectable &&
         this.editor.contains(selectable) &&
@@ -2107,6 +2561,10 @@ class EditraCore {
       ) {
         event.preventDefault();
         this.selectObject(selectable);
+        this.beginObjectPointerDrag(
+          event,
+          this.draggableObject(event.target),
+        );
       } else {
         this.clearObjectSelection();
       }
@@ -2115,33 +2573,54 @@ class EditraCore {
 
     event.preventDefault();
     this.activeResizeCleanup?.();
+    this.activeObjectDragCleanup?.();
     this.activeResizeFrame = frame;
 
     const direction = handle.dataset.direction;
     const startX = event.clientX;
+    const startY = event.clientY;
     const startRect = frame.getBoundingClientRect();
-    const maxWidth = Math.max(160, this.editor.clientWidth - 32);
+    const emoji = frame.dataset.editraMedia === "emoji";
+    const minWidth = emoji ? 24 : 120;
+    const maxWidth = emoji
+      ? Math.min(256, Math.max(64, this.editor.clientWidth - 32))
+      : Math.max(160, this.editor.clientWidth - 32);
     const aspect = startRect.width / Math.max(startRect.height, 1);
+    const pointerId = event.pointerId;
     let latestX = startX;
+    let latestY = startY;
+    frame.classList.add("is-media-resizing");
+    handle.setPointerCapture?.(pointerId);
 
     const applyResize = () => {
       const horizontalDelta = latestX - startX;
-      const signedDelta = direction.includes("w")
+      const verticalDelta = latestY - startY;
+      const signedHorizontal = direction.includes("w")
         ? -horizontalDelta
         : horizontalDelta;
+      const signedVertical = direction.includes("n")
+        ? -verticalDelta
+        : verticalDelta;
+      const signedDelta = emoji && Math.abs(signedVertical) > Math.abs(signedHorizontal)
+        ? signedVertical
+        : signedHorizontal;
       const width = Math.min(
         maxWidth,
-        Math.max(120, startRect.width + signedDelta),
+        Math.max(minWidth, startRect.width + signedDelta),
       );
-      frame.style.width = `${Math.round(width)}px`;
-      if (frame.dataset.editraMedia === "video") {
-        frame.style.height = `${Math.round(width / aspect)}px`;
+      frame.style.width = `${width}px`;
+      if (frame.dataset.editraMedia === "video" || emoji) {
+        frame.style.height = `${width / aspect}px`;
         frame.style.aspectRatio = "auto";
       }
+      if (emoji) frame.style.fontSize = `${width * 0.75}px`;
     };
 
     const handleMove = (moveEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      if (moveEvent.cancelable) moveEvent.preventDefault();
       latestX = moveEvent.clientX;
+      latestY = moveEvent.clientY;
       this.scheduleUpdate("media-resize", applyResize);
     };
 
@@ -2150,12 +2629,18 @@ class EditraCore {
       document.removeEventListener("pointerup", handleUp);
       document.removeEventListener("pointercancel", handleUp);
       this.pendingTasks.delete("media-resize");
+      if (handle.hasPointerCapture?.(pointerId)) {
+        handle.releasePointerCapture(pointerId);
+      }
+      frame.classList.remove("is-media-resizing");
       this.activeResizeCleanup = null;
       this.activeResizeFrame = null;
     };
 
     const handleUp = (upEvent) => {
+      if (upEvent.pointerId !== pointerId) return;
       latestX = upEvent.clientX;
+      latestY = upEvent.clientY;
       applyResize();
       cleanupDrag();
       this.recordHistory();
@@ -2253,6 +2738,132 @@ class EditraCore {
     return node;
   }
 
+  insertLink(options = {}) {
+    const url = String(options.url || "").trim();
+    if (!url || !this.security.isSafeUrl(url)) return false;
+    this.restoreSelection();
+    const selection = global.getSelection();
+    if (!selection?.rangeCount || !this.isRangeInside(selection.getRangeAt(0))) {
+      return false;
+    }
+    const range = selection.getRangeAt(0);
+    const selectedText = range.toString();
+    const text = String(options.text || selectedText || url).trim() || url;
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.textContent = text;
+    anchor.title = "Ctrl+click to open link";
+    range.deleteContents();
+    range.insertNode(anchor);
+    range.setStartAfter(anchor);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    this.selection = range.cloneRange();
+    this.recordHistory();
+    this.scheduleUpdate("link-insert", () => this.emitChange());
+    return anchor;
+  }
+
+  openLinkDialog(options = {}) {
+    document
+      .querySelector(".editra-media-dialog")
+      ?.dispatchEvent(new CustomEvent("editra:close"));
+    this.captureSelection();
+    const savedRange = this.selection?.cloneRange() || null;
+    const selectedText = savedRange?.toString() || "";
+    const dialog = document.createElement("div");
+    dialog.className = "editra-media-dialog editra-link-dialog";
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-label", "Insert link");
+    dialog.innerHTML = this.security.trustedHTML(`
+      <div class="editra-dialog-heading">Insert link</div>
+      <div class="editra-link-form">
+        <label><span>Text to display</span><input type="text" data-editra-link-text /></label>
+        <label><span>Link URL</span><input type="text" inputmode="url" placeholder="https://example.com" data-editra-link-url required /></label>
+        <div class="editra-link-error" role="alert" aria-live="polite"></div>
+        <div class="editra-link-actions">
+          <button type="button" data-editra-link-cancel>Cancel</button>
+          <button type="button" data-editra-link-submit>Insert</button>
+        </div>
+      </div>
+    `, "link dialog");
+    document.body.append(dialog);
+    const trigger = options.anchor || this.toolbar.getButton("link");
+    const triggerRect =
+      options.anchorRect || trigger?.getBoundingClientRect() || null;
+    if (triggerRect) {
+      const width = 330;
+      dialog.style.left = `${Math.max(
+        12,
+        Math.min(triggerRect.left, global.innerWidth - width - 12),
+      )}px`;
+      dialog.style.top = `${Math.min(
+        triggerRect.bottom + 8,
+        global.innerHeight - 260,
+      )}px`;
+    } else {
+      dialog.style.left = "50%";
+      dialog.style.top = "50%";
+      dialog.style.transform = "translate(-50%, -50%)";
+    }
+    const form = dialog.querySelector(".editra-link-form");
+    const textInput = dialog.querySelector("[data-editra-link-text]");
+    const urlInput = dialog.querySelector("[data-editra-link-url]");
+    const error = dialog.querySelector(".editra-link-error");
+    const cancel = dialog.querySelector("[data-editra-link-cancel]");
+    const submit = dialog.querySelector("[data-editra-link-submit]");
+    textInput.value = String(options.text || selectedText);
+    urlInput.value = String(options.url || "");
+    let unregister = () => {};
+    let closed = false;
+
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      dialog.removeEventListener("editra:close", close);
+      dialog.removeEventListener("keydown", handleKeydown);
+      submit.removeEventListener("click", handleSubmit);
+      cancel.removeEventListener("click", close);
+      document.removeEventListener("pointerdown", handleOutside);
+      dialog.remove();
+      unregister();
+    };
+    const handleSubmit = (event) => {
+      event.preventDefault();
+      const url = urlInput.value.trim();
+      if (!url || !this.security.isSafeUrl(url)) {
+        error.textContent = "Enter a safe http, https, email, or telephone link.";
+        urlInput.focus({ preventScroll: true });
+        return;
+      }
+      if (savedRange && this.isRangeInside(savedRange)) {
+        this.selection = savedRange.cloneRange();
+      }
+      const inserted = this.insertLink({ url, text: textInput.value });
+      if (inserted) close();
+    };
+    const handleOutside = (event) => {
+      if (!dialog.contains(event.target) && event.target !== trigger) close();
+    };
+    const handleKeydown = (event) => {
+      if (event.key === "Escape") close();
+      else if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
+        handleSubmit(event);
+      }
+    };
+    dialog.addEventListener("editra:close", close);
+    dialog.addEventListener("keydown", handleKeydown);
+    submit.addEventListener("click", handleSubmit);
+    cancel.addEventListener("click", close);
+    document.addEventListener("pointerdown", handleOutside);
+    unregister = this.registerCleanup(close);
+    requestAnimationFrame(() =>
+      (urlInput.value ? textInput : urlInput).focus({ preventScroll: true }),
+    );
+    return dialog;
+  }
+
   requestMediaUrl(kind) {
     if (typeof this.options.requestUrl === "function") {
       return this.options.requestUrl(kind, this);
@@ -2286,6 +2897,9 @@ class EditraCore {
   }
 
   rehydrate() {
+    this.editor.querySelectorAll("a[href]").forEach((link) => {
+      if (!link.title) link.title = "Ctrl+click to open link";
+    });
     this.editor
       .querySelectorAll("img, video, iframe[data-editra-video]")
       .forEach((media) => {
@@ -2296,14 +2910,42 @@ class EditraCore {
       .querySelectorAll(".editra-barcode, .editra-qr-code")
       .forEach((code) => {
         const kind = code.classList.contains("editra-barcode") ? "barcode" : "qr";
+        if (kind === "barcode") {
+          code.querySelectorAll("svg text").forEach((label) => {
+            label.style.fontFamily = "Arial, sans-serif";
+          });
+          if (/Editra\s+(?:Code|EAN)/i.test(code.style.fontFamily)) {
+            code.style.removeProperty("font-family");
+          }
+          delete code.dataset.editraBarcodeFont;
+        }
         this.makeMediaResizable(code, kind);
       });
     this.editor.querySelectorAll(".editra-emoji-object").forEach((emoji) => {
       emoji.contentEditable = "false";
-      emoji.draggable = true;
-      emoji.dataset.editraSelectable = "true";
-      emoji.dataset.editraDraggable = "true";
+      emoji.draggable = false;
+      delete emoji.dataset.editraSelectable;
+      delete emoji.dataset.editraDraggable;
+      this.makeMediaResizable(emoji, "emoji");
     });
+    this.editor
+      .querySelectorAll(
+        ".editra-page-break,.editra-horizontal-line,.editra-table-of-contents",
+      )
+      .forEach((object) => {
+        object.contentEditable = "false";
+        object.draggable = true;
+        object.dataset.editraSelectable = "true";
+        object.dataset.editraDraggable = "true";
+        if (!object.classList.contains("editra-horizontal-line")) {
+          this.ensureObjectMoveHandle(
+            object,
+            object.classList.contains("editra-page-break")
+              ? "page break"
+              : "table of contents",
+          );
+        }
+      });
 
     this.plugins.forEach((plugin) => {
       if (typeof plugin.action?.hydrate === "function") {
@@ -2375,6 +3017,21 @@ class EditraCore {
   }
 
   handleKeydown(event) {
+    const focusedMovable = this.draggableObject(event.target);
+    if (
+      (this.selectedObject?.isConnected || focusedMovable) &&
+      event.altKey &&
+      event.shiftKey &&
+      ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (focusedMovable && focusedMovable !== this.selectedObject) {
+        this.selectObject(focusedMovable);
+      }
+      this.moveSelectedObject(event.key.slice(5).toLowerCase());
+      return;
+    }
     if (
       (event.key === "Delete" || event.key === "Backspace") &&
       this.selectedObject?.isConnected
@@ -2402,6 +3059,23 @@ class EditraCore {
       event.preventDefault();
       this.applyFormat(shortcutPlugins[0].name);
     }
+  }
+
+  handleEditorClick(event) {
+    const link = event.target.closest?.("a[href]");
+    if (!link || !this.editor.contains(link) || (!event.ctrlKey && !event.metaKey)) {
+      return;
+    }
+    const url = link.getAttribute("href") || "";
+    if (!this.security.isSafeUrl(url)) {
+      event.preventDefault();
+      this.showNotice("This link was blocked because its address is unsafe.", {
+        tone: "error",
+      });
+      return;
+    }
+    event.preventDefault();
+    global.open(new URL(url, document.baseURI).href, "_blank", "noopener,noreferrer");
   }
 
   handleSelectionChange() {
@@ -2564,32 +3238,200 @@ class EditraCore {
         return null;
       }
     };
+    const selectionState = this.getSelectionFormattingState();
     const state = {
       canUndo: this.historyIndex > 0,
       canRedo: this.historyIndex < this.history.length - 1,
       plugins: [...this.plugins.keys()],
-      bold: queryState("bold"),
-      italic: queryState("italic"),
-      underline: queryState("underline"),
-      strikethrough: queryState("strikeThrough"),
-      superscript: queryState("superscript"),
-      subscript: queryState("subscript"),
-      bulletList: queryState("insertUnorderedList"),
-      numberList: queryState("insertOrderedList"),
-      heading: queryValue("formatBlock"),
-      alignment: queryState("justifyCenter")
+      bold: selectionState?.bold ?? queryState("bold"),
+      italic: selectionState?.italic ?? queryState("italic"),
+      underline: selectionState?.underline ?? queryState("underline"),
+      strikethrough:
+        selectionState?.strikethrough ?? queryState("strikeThrough"),
+      superscript: selectionState?.superscript ?? queryState("superscript"),
+      subscript: selectionState?.subscript ?? queryState("subscript"),
+      bulletList:
+        selectionState?.bulletList ?? queryState("insertUnorderedList"),
+      numberList:
+        selectionState?.numberList ?? queryState("insertOrderedList"),
+      heading: selectionState?.heading ?? queryValue("formatBlock"),
+      alignment: selectionState?.alignment ?? (queryState("justifyCenter")
         ? "center"
         : queryState("justifyRight")
           ? "right"
           : queryState("justifyFull")
             ? "justify"
-            : "left",
+            : "left"),
+      ...selectionState,
       ...this.state,
     };
+    this.lastEmittedState = state;
     this.toolbar?.update(state);
     if (typeof this.options.onStateChange === "function") {
       this.options.onStateChange(state);
     }
+  }
+
+  getSelectionFormattingState() {
+    const liveSelection = global.getSelection();
+    let range = null;
+    if (liveSelection?.rangeCount) {
+      const candidate = liveSelection.getRangeAt(0);
+      if (this.isRangeInside(candidate)) range = candidate;
+    }
+    if (!range && this.selection && this.isRangeInside(this.selection)) {
+      range = this.selection;
+    }
+    if (!range) return null;
+
+    let element = this.selectedObject?.isConnected
+      ? this.selectedObject
+      : range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? range.startContainer
+        : range.startContainer.parentElement;
+    if (element === this.editor && range.startContainer === this.editor) {
+      element = this.editor.childNodes[range.startOffset]?.parentElement ||
+        this.editor.childNodes[range.startOffset] || element;
+    }
+    if (!(element instanceof Element) || !this.editor.contains(element)) {
+      element = this.editor;
+    }
+
+    const style = getComputedStyle(element);
+    const block = element.closest(
+      "p,div,h1,h2,h3,h4,h5,h6,li,blockquote,pre,td,th",
+    ) || this.editor;
+    const blockStyle = getComputedStyle(block);
+    const normalizeColor = (value) => {
+      const match = String(value || "").match(
+        /^rgba?\(\s*(\d+)\D+(\d+)\D+(\d+)(?:\D+([\d.]+))?\s*\)$/i,
+      );
+      if (!match || Number(match[4] ?? 1) === 0) return null;
+      return `#${match.slice(1, 4).map((part) =>
+        Math.max(0, Math.min(255, Number(part)))
+          .toString(16)
+          .padStart(2, "0"),
+      ).join("")}`;
+    };
+    let backgroundColor = null;
+    for (let current = element; current && current !== this.editor; current = current.parentElement) {
+      backgroundColor = normalizeColor(getComputedStyle(current).backgroundColor);
+      if (backgroundColor) break;
+    }
+    const fontFamily = style.fontFamily
+      .split(",")[0]
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
+    const fontSize = style.fontSize;
+    const numericLineHeight = Number.parseFloat(blockStyle.lineHeight);
+    const numericFontSize = Number.parseFloat(blockStyle.fontSize);
+    const ratio = numericLineHeight / numericFontSize;
+    const lineHeightPresets = [1, 1.15, 1.5, 1.85, 2, 2.5];
+    const nearestLineHeight = lineHeightPresets.reduce((nearest, value) =>
+      Math.abs(value - ratio) < Math.abs(nearest - ratio) ? value : nearest,
+    );
+    const lineHeight = Number.isFinite(ratio)
+      ? String(Math.abs(nearestLineHeight - ratio) < 0.08
+        ? nearestLineHeight
+        : Number(ratio.toFixed(2)))
+      : "normal";
+    const decoration = style.textDecorationLine || style.textDecoration || "";
+    const verticalAlign = style.verticalAlign;
+    const heading = /^H[1-6]$/.test(block.tagName)
+      ? block.tagName.toLowerCase()
+      : "p";
+    const direction = blockStyle.direction;
+    const rawAlignment = blockStyle.textAlign;
+    const alignment = rawAlignment === "start"
+      ? direction === "rtl" ? "right" : "left"
+      : rawAlignment === "end"
+        ? direction === "rtl" ? "left" : "right"
+        : ["left", "center", "right", "justify"].includes(rawAlignment)
+          ? rawAlignment
+          : "left";
+    const activeLink = element.closest("a[href]");
+    const media = element.closest("[data-editra-media]");
+    const selectedTable = element.matches("table")
+      ? element
+      : element.querySelector?.("table") || element.closest("table");
+    const selectedImage = element.matches("img")
+      ? element
+      : element.querySelector?.("img");
+    const selectedCode = element.matches(
+      ".editra-barcode,.editra-qr-code,[data-editra-barcode],[data-editra-qr]",
+    )
+      ? element
+      : element.querySelector?.(
+          ".editra-barcode,.editra-qr-code,[data-editra-barcode],[data-editra-qr]",
+        );
+    const objectType = media?.dataset.editraMedia ||
+      (selectedTable
+        ? "table"
+        : element.classList.contains("editra-horizontal-line")
+          ? "horizontal-line"
+          : element.classList.contains("editra-page-break")
+            ? "page-break"
+            : activeLink
+              ? "link"
+              : element.tagName.toLowerCase());
+    const objectRect = element.getBoundingClientRect();
+    const selectedProperties = {
+      type: objectType,
+      tag: element.tagName.toLowerCase(),
+      width: Math.round(objectRect.width * 100) / 100,
+      height: Math.round(objectRect.height * 100) / 100,
+      ...(activeLink ? { href: activeLink.getAttribute("href") || "" } : {}),
+      ...(selectedImage
+        ? {
+            alt: selectedImage.getAttribute("alt") || "",
+            source: selectedImage.getAttribute("src") || "",
+          }
+        : {}),
+      ...(selectedTable
+        ? {
+            rows: selectedTable.rows.length,
+            columns: Math.max(
+              0,
+              ...[...selectedTable.rows].map((row) => row.cells.length),
+            ),
+          }
+        : {}),
+      ...(selectedCode
+        ? {
+            format: selectedCode.dataset.format ||
+              selectedCode.dataset.barcodeFormat || null,
+            value: selectedCode.dataset.value ||
+              selectedCode.dataset.editraBarcode ||
+              selectedCode.dataset.barcodeValue ||
+              selectedCode.dataset.qrValue || null,
+          }
+        : {}),
+    };
+
+    return {
+      activeTag: element.tagName.toLowerCase(),
+      activeBlockTag: block.tagName.toLowerCase(),
+      activeElementType: objectType,
+      selectedProperties,
+      linkHref: activeLink?.getAttribute("href") || null,
+      fontFamily,
+      fontSize,
+      foreColor: normalizeColor(style.color),
+      backgroundColor,
+      lineHeight,
+      heading,
+      alignment,
+      bold: Number.parseInt(style.fontWeight, 10) >= 600 ||
+        style.fontWeight === "bold",
+      italic: style.fontStyle === "italic" || style.fontStyle === "oblique",
+      underline: decoration.includes("underline"),
+      strikethrough: decoration.includes("line-through"),
+      superscript: verticalAlign === "super" || Boolean(element.closest("sup")),
+      subscript: verticalAlign === "sub" || Boolean(element.closest("sub")),
+      blockQuote: Boolean(element.closest("blockquote")),
+      bulletList: Boolean(element.closest("ul")),
+      numberList: Boolean(element.closest("ol")),
+    };
   }
 
   isSafeMediaUrl(url, allowImageData) {
@@ -2692,6 +3534,98 @@ class EditraCore {
     };
   }
 
+  syncImportedDocumentLayout() {
+    const pages = [
+      ...this.editor.querySelectorAll(
+        ":scope > section[data-editra-imported-document='docx']",
+      ),
+    ];
+    if (!pages.length) {
+      this.editor.removeAttribute("data-editra-docx-layout");
+      this.editor.style.removeProperty("--editra-page-width");
+      this.editor.style.removeProperty("--editra-page-height");
+      this.toolbar?.workspace?.style.setProperty(
+        "--editra-page-width",
+        String(this.options.editorWidth || "816px"),
+      );
+      this.toolbar?.workspace?.style.setProperty(
+        "--editra-page-height",
+        String(this.options.editorHeight || "1056px"),
+      );
+      return;
+    }
+    this.editor.dataset.editraDocxLayout = "true";
+    const dimensions = pages.map((page) => {
+      const style = getComputedStyle(page);
+      const rect = page.getBoundingClientRect();
+      return {
+        width: rect.width || Number.parseFloat(style.width) || 816,
+        height:
+          Number.parseFloat(style.minHeight) || rect.height || 1056,
+        orientation:
+          page.dataset.editraPageOrientation === "landscape"
+            ? "landscape"
+            : "portrait",
+      };
+    });
+    const width = Math.max(...dimensions.map((page) => page.width));
+    const height = Math.max(...dimensions.map((page) => page.height));
+    const first = dimensions[0];
+    const orientations = new Set(dimensions.map((page) => page.orientation));
+    const standardSizes = [
+      ["A3", 297 * 96 / 25.4, 420 * 96 / 25.4],
+      ["A4", 210 * 96 / 25.4, 297 * 96 / 25.4],
+      ["A5", 148 * 96 / 25.4, 210 * 96 / 25.4],
+      ["B4", 250 * 96 / 25.4, 353 * 96 / 25.4],
+      ["B5", 176 * 96 / 25.4, 250 * 96 / 25.4],
+      ["Letter", 8.5 * 96, 11 * 96],
+      ["Legal", 8.5 * 96, 14 * 96],
+      ["Executive", 7.25 * 96, 10.5 * 96],
+      ["Tabloid", 11 * 96, 17 * 96],
+      ["Statement", 5.5 * 96, 8.5 * 96],
+      ["Folio", 8.5 * 96, 13 * 96],
+      ["Quarto", 8.5 * 96, 10 * 96],
+      ["10x14", 10 * 96, 14 * 96],
+      ["C5 Envelope", 162 * 96 / 25.4, 229 * 96 / 25.4],
+    ];
+    const pageSize = standardSizes.find(([, portraitWidth, portraitHeight]) => {
+      const expectedWidth = first.orientation === "landscape"
+        ? portraitHeight
+        : portraitWidth;
+      const expectedHeight = first.orientation === "landscape"
+        ? portraitWidth
+        : portraitHeight;
+      return (
+        Math.abs(first.width - expectedWidth) <= 1 &&
+        Math.abs(first.height - expectedHeight) <= 1
+      );
+    })?.[0] || "Custom";
+
+    this.editor.style.setProperty("--editra-page-width", `${width}px`);
+    this.editor.style.setProperty("--editra-page-height", `${height}px`);
+    this.editor.style.minHeight = `${height}px`;
+    this.toolbar?.workspace?.style.setProperty(
+      "--editra-page-width",
+      `${width}px`,
+    );
+    this.toolbar?.workspace?.style.setProperty(
+      "--editra-page-height",
+      `${height}px`,
+    );
+    this.toolbar?.workspace?.style.setProperty(
+      "--editra-page-count",
+      String(pages.length),
+    );
+    this.state.pageCount = pages.length;
+    this.state.pageSize = pageSize;
+    this.state.orientation = orientations.size === 1
+      ? first.orientation
+      : "mixed";
+    this.state.editorWidth = `${first.width}px`;
+    this.state.editorHeight = `${first.height}px`;
+    this.pageGuideSignature = `docx:${pages.length}:${width}:${height}`;
+  }
+
   setHTML(html) {
     if (this.destroyed) return;
     const code = String(
@@ -2712,6 +3646,7 @@ class EditraCore {
         "setHTML input",
       );
       if (this.pendingCode === code) this.pendingCode = null;
+      this.syncImportedDocumentLayout();
       this.rehydrate();
       this.recordHistory();
       this.emitChange();
@@ -2739,6 +3674,7 @@ class EditraCore {
         "setCode input",
       );
       if (this.pendingCode === code) this.pendingCode = null;
+      this.syncImportedDocumentLayout();
       this.recordHistory();
       this.emitChange();
     });
@@ -2783,6 +3719,7 @@ class EditraCore {
     this.editor.removeEventListener("input", this.handleInput);
     this.editor.removeEventListener("paste", this.handlePaste);
     this.editor.removeEventListener("keydown", this.handleKeydown, true);
+    this.editor.removeEventListener("click", this.handleEditorClick);
     this.editor.removeEventListener("pointerdown", this.handleResizePointerDown);
     this.editor.removeEventListener("dragstart", this.handleObjectDragStart);
     this.editor.removeEventListener("dragover", this.handleObjectDragOver);
@@ -2795,6 +3732,9 @@ class EditraCore {
     this.mediaObserver?.disconnect();
     this.pageResizeObserver?.disconnect();
     this.activeResizeCleanup?.();
+    this.activeObjectDragCleanup?.();
+    clearTimeout(this.noticeTimer);
+    this.notice?.remove();
     this.menubar?.destroy();
     this.toolbar.destroy();
     this.cleanups.forEach((cleanup) => cleanup());

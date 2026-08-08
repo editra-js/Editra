@@ -594,9 +594,10 @@
       };
       this.closeMenus();
       const command = item.dataset.command;
-      this.core.executeCommand(
+      const result = this.core.executeCommand(
         command,
         HELP_COMMANDS.has(command) ||
+          command === "link" ||
           command === "insertEmoji" ||
           command === "special-characters"
           ? {
@@ -606,6 +607,13 @@
             }
           : undefined,
       );
+      if (result && typeof result.catch === "function") {
+        result.catch((error) => {
+          this.core.showNotice(error.message || String(error), {
+            tone: "error",
+          });
+        });
+      }
     }
 
     openChooser(item, control, options = {}) {
@@ -642,6 +650,10 @@
               ...COLOR_SWATCHES.map((color) => [color, color]),
             ]
           : control.options ?? [];
+      const currentValue = String(control.value ?? "")
+        .trim()
+        .replace(/^['"]|['"]$/g, "")
+        .toLowerCase();
       values.forEach(([value, label]) => {
         const button = document.createElement("button");
         button.type = "button";
@@ -660,6 +672,12 @@
         } else {
           button.textContent = label;
         }
+        const selected = String(value)
+          .trim()
+          .replace(/^['"]|['"]$/g, "")
+          .toLowerCase() === currentValue;
+        button.classList.toggle("is-selected", selected);
+        button.setAttribute("aria-pressed", String(selected));
         choices.append(button);
       });
       if (!menuHost) chooser.append(heading);
@@ -672,7 +690,7 @@
         const advancedInput = document.createElement("input");
         advancedInput.type = "color";
         advancedInput.value =
-          control.value && control.value !== "transparent"
+          /^#[0-9a-f]{6}$/i.test(String(control.value))
             ? control.value
             : "#000000";
         advancedInput.setAttribute(

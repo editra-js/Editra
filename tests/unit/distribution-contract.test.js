@@ -127,6 +127,8 @@ assert(tablePlugin.includes("editraRepeatHeader"));
 assert(exportPlugin.includes("splitTableAcrossPages"));
 assert(exportPlugin.includes("table-header-group"));
 assert(productivityPlugin.includes("Legacy binary .doc files are not supported"));
+assert(productivityPlugin.includes("createDocxArchive"));
+assert(productivityPlugin.includes("styledHTMLToHTML"));
 assert(demos.includes('pagination: {}'));
 assert(demos.includes('return editor.executeCommand("exportHTML"'));
 assert(demos.includes('"native-page-flow"'));

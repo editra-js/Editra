@@ -411,9 +411,25 @@
     assert(
       barcode?.dataset.editraBarcodeFormat === "EAN13" &&
         barcode.querySelectorAll("svg rect").length > 10 &&
+        [...barcode.querySelectorAll("svg text")].every(
+          (label) =>
+            !/Editra\s+(?:Code|EAN)/i.test(label.getAttribute("style") || "") &&
+            /Arial/i.test(label.getAttribute("style") || ""),
+        ) &&
         barcodeFrame?.draggable &&
         barcodeFrame.querySelectorAll(".editra-resize-handle").length === 4,
       "EAN-13 barcode SVG or computed check digit is invalid",
+    );
+    const legacyBarcodeLabel = barcode.querySelector("svg text");
+    barcode.style.fontFamily = '"Editra EAN13"';
+    barcode.dataset.editraBarcodeFont = "Editra EAN13";
+    legacyBarcodeLabel.style.fontFamily = "Editra EAN13";
+    instance.rehydrate();
+    assert(
+      /Arial/i.test(legacyBarcodeLabel.style.fontFamily) &&
+        !barcode.dataset.editraBarcodeFont &&
+        !/Editra\s+(?:Code|EAN)/i.test(barcode.style.fontFamily),
+      "legacy miniature barcode label was not repaired",
     );
     const invalidBarcode = await instance.executeCommand("insertBarcode", {
       value: "1234567890123",
@@ -441,6 +457,64 @@
         qrExtent >= 29 &&
         (qrCode.querySelector("path")?.getAttribute("d") || "").length > 200,
       "QR encoder did not produce a standards-sized matrix",
+    );
+    const dragDestination = document.createElement("p");
+    dragDestination.dataset.objectDropDestination = "true";
+    dragDestination.textContent = "Object drop destination";
+    instance.editor.append(dragDestination);
+    dragDestination.scrollIntoView({ block: "center" });
+    const destinationRect = dragDestination.getBoundingClientRect();
+    const dragObject = (source, y) => {
+      const transfer = new DataTransfer();
+      source.dispatchEvent(
+        new DragEvent("dragstart", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: transfer,
+        }),
+      );
+      dragDestination.dispatchEvent(
+        new DragEvent("dragover", {
+          bubbles: true,
+          cancelable: true,
+          clientX: destinationRect.left + 8,
+          clientY: y,
+          dataTransfer: transfer,
+        }),
+      );
+      dragDestination.dispatchEvent(
+        new DragEvent("drop", {
+          bubbles: true,
+          cancelable: true,
+          clientX: destinationRect.left + 8,
+          clientY: y,
+          dataTransfer: transfer,
+        }),
+      );
+    };
+    dragObject(barcode, destinationRect.top + 1);
+    dragObject(qrCode, destinationRect.bottom - 1);
+    assert(
+      dragDestination.previousElementSibling === barcodeFrame &&
+        dragDestination.nextElementSibling === qrFrame &&
+        !instance.editor.querySelector(
+          ".editra-object-drop-before,.editra-object-drop-after,.editra-object-drop-append",
+        ),
+      "image/code object drag and drop did not preserve the requested position",
+    );
+    instance.editor.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowUp",
+        altKey: true,
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    assert(
+      qrFrame.style.transform.includes("translate3d(") &&
+        /-8px/.test(qrFrame.style.transform),
+      "selected object keyboard movement failed",
     );
     const serializedCodes = instance.getCode();
     assert(
@@ -491,9 +565,10 @@
     await instance.executeCommand("insertEmoji", { emoji: "\u{1F642}" });
     const emojiObject = instance.editor.querySelector(".editra-emoji-object");
     assert(
-      emojiObject?.draggable &&
-        emojiObject.dataset.editraSelectable === "true",
-      "emoji was not inserted as a selectable draggable object",
+      emojiObject?.closest(".editra-emoji-frame")?.draggable &&
+        emojiObject.closest(".editra-emoji-frame")?.dataset.editraSelectable ===
+          "true",
+      "emoji was not inserted inside a selectable draggable frame",
     );
     instance.placeCaretAtEnd();
     await instance.executeCommand("special-characters", { character: "\u20AC" });
@@ -734,6 +809,92 @@
     );
     colorChooser?.dispatchEvent(new CustomEvent("editra:close"));
 
+    const linkParagraph = document.createElement("p");
+    linkParagraph.textContent = "Link target";
+    instance.editor.append(linkParagraph);
+    const linkRange = document.createRange();
+    linkRange.selectNodeContents(linkParagraph);
+    const linkSelection = getSelection();
+    linkSelection.removeAllRanges();
+    linkSelection.addRange(linkRange);
+    instance.captureSelection();
+    const insertMenuTrigger = [...document.querySelectorAll(
+      ".editra-menu-trigger",
+    )].find((button) => button.textContent.trim() === "Insert");
+    insertMenuTrigger?.click();
+    const linkMenuItem = document.querySelector(
+      '.editra-menubar [data-command="link"]',
+    );
+    linkMenuItem?.click();
+    const menuLinkDialog = document.querySelector(".editra-link-dialog");
+    const menuLinkRect = menuLinkDialog?.getBoundingClientRect();
+    assert(
+      menuLinkDialog &&
+        menuLinkRect.width > 0 &&
+        menuLinkRect.height > 0 &&
+        menuLinkRect.right > 0 &&
+        menuLinkRect.bottom > 0 &&
+        menuLinkRect.left < innerWidth &&
+        menuLinkRect.top < innerHeight,
+      "Insert > Link did not open a visible Editra-styled dialog",
+    );
+    menuLinkDialog.dispatchEvent(new CustomEvent("editra:close"));
+
+    const originalPrompt = globalThis.prompt;
+    globalThis.prompt = () => {
+      throw new Error("native link prompt was used");
+    };
+    let linkDialog;
+    try {
+      linkDialog = instance.executeCommand("link");
+    } finally {
+      globalThis.prompt = originalPrompt;
+    }
+    assert(
+      linkDialog?.matches(".editra-media-dialog.editra-link-dialog") &&
+        linkDialog.querySelector("[data-editra-link-text]")?.value ===
+          "Link target",
+      "insert link did not open the Editra-styled dialog",
+    );
+    linkDialog.querySelector("[data-editra-link-url]").value =
+      "https://example.com/reference";
+    linkDialog.querySelector("[data-editra-link-submit]").dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+    assert(
+      instance.editor.querySelector(
+        'a[href="https://example.com/reference"]',
+      )?.textContent === "Link target" &&
+        !document.querySelector(".editra-link-dialog"),
+      "styled link dialog did not insert the selected text link",
+    );
+    const insertedLink = instance.editor.querySelector(
+      'a[href="https://example.com/reference"]',
+    );
+    const originalOpen = globalThis.open;
+    let openedLink = null;
+    globalThis.open = (url, target, features) => {
+      openedLink = { url, target, features };
+      return null;
+    };
+    try {
+      insertedLink.dispatchEvent(
+        new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          ctrlKey: true,
+        }),
+      );
+    } finally {
+      globalThis.open = originalOpen;
+    }
+    assert(
+      openedLink?.url === "https://example.com/reference" &&
+        openedLink.target === "_blank" &&
+        openedLink.features.includes("noopener"),
+      "Ctrl/Cmd+click did not safely open the editor link",
+    );
+
     const emojiPopup = await instance.executeCommand("insertEmoji", {
       anchor: instance.toolbar.getButton("insertEmoji"),
     });
@@ -777,9 +938,15 @@
       requestAnimationFrame(() => requestAnimationFrame(resolve)),
     );
     await instance.executeCommand("insertTable", { rows: 2, columns: 3 });
+    const insertedTableFrame = instance.editor.querySelector(
+      ".editra-table-frame",
+    );
     assert(
       instance.editor.querySelectorAll("table tr").length === 2 &&
-        instance.editor.querySelectorAll("table th, table td").length === 6,
+        instance.editor.querySelectorAll("table th, table td").length === 6 &&
+        insertedTableFrame?.querySelector(
+          '.editra-table-select-handle[draggable="true"][data-editra-draggable="true"]',
+        ),
       "table plugin failed to insert a 2 by 3 table",
     );
     await new Promise((resolve) =>

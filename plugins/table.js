@@ -50,6 +50,19 @@
     return widths;
   }
 
+  function measuredColumnWidths(table, columns) {
+    const measured = columns.map(
+      (column) => column.getBoundingClientRect().width,
+    );
+    if (
+      measured.length &&
+      measured.every((width) => Number.isFinite(width) && width > 0)
+    ) {
+      return measured;
+    }
+    return visualColumnWidths(table);
+  }
+
   function findCellAtColumn(row, column) {
     let cursor = 0;
     for (const cell of row.cells) {
@@ -126,7 +139,27 @@
             }px`;
           }
         });
+
+      const corner = wrapper.querySelector(
+        '[data-editra-table-axis="corner"]',
+      );
+      if (corner) {
+        const tableRect = table.getBoundingClientRect();
+        corner.style.left = `${tableRect.right - wrapperRect.left}px`;
+        corner.style.top = `${tableRect.bottom - wrapperRect.top}px`;
+      }
     });
+  }
+
+  function positionCornerHandle(wrapper, table) {
+    const corner = wrapper.querySelector(
+      '[data-editra-table-axis="corner"]',
+    );
+    if (!corner) return;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const tableRect = table.getBoundingClientRect();
+    corner.style.left = `${tableRect.right - wrapperRect.left}px`;
+    corner.style.top = `${tableRect.bottom - wrapperRect.top}px`;
   }
 
   function ensureColumns(table) {
@@ -167,10 +200,13 @@
     selector.className = "editra-table-select-handle";
     selector.dataset.editraTableHandle = "true";
     selector.dataset.editraTableAxis = "select";
+    selector.dataset.editraDraggable = "true";
     selector.contentEditable = "false";
+    selector.draggable = true;
+    selector.tabIndex = 0;
     selector.setAttribute("role", "button");
     selector.setAttribute("aria-label", "Select entire table");
-    selector.title = "Select table";
+    selector.title = "Select or drag table";
     controls.append(selector);
     [...colgroup.children].forEach((_, index) => {
       const handle = document.createElement("span");
@@ -193,6 +229,14 @@
       handle.setAttribute("aria-hidden", "true");
       controls.append(handle);
     });
+    const corner = document.createElement("span");
+    corner.className = "editra-table-corner-handle";
+    corner.dataset.editraTableHandle = "true";
+    corner.dataset.editraTableAxis = "corner";
+    corner.contentEditable = "false";
+    corner.setAttribute("aria-hidden", "true");
+    corner.title = "Drag to resize entire table";
+    controls.append(corner);
     wrapper.append(controls);
     positionHandles(core, wrapper);
     return wrapper;
@@ -794,9 +838,37 @@
       const startY = event.clientY;
       const rows = [...table.rows];
       const columns = [...ensureColumns(table).children];
-      const initialWidths = visualColumnWidths(table);
+      const initialWidths = measuredColumnWidths(table, columns);
       const initialTableWidth = table.getBoundingClientRect().width;
+      const initialTableHeight = table.getBoundingClientRect().height;
+      const initialRowHeights = rows.map(
+        (row) => row.getBoundingClientRect().height,
+      );
       const initialRowHeight = rows[index]?.getBoundingClientRect().height ?? 36;
+      const wrapperStyle = getComputedStyle(wrapper);
+      const wrapperContentWidth = Math.max(
+        0,
+        wrapper.clientWidth -
+          (Number.parseFloat(wrapperStyle.paddingLeft) || 0) -
+          (Number.parseFloat(wrapperStyle.paddingRight) || 0),
+      );
+      const minimumColumnWidth = 48;
+      const minimumTableWidth = Math.max(
+        minimumColumnWidth,
+        columns.length * minimumColumnWidth,
+      );
+      const minimumProportionalTableWidth = Math.max(
+        minimumTableWidth,
+        ...initialWidths.map(
+          (width) =>
+            initialTableWidth * minimumColumnWidth / Math.max(1, width),
+        ),
+      );
+      const maximumTableWidth = Math.max(
+        initialTableWidth,
+        (wrapperContentWidth || initialTableWidth) * 2,
+      );
+      const pointerId = event.pointerId;
       let latestX = startX;
       let latestY = startY;
 
@@ -804,22 +876,88 @@
         column.style.width = `${initialWidths[columnIndex] ?? 80}px`;
       });
       table.style.width = `${initialTableWidth}px`;
+      if (axis === "corner") {
+        table.style.height = `${initialTableHeight}px`;
+      }
+      wrapper.classList.add("is-table-resizing", `is-resizing-${axis}`);
+      handle.setPointerCapture?.(pointerId);
 
       function applyResize() {
-        if (axis === "column" && columns[index]) {
-          const width = Math.max(48, initialWidths[index] + latestX - startX);
-          columns[index].style.width = `${Math.round(width)}px`;
-          table.style.width = `${Math.round(
-            initialTableWidth + width - initialWidths[index],
-          )}px`;
+        if (axis === "corner") {
+          const requestedTableWidth = initialTableWidth + latestX - startX;
+          const tableWidth = Math.max(
+            minimumProportionalTableWidth,
+            Math.min(maximumTableWidth, requestedTableWidth),
+          );
+          const widthScale = tableWidth / Math.max(1, initialTableWidth);
+          columns.forEach((column, columnIndex) => {
+            const width = Math.max(
+              minimumColumnWidth,
+              (initialWidths[columnIndex] ?? minimumColumnWidth) * widthScale,
+            );
+            column.style.width = `${width}px`;
+          });
+          table.style.width = `${tableWidth}px`;
+
+          const minimumRowHeight = 24;
+          const minimumTableHeight = Math.max(
+            minimumRowHeight,
+            rows.length * minimumRowHeight,
+          );
+          const tableHeight = Math.max(
+            minimumTableHeight,
+            initialTableHeight + latestY - startY,
+          );
+          const heightScale = tableHeight / Math.max(1, initialTableHeight);
+          table.style.height = `${tableHeight}px`;
+          rows.forEach((row, rowIndex) => {
+            const height = Math.max(
+              minimumRowHeight,
+              (initialRowHeights[rowIndex] ?? minimumRowHeight) * heightScale,
+            );
+            row.style.height = `${height}px`;
+          });
+        } else if (axis === "column" && columns[index]) {
+          const requestedDelta = latestX - startX;
+          const currentWidth = initialWidths[index] ?? minimumColumnWidth;
+          const nextColumn = columns[index + 1];
+          if (nextColumn) {
+            const nextWidth = initialWidths[index + 1] ?? minimumColumnWidth;
+            const delta = Math.max(
+              minimumColumnWidth - currentWidth,
+              Math.min(nextWidth - minimumColumnWidth, requestedDelta),
+            );
+            columns[index].style.width = `${Math.round(currentWidth + delta)}px`;
+            nextColumn.style.width = `${Math.round(nextWidth - delta)}px`;
+            table.style.width = `${Math.round(initialTableWidth)}px`;
+          } else {
+            const requestedTableWidth = initialTableWidth + requestedDelta;
+            const minimumOuterTableWidth = Math.max(
+              minimumTableWidth,
+              initialTableWidth - currentWidth + minimumColumnWidth,
+            );
+            const tableWidth = Math.max(
+              minimumOuterTableWidth,
+              Math.min(maximumTableWidth, requestedTableWidth),
+            );
+            const width = Math.max(
+              minimumColumnWidth,
+              currentWidth + tableWidth - initialTableWidth,
+            );
+            columns[index].style.width = `${Math.round(width)}px`;
+            table.style.width = `${Math.round(tableWidth)}px`;
+          }
         } else if (axis === "row" && rows[index]) {
-          const height = Math.max(32, initialRowHeight + latestY - startY);
+          const height = Math.max(24, initialRowHeight + latestY - startY);
           rows[index].style.height = `${Math.round(height)}px`;
         }
+        if (axis === "corner") positionCornerHandle(wrapper, table);
         positionHandles(core, wrapper);
       }
 
       function handleMove(moveEvent) {
+        if (moveEvent.pointerId !== pointerId) return;
+        if (moveEvent.cancelable) moveEvent.preventDefault();
         latestX = moveEvent.clientX;
         latestY = moveEvent.clientY;
         core.scheduleUpdate(`table-resize-${axis}`, applyResize);
@@ -829,10 +967,15 @@
         document.removeEventListener("pointermove", handleMove);
         document.removeEventListener("pointerup", handleUp);
         document.removeEventListener("pointercancel", handleUp);
+        if (handle.hasPointerCapture?.(pointerId)) {
+          handle.releasePointerCapture(pointerId);
+        }
+        wrapper.classList.remove("is-table-resizing", `is-resizing-${axis}`);
         state.activeDragCleanup = null;
       }
 
       function handleUp(upEvent) {
+        if (upEvent.pointerId !== pointerId) return;
         latestX = upEvent.clientX;
         latestY = upEvent.clientY;
         applyResize();
@@ -844,6 +987,23 @@
       document.addEventListener("pointermove", handleMove);
       document.addEventListener("pointerup", handleUp);
       document.addEventListener("pointercancel", handleUp);
+    }
+
+    function handleCellPointerDown(event) {
+      const cell = event.target.closest?.("td, th");
+      if (!cell || !core.editor.contains(cell)) return;
+      const objectInteraction = event.target.closest?.(
+        ".editra-media-frame,[data-editra-table-handle],[contenteditable='false'][data-editra-selectable]",
+      );
+      state.activeCell = cell;
+      if (state.selectedTable) {
+        state.selectedTable
+          .closest(".editra-table-frame")
+          ?.classList.remove("is-table-selected");
+        state.selectedTable = null;
+        core.state.tableSelected = false;
+      }
+      if (!objectInteraction) core.clearObjectSelection();
     }
 
     function handleContextMenu(event) {
@@ -909,6 +1069,44 @@
 
     function handleKeydown(event) {
       if (
+        event.key === "Tab" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        const selection = global.getSelection();
+        const anchor = selection?.anchorNode;
+        const element = anchor?.nodeType === Node.ELEMENT_NODE
+          ? anchor
+          : anchor?.parentElement;
+        const cell = element?.closest?.("td, th");
+        const table = cell?.closest("table");
+        if (cell && table && core.editor.contains(table)) {
+          let cells = [...table.querySelectorAll("th, td")];
+          const index = cells.indexOf(cell);
+          let target = cells[index + (event.shiftKey ? -1 : 1)] || null;
+          if (!target && !event.shiftKey) {
+            addRow(core, { table, cell, position: "after" });
+            cells = [...table.querySelectorAll("th, td")];
+            target = cells[index + 1] || cells.at(-1) || null;
+          }
+          if (target) {
+            event.preventDefault();
+            event.stopPropagation();
+            state.activeCell = target;
+            const range = document.createRange();
+            range.selectNodeContents(target);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            core.selection = range.cloneRange();
+            core.editor.focus({ preventScroll: true });
+            core.emitState();
+            return;
+          }
+        }
+      }
+      if (
         (event.key === "Delete" || event.key === "Backspace") &&
         state.selectedTable?.isConnected
       ) {
@@ -939,22 +1137,24 @@
     observer.observe(core.editor, { childList: true, subtree: true });
 
     core.editor.addEventListener("pointerdown", handleResizeDown);
+    core.editor.addEventListener("pointerdown", handleCellPointerDown);
     core.editor.addEventListener("contextmenu", handleContextMenu);
     document.addEventListener("click", handleContextClick);
     document.addEventListener("change", handleColor);
     document.addEventListener("pointerdown", handleOutside);
-    document.addEventListener("keydown", handleKeydown);
+    document.addEventListener("keydown", handleKeydown, true);
 
     core.registerCleanup(() => {
       state.activeDragCleanup?.();
       state.contextMenu?.remove();
       observer.disconnect();
       core.editor.removeEventListener("pointerdown", handleResizeDown);
+      core.editor.removeEventListener("pointerdown", handleCellPointerDown);
       core.editor.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("click", handleContextClick);
       document.removeEventListener("change", handleColor);
       document.removeEventListener("pointerdown", handleOutside);
-      document.removeEventListener("keydown", handleKeydown);
+      document.removeEventListener("keydown", handleKeydown, true);
       state.unregisterCommands.forEach((unregister) => unregister());
       installations.delete(core);
     });

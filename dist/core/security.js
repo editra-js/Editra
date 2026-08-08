@@ -38,7 +38,10 @@
   const UNSAFE_CSS =
     /(?:expression\s*\(|url\s*\(|@import|behavior\s*:|-moz-binding|javascript\s*:|vbscript\s*:)/i;
   const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f\s]+/g;
-  const XML_PARSE_CONTEXT = Symbol("editra-xml-parse");
+  const TRUSTED_PARSE_CONTEXT = Symbol("editra-inert-parse");
+  const UNSAFE_STYLESHEET =
+    /(?:@import|@font-face|url\s*\(|expression\s*\(|behavior\s*:|-moz-binding|javascript\s*:|vbscript\s*:)/i;
+  const ESCAPING_LAYOUT_CSS = /position\s*:\s*(?:fixed|sticky)\b/i;
 
   function bytes(value) {
     const text = String(value ?? "");
@@ -124,7 +127,7 @@
     try {
       return global.trustedTypes.createPolicy(config.trustedTypesPolicyName, {
         createHTML(value, context) {
-          if (context === XML_PARSE_CONTEXT) return String(value);
+          if (context === TRUSTED_PARSE_CONTEXT) return String(value);
           return global.DOMPurify.sanitize(String(value), {
             RETURN_TRUSTED_TYPE: false,
             USE_PROFILES: { html: true },
@@ -201,14 +204,87 @@
     }
 
     parseXML(value) {
-      const source = String(value ?? "");
-      const trustedSource = this.trustedTypesPolicy?.createHTML
-        ? this.trustedTypesPolicy.createHTML(source, XML_PARSE_CONTEXT)
-        : source;
+      const trustedSource = this.trustedParserInput(value);
       return new DOMParser().parseFromString(
         trustedSource,
         "application/xml",
       );
+    }
+
+    parseHTML(value) {
+      const trustedSource = this.trustedParserInput(value);
+      return new DOMParser().parseFromString(trustedSource, "text/html");
+    }
+
+    trustedParserInput(value) {
+      const source = String(value ?? "");
+      return this.trustedTypesPolicy?.createHTML
+        ? this.trustedTypesPolicy.createHTML(source, TRUSTED_PARSE_CONTEXT)
+        : source;
+    }
+
+    inspectHTMLImport(value) {
+      const source = String(value ?? "");
+      this.assertSize(source, "HTML import");
+      const documentNode = this.parseHTML(source);
+      const violations = new Set();
+
+      documentNode.querySelectorAll("*").forEach((node) => {
+        const tag = node.localName.toLowerCase();
+        if (FORBID_TAGS.includes(tag) && tag !== "style") {
+          violations.add(`blocked <${tag}> element`);
+        }
+        if (tag === "style") {
+          const css = node.textContent || "";
+          if (UNSAFE_STYLESHEET.test(css)) {
+            violations.add("stylesheet can load or execute external content");
+          }
+          if (ESCAPING_LAYOUT_CSS.test(css)) {
+            violations.add("stylesheet can escape the document surface");
+          }
+        }
+
+        [...node.attributes].forEach((attribute) => {
+          const name = attribute.name.toLowerCase();
+          const compact = attribute.value.replace(CONTROL_CHARACTERS, "");
+          if (name.startsWith("on")) {
+            violations.add(`event handler attribute ${name}`);
+          } else if (FORBID_ATTR.includes(name)) {
+            violations.add(`blocked attribute ${name}`);
+          } else if (name === "style" && UNSAFE_CSS.test(attribute.value)) {
+            violations.add("inline CSS can load or execute external content");
+          } else if (
+            name === "style" &&
+            ESCAPING_LAYOUT_CSS.test(attribute.value)
+          ) {
+            violations.add("inline CSS can escape the document surface");
+          } else if (name === "srcset") {
+            violations.add("responsive external image source");
+          } else if (
+            URL_ATTRIBUTES.has(name) &&
+            !this.isSafeUrl(compact, {
+              image: tag === "img",
+              iframe: tag === "iframe",
+            })
+          ) {
+            violations.add(`unsafe ${name} URL`);
+          } else if (
+            ["audio", "img", "source", "track", "video"].includes(tag) &&
+            ["src", "poster"].includes(name) &&
+            !/^(?:data:image\/(?:png|gif|jpeg|webp|avif);base64,|blob:)/i.test(
+              compact,
+            )
+          ) {
+            violations.add("external media resource");
+          }
+        });
+      });
+
+      return Object.freeze({
+        safe: violations.size === 0,
+        violations: Object.freeze([...violations]),
+        document: documentNode,
+      });
     }
 
     isSafeUrl(value, { image = false, iframe = false } = {}) {

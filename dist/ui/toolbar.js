@@ -285,20 +285,80 @@
     }
 
     update(state) {
+      const stateKeyByCommand = {
+        setFontFamily: "fontFamily",
+        setFontSize: "fontSize",
+        setForeColor: "foreColor",
+        setBackgroundColor: "backgroundColor",
+        highlightText: "backgroundColor",
+        setHeading: "heading",
+        setAlignment: "alignment",
+        setLineHeight: "lineHeight",
+        setLanguage: "language",
+      };
+      const activeKeyByCommand = {
+        bold: "bold",
+        italic: "italic",
+        underline: "underline",
+        strikethrough: "strikethrough",
+        superscript: "superscript",
+        subscript: "subscript",
+        blockQuote: "blockQuote",
+        bulletList: "bulletList",
+        numberList: "numberList",
+      };
+      const comparable = (value) =>
+        String(value ?? "")
+          .trim()
+          .replace(/^['"]|['"]$/g, "")
+          .toLowerCase();
+
+      Object.entries(stateKeyByCommand).forEach(([command, stateKey]) => {
+        const detected = state[stateKey];
+        const definition = this.controls.get(command);
+        if (
+          definition &&
+          detected !== null &&
+          detected !== undefined &&
+          detected !== ""
+        ) {
+          definition.value = detected;
+        }
+      });
+
       this.buttons.forEach((button, name) => {
         const plugin = this.core.plugins.get(button.dataset.plugin || name);
+        const command = button.dataset.command;
         if (name === "undo") button.disabled = !state.canUndo;
         else if (name === "redo") button.disabled = !state.canRedo;
         else button.disabled = Boolean(plugin?.disabled);
-        if (
-          name === "bulletList" ||
-          name === "numberList" ||
-          name === "strikethrough" ||
-          name === "superscript" ||
-          name === "subscript"
-        ) {
-          button.setAttribute("aria-pressed", String(Boolean(state[name])));
-          button.classList.toggle("is-active", Boolean(state[name]));
+
+        const activeKey = activeKeyByCommand[command];
+        if (activeKey) {
+          const active = Boolean(state[activeKey]);
+          button.setAttribute("aria-pressed", String(active));
+          button.classList.toggle("is-active", active);
+        }
+
+        const stateKey = stateKeyByCommand[command];
+        const detected = stateKey ? state[stateKey] : null;
+        if (detected === null || detected === undefined || detected === "") return;
+        const definition = this.controls.get(command);
+        if (definition) definition.value = detected;
+        if (button instanceof HTMLSelectElement) {
+          const match = [...button.options].find(
+            (option) => comparable(option.value) === comparable(detected),
+          );
+          if (match) {
+            button.value = match.value;
+          } else {
+            button.selectedIndex = -1;
+          }
+        } else if (button.classList.contains("editra-color-tool")) {
+          const input = button.querySelector("input[type='color']");
+          if (input && /^#[0-9a-f]{6}$/i.test(String(detected))) {
+            input.value = String(detected);
+          }
         }
       });
     }

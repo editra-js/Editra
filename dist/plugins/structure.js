@@ -85,13 +85,11 @@
     span.className = "editra-emoji-object";
     span.textContent = value;
     span.contentEditable = "false";
-    span.draggable = true;
+    span.draggable = false;
     span.dataset.editraEmoji = value;
-    span.dataset.editraSelectable = "true";
-    span.dataset.editraDraggable = "true";
     span.setAttribute("role", "img");
     span.setAttribute("aria-label", `Emoji ${value}`);
-    return insertInlineNode(core, span);
+    return insertInlineNode(core, core.makeMediaResizable(span, "emoji"));
   }
 
   function insertCharacterValue(core, character) {
@@ -349,7 +347,10 @@
     const pageBreak = document.createElement("div");
     pageBreak.className = "editra-page-break";
     pageBreak.contentEditable = "false";
+    pageBreak.draggable = true;
     pageBreak.dataset.editraSelectable = "true";
+    pageBreak.dataset.editraDraggable = "true";
+    core.ensureObjectMoveHandle(pageBreak, "page break");
     pageBreak.setAttribute("role", "separator");
     pageBreak.setAttribute("aria-label", "Page break");
     const result = insertAtSelection(core, pageBreak);
@@ -373,7 +374,9 @@
     const line = document.createElement("hr");
     line.className = "editra-horizontal-line";
     line.contentEditable = "false";
+    line.draggable = true;
     line.dataset.editraSelectable = "true";
+    line.dataset.editraDraggable = "true";
     return insertAtSelection(core, line);
   }
 
@@ -559,7 +562,10 @@
     nav.className = "editra-table-of-contents";
     nav.dataset.editraToc = "true";
     nav.contentEditable = "false";
+    nav.draggable = true;
     nav.dataset.editraSelectable = "true";
+    nav.dataset.editraDraggable = "true";
+    core.ensureObjectMoveHandle(nav, "table of contents");
     nav.setAttribute("aria-label", "Table of contents");
     const title = document.createElement("strong");
     title.textContent = options.title || "Table of Contents";

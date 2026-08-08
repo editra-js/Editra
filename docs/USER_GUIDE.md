@@ -341,6 +341,29 @@ Use 100% print scale and disable browser-supplied print headers/footers for best
 | Print | Print full configured pages | [Export](../examples/export.html) |
 | Print text area only | Crop printing to document content | [Custom print](../examples/custom-print.html) |
 
+### Styled Word and HTML imports
+
+File **Open**, **Import Word**, and **Import HTML** preserve supported document
+appearance as editable, sanitized HTML. DOCX imports retain page sections,
+paragraph and run formatting, lists, tables, packaged images, headers, footers,
+footnotes, and endnotes where the browser renderer supports them. Safe embedded
+HTML styles are resolved in an isolated shadow tree and converted to inline
+styles, so the same appearance is retained by HTML, Word, PDF, and print
+exports.
+
+Imports fail closed and show a visible message when they contain scripts,
+event handlers, forms, frames, active or macro-enabled Word content, embedded
+executables, archive traversal, unsafe or external package relationships,
+external media, CSS resource loading, fixed/sticky CSS, malformed archives, or
+configured size/complexity limit violations. External stylesheets and files
+referenced beside a local HTML file cannot be read by the browser; embed safe
+CSS and images in the HTML when a self-contained import is required.
+
+Browser HTML rendering and Microsoft Word use different layout engines, so
+pixel-identical conversion cannot be guaranteed for every DOCX feature.
+Unsupported Word fields, SmartArt, macros, ActiveX, OLE objects, and specialized
+font/layout behavior are intentionally not executed or imported.
+
 ### Edit
 
 | Item | Purpose | Demo |
@@ -422,9 +445,13 @@ QR controls generate UTF-8, error-corrected SVG matrices. Both retain their
 encoded value in document metadata and persist through HTML and PDF rendering.
 
 Images, videos, QR codes, barcodes, emoji, tables, and structural blocks can be
-selected as complete objects. Draggable objects can move across the document;
-resizable objects expose corner handles. Selection outlines are not persisted
-or exported, and Delete or Backspace removes the selected object safely.
+selected as complete objects. Drag media and generated codes directly; drag a
+table from its square upper-left selection handle. Page breaks, horizontal
+lines, and tables of contents are also movable. A blue line previews the drop
+position. Selected objects can be moved to an adjacent position with
+Alt+Shift+Arrow. Resizable objects expose corner handles. Selection and drop
+outlines are not persisted or exported, and Delete or Backspace removes the
+selected object safely.
 
 ### Review
 

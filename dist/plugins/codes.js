@@ -6,7 +6,6 @@
   const BARCODE_FORMATS = Object.freeze({
     CODE128: {
       label: "Code 128",
-      fontFamily: "Editra Code128",
       normalize: (value) => String(value).trim(),
       validate: (value) =>
         /^[\x20-\x7e]+$/.test(value)
@@ -15,7 +14,6 @@
     },
     CODE39: {
       label: "Code 39",
-      fontFamily: "Editra Code39",
       normalize: (value) => String(value).trim().toUpperCase(),
       validate: (value) =>
         /^[0-9A-Z .\-$/+%]+$/.test(value)
@@ -24,7 +22,6 @@
     },
     EAN13: {
       label: "EAN-13",
-      fontFamily: "Editra EAN13",
       normalize: (value) => String(value).replace(/\s+/g, ""),
       validate: validateEan13,
     },
@@ -223,7 +220,7 @@
       height: 78,
       margin: 10,
       displayValue: true,
-      font: normalized.definition.fontFamily,
+      font: "Arial",
       fontOptions: "normal",
       fontSize: 18,
       textMargin: 4,
@@ -241,8 +238,6 @@
     wrapper.dataset.editraDraggable = "true";
     wrapper.dataset.editraBarcode = normalized.value;
     wrapper.dataset.editraBarcodeFormat = format;
-    wrapper.dataset.editraBarcodeFont = normalized.definition.fontFamily;
-    wrapper.style.fontFamily = `"${normalized.definition.fontFamily}"`;
     wrapper.style.width = `${Math.ceil(Number(svg.getAttribute("width")) || 320)}px`;
     wrapper.append(svg);
     return { node: wrapper, value: normalized.value };

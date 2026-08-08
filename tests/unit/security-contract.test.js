@@ -35,6 +35,7 @@ for (const token of [
 assert.ok(core.includes('loadScript("vendor/purify.min.js")'));
 assert.ok(core.includes('loadScript("core/security.js")'));
 assert.ok(security.includes("parseXML(value)"));
+assert.ok(security.includes("inspectHTMLImport(value)"));
 assert.ok(core.includes("this.security.trustedHTML"));
 assert.ok(core.includes("this.security?.destroy()"));
 assert.ok(paste.includes("core.sanitizeHTML"));

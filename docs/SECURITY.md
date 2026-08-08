@@ -28,6 +28,7 @@ No software can guarantee the absence of every future vulnerability. This assura
 | Untrusted media | `file:` and executable data URLs are rejected; image data URLs use an image-only base64 pattern. |
 | Embedded players | Iframes are denied by default. Hosts must opt in to exact domains; accepted frames receive a restrictive sandbox and referrer policy. |
 | Oversized input | Configurable byte, DOM-node, depth, media-size, history-byte, and command-rate limits fail closed. |
+| Malicious document import | DOCX ZIP integrity, entry count, expanded size, paths, active/macro content, embedded objects, and external relationships are checked before rendering. HTML active content and unsafe/external CSS or media fail closed before insertion. |
 | Plugin compromise | Built-ins resolve through a frozen manifest with origin/integrity controls. Community plugins use validated metadata, SHA-256 entry verification, sandboxed iframes, source-checked messages, and capability allowlists. |
 | DOM sink abuse | Trusted Types support uses `editra-loader`, `dompurify`, and a sanitized `default` policy when the host enforces Trusted Types. |
 | Memory leaks | `destroy()` cancels animation frames, disconnects observers, removes document listeners, revokes object URLs, destroys UI, removes sanitizer hooks, clears maps/history, and releases callbacks. |
@@ -120,9 +121,21 @@ bindings, or executable protocols is removed. Node, depth, byte, media, and
 command-rate limits fail closed. Plugin sandbox documents are not inserted
 into editor content and receive no sanitizer exemption.
 
+For file imports, safe embedded stylesheet rules are parsed in an isolated
+shadow tree and flattened to inline formatting before the normal DOMPurify
+pass. Imports are rejected rather than partially accepted when active markup,
+external media/resource loading, fixed or sticky document-escaping layout, or
+unsafe CSS is detected. DOCX alternative HTML chunks, tracked changes, macros,
+ActiveX, OLE/embedded packages, executables, archive traversal, oversized ZIP
+expansion, and non-hyperlink external relationships are not rendered. HTTPS
+hyperlinks may remain, but are sanitized and receive the normal link safety
+controls.
+
 ## Supply-chain policy
 
-- Runtime dependency: exactly `dompurify@3.4.13`, with zero transitive runtime dependencies.
+- Runtime dependencies are exact-pinned at the application boundary. DOCX ZIP
+  and WordprocessingML parsing is implemented by Editra without an additional
+  runtime package.
 - Development dependencies are exact-pinned in `package.json` and locked by `package-lock.json`.
 - CI runs `npm ci --ignore-scripts`, `npm audit --audit-level=high`, dependency review, CodeQL, tests, build, and package inspection.
 - Renovation requires security review, lockfile diff review, upstream provenance/signature review, and the full browser matrix.

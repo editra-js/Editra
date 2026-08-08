@@ -61,21 +61,43 @@
       ? Math.max(1, coveredContentHeight(core, editorStyle))
       : configuredHeight;
     const explicit = core.editor.querySelectorAll(".editra-page-break").length + 1;
+    const importedPages = [
+      ...core.editor.querySelectorAll(
+        ":scope > section[data-editra-imported-document='docx']",
+      ),
+    ];
+    const importedPageStyle = importedPages[0]
+      ? getComputedStyle(importedPages[0])
+      : null;
+    const importedWidth = importedPages[0]
+      ? importedPages[0].getBoundingClientRect().width ||
+        Number.parseFloat(importedPageStyle.width)
+      : 0;
+    const importedHeight = importedPages[0]
+      ? Number.parseFloat(importedPageStyle.minHeight) ||
+        importedPages[0].getBoundingClientRect().height
+      : 0;
     const pageCount = contentOnly
       ? 1
+      : importedPages.length
+        ? importedPages.length
       : Math.max(
           explicit,
           Number(core.state.pageCount) || 1,
           Math.ceil(Math.max(height, core.editor.scrollHeight) / height),
         );
     return {
-      width,
-      height,
+      width: importedWidth || width,
+      height: importedHeight || height,
       pageCount,
-      widthCSS: printDimension(core.options.editorWidth, width),
+      widthCSS: importedWidth
+        ? `${Math.round(importedWidth * 100) / 100}px`
+        : printDimension(core.options.editorWidth, width),
       heightCSS: contentOnly
         ? `${Math.round(height * 100) / 100}px`
-        : printDimension(core.options.editorHeight, height),
+        : importedHeight
+          ? `${Math.round(importedHeight * 100) / 100}px`
+          : printDimension(core.options.editorHeight, height),
       paddingTop: editorStyle.paddingTop,
       paddingRight: editorStyle.paddingRight,
       paddingBottom: editorStyle.paddingBottom,
@@ -328,6 +350,14 @@
       .editra-emoji-object {
         display: inline-block; font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
         font-style: normal; line-height: 1; vertical-align: -.08em;
+      }
+      .editra-media-frame.editra-emoji-frame {
+        display: inline-flex; align-items: center; justify-content: center;
+        max-width: none; margin: 2px; line-height: 1; vertical-align: middle;
+      }
+      .editra-emoji-frame > .editra-emoji-object {
+        display: grid; width: 100%; height: 100%; padding: 0; place-items: center;
+        font-size: 1em; vertical-align: baseline;
       }
       img,video,iframe,canvas,svg,form,object,embed,figure,
       [data-editra-indivisible="true"],[data-editra-keep-together="true"] {
