@@ -3,21 +3,21 @@
 
   const installations = new WeakMap();
   const PAGE_SIZES = Object.freeze({
-    A3: Object.freeze({ width: 1123, height: 1587 }),
-    A4: Object.freeze({ width: 794, height: 1123 }),
-    A5: Object.freeze({ width: 559, height: 794 }),
-    B4: Object.freeze({ width: 945, height: 1334 }),
-    B5: Object.freeze({ width: 665, height: 945 }),
-    Letter: Object.freeze({ width: 816, height: 1056 }),
-    Legal: Object.freeze({ width: 816, height: 1344 }),
-    Executive: Object.freeze({ width: 696, height: 1008 }),
-    Tabloid: Object.freeze({ width: 1056, height: 1632 }),
-    Ledger: Object.freeze({ width: 1056, height: 1632 }),
-    Statement: Object.freeze({ width: 528, height: 816 }),
-    Folio: Object.freeze({ width: 816, height: 1248 }),
-    Quarto: Object.freeze({ width: 816, height: 960 }),
-    "10x14": Object.freeze({ width: 960, height: 1344 }),
-    "C5 Envelope": Object.freeze({ width: 612, height: 867 }),
+    A3: Object.freeze({ width: "297mm", height: "420mm" }),
+    A4: Object.freeze({ width: "210mm", height: "297mm" }),
+    A5: Object.freeze({ width: "148mm", height: "210mm" }),
+    B4: Object.freeze({ width: "250mm", height: "353mm" }),
+    B5: Object.freeze({ width: "176mm", height: "250mm" }),
+    Letter: Object.freeze({ width: "8.5in", height: "11in" }),
+    Legal: Object.freeze({ width: "8.5in", height: "14in" }),
+    Executive: Object.freeze({ width: "7.25in", height: "10.5in" }),
+    Tabloid: Object.freeze({ width: "11in", height: "17in" }),
+    Ledger: Object.freeze({ width: "11in", height: "17in" }),
+    Statement: Object.freeze({ width: "5.5in", height: "8.5in" }),
+    Folio: Object.freeze({ width: "8.5in", height: "13in" }),
+    Quarto: Object.freeze({ width: "8.5in", height: "10in" }),
+    "10x14": Object.freeze({ width: "10in", height: "14in" }),
+    "C5 Envelope": Object.freeze({ width: "162mm", height: "229mm" }),
   });
 
   function normalizeOrientation(value) {
@@ -54,16 +54,19 @@
       orientation === "landscape" ? dimensions.height : dimensions.width;
     const height =
       orientation === "landscape" ? dimensions.width : dimensions.height;
-    let appliedWidth = `${width}px`;
-    let appliedHeight = `${height}px`;
+    let appliedWidth = width;
+    let appliedHeight = height;
     if (core.options.editorHeightFixed) {
       const fixedHeight = Number.parseFloat(core.options.editorHeight);
       if (Number.isFinite(fixedHeight) && fixedHeight > 0) {
         appliedHeight = core.options.editorHeight;
-        appliedWidth = `${Math.round(fixedHeight * (width / height))}px`;
+        appliedWidth = `${Math.round(
+          fixedHeight *
+            (Number.parseFloat(width) / Number.parseFloat(height)),
+        )}px`;
       }
     }
-    core.setEditorSize(appliedWidth, appliedHeight);
+    core.setEditorSize(appliedWidth, appliedHeight, { standard: true });
     return notify(core, {
       pageSize: sizeName,
       orientation,
@@ -75,6 +78,7 @@
   }
 
   function setCustomPageSize(core, options = {}) {
+    if (core.options.theme === "Word") return false;
     const orientation = normalizeOrientation(
       options.orientation || core.options.orientation,
     );
@@ -119,6 +123,7 @@
   }
 
   async function printContentOnly(core, options = {}) {
+    if (core.options.theme === "Word") return false;
     return core.executeCommand("exportPDF", {
       ...options,
       contentOnly: true,

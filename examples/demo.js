@@ -80,10 +80,10 @@
       content: "<h2>Curated controls</h2><p>This configuration demonstrates feature-level UI governance.</p>",
     },
     "sized-editor": {
-      title: "Custom Editor Size",
-      description: "A custom 720 Ã— 900 pixel document page.",
-      config: { editorWidth: "720px", editorHeight: "900px" },
-      content: "<h2>Custom page dimensions</h2><p>Dimensions are preserved by HTML, Word, and PDF export.</p>",
+      title: "Custom Classic Editor Size",
+      description: "A flexible 720 Ã— 900 pixel Classic editor surface.",
+      config: { theme: "Classic", editorWidth: "720px", editorHeight: "900px" },
+      content: "<h2>Flexible Classic dimensions</h2><p>Custom width and height remain available in the Classic theme.</p>",
     },
     media: {
       title: "Image and Video",
@@ -113,7 +113,7 @@
     },
     "page-sizes": {
       title: "Page Sizes and Orientation",
-      description: "Choose standard A4, Letter, Legal, or landscape page layout.",
+      description: "Choose fixed A4, Letter, or Legal dimensions; orientation swaps the selected standard without allowing custom Word page geometry.",
       config: { pageSize: "A4", orientation: "portrait" },
       actions: [
         ["A4 Portrait", "setPageSize", { size: "A4", orientation: "portrait" }],
@@ -124,9 +124,9 @@
       content: "<h1>Page setup</h1><p>Use the buttons above or Layout menu to change size and orientation.</p>",
     },
     "custom-print": {
-      title: "Content-only Printing",
-      description: "Print only the vertical area covered by document content.",
-      config: { printContentOnly: true },
+      title: "Classic Content-only Printing",
+      description: "Classic mode can print only the vertical area covered by document content; Word mode always keeps its physical page size.",
+      config: { theme: "Classic", printContentOnly: true },
       actions: [["Print text area", "printContentOnly"]],
       content: "<h1>Compact print area</h1><p>The print page is cropped after this content instead of including unused document height.</p>",
     },
@@ -160,8 +160,8 @@
     },
     "word-theme": {
       title: "Word Theme",
-      description: "A page-like document surface with Word-style typography, margins, and automatic page guides.",
-      config: { theme: "Word" },
+      description: "A fixed Letter-size document surface with Word-style typography, margins, orientation, and automatic page guides.",
+      config: { theme: "Word", pageSize: "Letter", orientation: "portrait" },
       actions: [["Toggle theme", "toggleTheme"], ["Show ruler", "toggleRuler"]],
       content: "<h1>Word document surface</h1><p>Resize the browser to observe the page canvas and toolbar wrapping without horizontal scrolling.</p>",
     },
@@ -367,6 +367,17 @@
           <tbody><tr><td>Repeat header</td><td>Enabled</td></tr><tr><td>Row splitting</td><td>Allowed</td></tr></tbody>
         </table>`,
     },
+    "native-page-flow": {
+      title: "Native A4 Page Flow",
+      description: "Type continuously across exact A4 pages, inspect clean source HTML, or download the print-ready paginated HTML.",
+      config: {
+        pageSize: "A4",
+        orientation: "portrait",
+        margins: { top: 96, right: 96, bottom: 96, left: 96 },
+        pagination: {},
+      },
+      content: "<p>This is line on Page 1</p><p>Continue typing and pressing Enter; overflow begins in the writable area of Page 2 automatically.</p>",
+    },
   };
 
   function addAction(actions, label, handler) {
@@ -402,21 +413,11 @@
     panel.querySelector("pre").focus();
   }
 
-  function exportRawHTML(editor, name) {
-    const html = editor.getCode();
-    const documentHTML =
-      `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>Editra export</title>\n</head>\n<body>\n${html}\n</body>\n</html>\n`;
-    const url = URL.createObjectURL(
-      new Blob([documentHTML], { type: "text/html;charset=utf-8" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `editra-${name}.html`;
-    link.hidden = true;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+  async function exportPageHTML(editor, name) {
+    return editor.executeCommand("exportHTML", {
+      fileName: `editra-${name}.html`,
+      title: `${editor.options.pageSize || "Editra"} document`,
+    });
   }
 
   function bindFeedbackForm(editor) {
@@ -504,9 +505,17 @@
     const host = document.querySelector("#editra-editor");
     const textareaHost = host instanceof HTMLTextAreaElement;
     if (textareaHost) host.value = definition.content;
+    const configuredTheme = definition.config?.theme ?? "Word";
+    const standardPage = configuredTheme === "Word"
+      ? {
+          pageSize: definition.config?.pageSize ?? "Letter",
+          orientation: definition.config?.orientation ?? "portrait",
+        }
+      : {};
     const editor = await Editra.init({
       selector: host,
       pagination: {},
+      ...standardPage,
       ...definition.config,
     });
     if (!textareaHost) editor.setCode(definition.content);
@@ -518,7 +527,7 @@
     addAction(actions, "Get Code", () =>
       showCode(actions, editor, "Current editor code"),
     );
-    addAction(actions, "Get HTML", () => exportRawHTML(editor, name));
+    addAction(actions, "Get HTML", () => exportPageHTML(editor, name));
     addAction(actions, "Insert on Focus", () => {
       editor.insertNode(document.createTextNode("Inserted at cursor position."));
     });

@@ -172,6 +172,35 @@
     return spacer;
   }
 
+  function pageFlowMetrics(core, pageHeight) {
+    const style = getComputedStyle(core.editor);
+    const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+    const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
+    return {
+      paddingTop,
+      paddingBottom,
+      contentHeight: Math.max(1, pageHeight - paddingTop - paddingBottom),
+    };
+  }
+
+  function flowPosition(top, pageHeight, metrics) {
+    const page = Math.max(0, Math.floor(top / pageHeight));
+    return {
+      page,
+      contentStart: page * pageHeight + metrics.paddingTop,
+      contentEnd: (page + 1) * pageHeight - metrics.paddingBottom,
+      nextContentStart: (page + 1) * pageHeight + metrics.paddingTop,
+    };
+  }
+
+  function isSingleLineBlock(block, height) {
+    if (block.matches("table,ul,ol,pre,blockquote,figure,form,section,article")) {
+      return false;
+    }
+    const lineHeight = Number.parseFloat(getComputedStyle(block).lineHeight);
+    return Number.isFinite(lineHeight) && height <= lineHeight * 1.5;
+  }
+
   async function repeatTableHeaders(
     core,
     state,
@@ -239,6 +268,7 @@
       core.options.editorHeight,
       "1056px",
     );
+    const flowMetrics = pageFlowMetrics(core, pageHeight);
     const editorTop = core.editor.getBoundingClientRect().top;
     await repeatTableHeaders(
       core,
@@ -261,18 +291,37 @@
         if (generation !== state.generation || core.destroyed) return false;
         const top =
           block.getBoundingClientRect().top - editorTop + core.editor.scrollTop;
-        const offset = ((top % pageHeight) + pageHeight) % pageHeight;
-        const remaining = pageHeight - offset;
+        const position = flowPosition(top, pageHeight, flowMetrics);
+        const ownHeight = block.getBoundingClientRect().height;
 
         if (block.classList.contains("editra-page-break")) {
-          if (remaining > 2 && remaining < pageHeight - 2) {
-            block.before(makeSpacer(remaining, "forced"));
+          const spacerHeight = position.nextContentStart - top;
+          if (spacerHeight > 2) {
+            block.before(makeSpacer(spacerHeight, "forced"));
           }
           continue;
         }
 
+        // Every page has its own top and bottom margin. A short line created by
+        // pressing Enter must never remain in that non-editable margin band.
+        const startsInMargin =
+          position.page > 0 && top < position.contentStart - 1;
+        const crossesBottomMargin =
+          top < position.contentEnd &&
+          top + ownHeight > position.contentEnd + 1 &&
+          isSingleLineBlock(block, ownHeight);
+        const startsAfterContent = top >= position.contentEnd - 1;
+        if (startsInMargin || crossesBottomMargin || startsAfterContent) {
+          const destination = startsInMargin
+            ? position.contentStart
+            : position.nextContentStart;
+          block.before(makeSpacer(destination - top, "automatic-flow"));
+          continue;
+        }
+
+        const remaining = position.contentEnd - top;
+
         const next = block.nextElementSibling;
-        const ownHeight = block.getBoundingClientRect().height;
         const groupHeight =
           block.dataset.editraKeepWithNext === "true" && next
             ? ownHeight + next.getBoundingClientRect().height
@@ -282,23 +331,25 @@
           block.dataset.editraKeepWithNext === "true";
         block.classList.toggle(
           "is-editra-oversize-block",
-          shouldKeep && groupHeight > pageHeight,
+          shouldKeep && groupHeight > flowMetrics.contentHeight,
         );
         if (
           shouldKeep &&
-          groupHeight <= pageHeight &&
+          groupHeight <= flowMetrics.contentHeight &&
           groupHeight > remaining + 1 &&
           remaining > 2
         ) {
-          block.before(makeSpacer(remaining, "automatic"));
+          block.before(
+            makeSpacer(position.nextContentStart - top, "automatic"),
+          );
         }
       }
       if (start + 60 < blocks.length) await nextFrame();
     }
 
-    state.reflowing = false;
     core.pageGuideSignature = "";
     core.refreshPageLayout();
+    state.reflowing = false;
     return true;
   }
 
@@ -512,7 +563,9 @@
       );
     });
 
-    const requestReflow = () => scheduleReflow(core, state);
+    const requestReflow = () => {
+      if (!state.reflowing) scheduleReflow(core, state);
+    };
     core.editor.addEventListener("input", requestReflow);
     core.editor.addEventListener("editra:pageChange", requestReflow);
     state.observer = new MutationObserver((mutations) => {

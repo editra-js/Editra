@@ -80,10 +80,12 @@ Page Size supports A3, A4, A5, B4, B5, Letter, Legal, Executive, Tabloid,
 Ledger, Statement, Folio, Quarto, 10x14, and C5 Envelope formats in portrait or
 landscape orientation.
 
-- With the normal page model, changing size updates both page width and height.
-- When `editorHeight` is explicitly configured, that height is treated as
-  fixed. Layout switching preserves it and calculates a proportional width.
-- `editorHeightFixed: false` opts back into changing both dimensions.
+- In the Word theme, changing size updates both dimensions to the selected
+  standard. Custom `editorWidth`, `editorHeight`, and `setCustomPageSize`
+  values are not applied; orientation only swaps the standard dimensions.
+- In the Classic theme, `editorWidth` and `editorHeight` remain flexible. When
+  height is explicitly configured, page-size commands preserve it and
+  calculate a proportional width unless `editorHeightFixed: false` is used.
 - Page-size state is used by page guides, print, HTML, Word, and PDF export.
 
 Margins, ruler markers, headers, footers, pagination rules, Keep Together, and

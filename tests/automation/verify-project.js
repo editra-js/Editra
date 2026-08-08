@@ -48,6 +48,7 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(releaseDate || "")) {
 }
 
 const requiredFiles = [
+  "404.html",
   "README.md",
   "LICENSE.md",
   "RELEASE_NOTES.md",
@@ -128,6 +129,7 @@ const examples = [
   "productivity", "collaboration", "paste", "feedback-form", "pagination",
   "modular-loading", "plugin-marketplace", "word-div-modular", "word-textarea-modular",
   "classic-textarea-single",
+  "native-page-flow",
 ];
 examples.forEach((name) => requireFile(`examples/${name}.html`));
 

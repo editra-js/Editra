@@ -17,6 +17,7 @@ const requiredMethods = [
   "getText()",
   "getFormatted()",
   "setCode(",
+  "measureDocumentContentHeight()",
   "toggleCodeView(",
   "destroy()",
 ];

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="The requested Editra application page could not be found.">
+  <meta name="robots" content="noindex,follow">
+  <meta name="theme-color" content="#5b5cf0">
+  <title>Page Not Found · Editra</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, "Segoe UI", system-ui, sans-serif; --bg: #f7f8fc; --surface: #fff; --ink: #182033; --muted: #5f687d; --line: #d8ddec; --accent: #5b5cf0; --accent-strong: #3c3ed2; --soft: #eeefff; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; margin: 0; overflow-x: hidden; background: radial-gradient(circle at 82% 18%, #dff8fb, transparent 26rem), linear-gradient(145deg, #f9fbff, #eef1ff); color: var(--ink); }
+    a { color: inherit; }
+    .site-header, .site-footer { position: relative; z-index: 1; padding: .9rem clamp(1rem, 5vw, 4rem); }
+    .site-header { border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(14px); }
+    .site-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; border-top: 1px solid #252838; background: #08090d; color: #aeb5c3; font-size: .82rem; }
+    .brand { display: inline-flex; align-items: center; gap: .7rem; color: var(--ink); font-weight: 800; letter-spacing: -.03em; text-decoration: none; }
+    .brand-mark { width: 2.35rem; height: 2.35rem; display: grid; place-items: center; border-radius: .7rem; background: linear-gradient(145deg, #4f46e5, #8b5cf6 55%, #0fb8c9); box-shadow: 0 8px 20px rgb(91 92 240 / 28%); color: #fff; font-size: 1.2rem; }
+    main { display: grid; place-items: center; padding: clamp(2rem, 6vw, 5rem) 1rem; }
+    .error-card { position: relative; width: min(56rem, 100%); overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line)); border-radius: .75rem; padding: clamp(1.5rem, 5vw, 3.5rem); background: color-mix(in srgb, var(--surface) 96%, transparent); box-shadow: 0 22px 60px rgb(36 42 78 / 13%); text-align: center; }
+    .error-card::before { content: "404"; position: absolute; top: -.35em; right: -.03em; color: color-mix(in srgb, var(--accent) 7%, transparent); font-size: clamp(8rem, 25vw, 16rem); font-weight: 800; line-height: 1; }
+    .error-code, h1, p, .actions, .links { position: relative; }
+    .error-code { display: inline-block; margin-bottom: 1rem; border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line)); border-radius: 999px; padding: .42rem .78rem; background: var(--soft); color: var(--accent-strong); font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { max-width: 18ch; margin: 0 auto .85rem; font-size: clamp(1.8rem, 5vw, 3rem); letter-spacing: -.045em; line-height: 1.08; }
+    p { max-width: 39rem; margin: 0 auto; color: var(--muted); line-height: 1.7; }
+    .actions, .links { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin-top: 1.5rem; }
+    .button { border: 1px solid var(--accent); border-radius: .35rem; padding: .72rem 1.05rem; background: linear-gradient(135deg, var(--accent), #8b5cf6); color: #fff; font-weight: 700; text-decoration: none; }
+    .button.secondary { border-color: #26324d; background: transparent; color: var(--ink); }
+    .links { margin-top: 1.25rem; color: var(--muted); font-size: .84rem; }
+    .links a { text-underline-offset: .2em; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #111318; --surface: #181b29; --ink: #f4f6fa; --muted: #afb6c2; --line: #3c424e; --accent: #9294ff; --accent-strong: #b7b8ff; --soft: #2a2c52; } body { background: radial-gradient(circle at 82% 18%, #16363d, transparent 25rem), linear-gradient(145deg, #1b2034, #11131c); } }
+    @media (max-width: 520px) { .site-footer { flex-direction: column; } .actions { flex-direction: column; } .button { width: 100%; } }
+  </style>
+</head>
+<body>
+  <header class="site-header"><a class="brand" href="https://www.editra.in/home.html"><span class="brand-mark" aria-hidden="true">E</span><span>Editra</span></a></header>
+  <main>
+    <section class="error-card" aria-labelledby="not-found-title">
+      <span class="error-code">Error 404</span>
+      <h1 id="not-found-title">This application page could not be found.</h1>
+      <p>The link may be outdated or mistyped. Return to Editra, open the integration guide, or use a working example to continue.</p>
+      <div class="actions">
+        <a class="button" href="https://www.editra.in/home.html">Return to Editra</a>
+        <a class="button secondary" href="https://www.editra.in/assets/editra/docs/USER_GUIDE.md">Open user guide</a>
+      </div>
+      <nav class="links" aria-label="Helpful links"><a href="https://www.editra.in/features.html">Features</a><a href="https://www.editra.in/samples.html">Live samples</a><a href="https://www.editra.in/docs/contact.html">Support</a></nav>
+    </section>
+  </main>
+  <footer class="site-footer"><span>© 2026 Editra. A New Era of Editing.</span><span>Built by Editra Team</span></footer>
+</body>
+</html>

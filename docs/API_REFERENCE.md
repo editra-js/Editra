@@ -86,9 +86,9 @@ breaks remain available.
 | `showMenuBar` | boolean | `true` | Show the top menu |
 | `theme` | `Word`/`Classic` | `Word` | Page-like or continuous editor layout |
 | `colorScheme` | light/dark/system | `light` | UI color mode |
-| `editorWidth` | CSS length | `816px` | Custom page width |
-| `editorHeight` | CSS length | `1056px` | Custom page height |
-| `editorHeightFixed` | boolean | inferred | Preserve an explicitly configured height while page-size changes adjust proportional width |
+| `editorWidth` | CSS length | `8.5in` | Custom surface width in Classic; ignored in Word |
+| `editorHeight` | CSS length | `11in` | Custom surface height in Classic; ignored in Word |
+| `editorHeightFixed` | boolean | inferred | Classic only: preserve an explicitly configured height while page-size changes adjust proportional width |
 | `pageSize` | string | `Letter` | Standard page size |
 | `orientation` | portrait/landscape | `portrait` | Page orientation |
 | `margins` | object | 72px each | Page margins |

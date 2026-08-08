@@ -13,12 +13,19 @@ const documentTheme = read("themes/word.css");
 const wordTheme = read("themes/word.css");
 const classicTheme = read("themes/classic.css");
 const demos = read("examples/demo.js");
+const standaloneWordExamples = [
+  "examples/word-div-modular.js",
+  "examples/word-textarea-modular.js",
+  "examples/modular-loading.js",
+  "examples/plugin-marketplace.js",
+].map(read);
 const feedback = read("examples/feedback-form.html");
 const guide = read("docs/USER_GUIDE.md");
 const cdnMigration = read("docs/CDN_MIGRATION.md");
 const pagination = read("plugins/pagination.js");
 const tablePlugin = read("plugins/table.js");
 const exportPlugin = read("plugins/export.js");
+const menubar = read("ui/menubar.js");
 const registry = JSON.parse(read("plugins/registry.json"));
 
 assert.equal(metadata.name, "editra-js");
@@ -43,6 +50,7 @@ assert.deepEqual(metadata.keywords, [
 assert(metadata.files.includes("plugins"));
 assert(metadata.files.includes("themes"));
 assert(metadata.files.includes("vendor"));
+assert(metadata.files.includes("404.html"));
 assert(metadata.exports["./themes/word.css"]);
 assert(metadata.exports["./themes/classic.css"]);
 assert(metadata.exports["./dist/editra-core.js"]);
@@ -118,5 +126,20 @@ assert(tablePlugin.includes("editraRepeatHeader"));
 assert(exportPlugin.includes("splitTableAcrossPages"));
 assert(exportPlugin.includes("table-header-group"));
 assert(demos.includes('pagination: {}'));
+assert(demos.includes('return editor.executeCommand("exportHTML"'));
+assert(demos.includes('"native-page-flow"'));
+assert(demos.includes('const standardPage = configuredTheme === "Word"'));
+assert(demos.includes('config: { theme: "Classic", printContentOnly: true }'));
+standaloneWordExamples.forEach((example) => {
+  assert(example.includes('pageSize: "Letter"'));
+  assert(example.includes('orientation: "portrait"'));
+});
+assert(pagination.includes('"automatic-flow"'));
+assert(exportPlugin.includes("printDimension"));
+assert(exportPlugin.includes('options.contentOnly && core.options.theme === "Classic"'));
+assert(exportPlugin.includes("width: ${width}; margin: 0 !important"));
+assert(read("plugins/pagesize.js").includes('core.options.theme === "Word"'));
+assert(read("core/editor.js").includes('settings.standard !== true'));
+assert(menubar.includes('item[0] === "printContentOnly"'));
 
 console.log("Editra distribution and end-user integration contract passed.");

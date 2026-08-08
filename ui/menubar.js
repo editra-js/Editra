@@ -408,6 +408,12 @@
         items: trimSeparators(
           menu.items.filter((item) => {
             if (!item) return true;
+            if (
+              core.options.theme === "Word" &&
+              item[0] === "printContentOnly"
+            ) {
+              return false;
+            }
             const requiredPlugin = MENU_PLUGIN_REQUIREMENTS[item[0]];
             return !requiredPlugin || core.plugins.has(requiredPlugin);
           }),

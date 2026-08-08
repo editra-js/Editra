@@ -29,6 +29,7 @@
     "./ui/*": "./ui/*"
   },
   "files": [
+    "404.html",
     "index.js",
     "index.mjs",
     "dist",

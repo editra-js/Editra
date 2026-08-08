@@ -781,6 +781,22 @@ body {
   box-shadow: inset 0 -1px #c3c7cf;
 }
 
+.editra-page-guide:not(:first-child)::before {
+  position: absolute;
+  top: -7px;
+  right: -2px;
+  left: -2px;
+  height: 12px;
+  border-block: 1px solid #c3c7cf;
+  background: #e9ebef;
+  content: "";
+}
+
+.editra-theme-dark .editra-page-guide:not(:first-child)::before {
+  border-color: #59616d;
+  background: #15191e;
+}
+
 .editra-page-guide > span {
   position: absolute;
   top: 8px;

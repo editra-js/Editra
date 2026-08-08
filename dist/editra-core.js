@@ -641,7 +641,14 @@ class EditraCore {
     }
     host.editraInstance = instance;
     surface.editor.editraInstance = instance;
-    if (
+    const wordTheme = instance.options.theme === "Word";
+    if (wordTheme) {
+      await instance.ensurePlugin("pagesize");
+      await instance.executeCommand("setPageSize", {
+        size: config.pageSize ?? instance.options.pageSize,
+        orientation: config.orientation ?? instance.options.orientation,
+      });
+    } else if (
       config.editorWidth !== undefined ||
       config.editorHeight !== undefined
     ) {
@@ -793,7 +800,9 @@ class EditraCore {
       });
     }
     const configuredPlugins = [];
+    const wordTheme = String(options.theme ?? "Word").toLowerCase() === "word";
     if (
+      wordTheme ||
       options.pageSize !== undefined ||
       options.orientation !== undefined ||
       options.editorWidth !== undefined ||
@@ -818,7 +827,7 @@ class EditraCore {
     }
 
     const uniqueNames = [...new Set(requested)].filter(
-      (name) => !disabled.has(name),
+      (name) => !disabled.has(name) || (wordTheme && name === "pagesize"),
     );
     const unknown = uniqueNames.filter(
       (name) => !(name in PLUGIN_DEFINITIONS),
@@ -836,8 +845,9 @@ class EditraCore {
     this.host = surface.host ?? editor;
     this.textareaState = surface.textareaState ?? null;
     const editorHeightFixed =
-      options.editorHeightFixed ??
-      Object.prototype.hasOwnProperty.call(options, "editorHeight");
+      options.theme === "Classic" &&
+      (options.editorHeightFixed ??
+        Object.prototype.hasOwnProperty.call(options, "editorHeight"));
     this.options = {
       historyLimit: 100,
       historyByteLimit: 20 * 1024 * 1024,
@@ -857,8 +867,8 @@ class EditraCore {
       sanitizePaste: true,
       showMenuBar: true,
       menu: null,
-      editorWidth: "816px",
-      editorHeight: "1056px",
+      editorWidth: "8.5in",
+      editorHeight: "11in",
       editorHeightFixed,
       pageSize: "Letter",
       orientation: "portrait",
@@ -1001,11 +1011,11 @@ class EditraCore {
     if (!workspace) return;
     this.options.editorWidth = this.validEditorDimension(
       this.options.editorWidth,
-      "816px",
+      "8.5in",
     );
     this.options.editorHeight = this.validEditorDimension(
       this.options.editorHeight,
-      "1056px",
+      "11in",
     );
     workspace.style.setProperty(
       "--editra-page-width",
@@ -1053,6 +1063,39 @@ class EditraCore {
     return pixels || Number.parseFloat(fallback);
   }
 
+  measureDocumentContentHeight() {
+    const editorRect = this.editor.getBoundingClientRect();
+    const editorStyle = getComputedStyle(this.editor);
+    const paddingTop = Number.parseFloat(editorStyle.paddingTop) || 0;
+    const paddingBottom = Number.parseFloat(editorStyle.paddingBottom) || 0;
+    let bottom = paddingTop;
+
+    [...this.editor.childNodes].forEach((node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.hidden || node.matches("[data-editra-document-part]")) return;
+        const rect = node.getBoundingClientRect();
+        if (!rect.width && !rect.height) return;
+        const marginBottom = Number.parseFloat(getComputedStyle(node).marginBottom) || 0;
+        bottom = Math.max(
+          bottom,
+          rect.bottom - editorRect.top + this.editor.scrollTop + marginBottom,
+        );
+        return;
+      }
+      if (node.nodeType === Node.TEXT_NODE && node.nodeValue?.trim()) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const rect = range.getBoundingClientRect();
+        bottom = Math.max(
+          bottom,
+          rect.bottom - editorRect.top + this.editor.scrollTop,
+        );
+      }
+    });
+
+    return Math.ceil(bottom + paddingBottom);
+  }
+
   refreshPageLayout() {
     if (this.destroyed || !this.pageGuides?.isConnected) return;
     const pageHeight = this.resolveEditorPixels(
@@ -1062,12 +1105,20 @@ class EditraCore {
     const explicitBreaks =
       this.editor.querySelectorAll(".editra-page-break").length;
     const explicitPages = explicitBreaks + 1;
-    const contentHeight = Math.max(pageHeight, this.editor.scrollHeight);
     const classic = this.options.theme === "Classic";
+    const contentHeight = classic
+      ? Math.max(pageHeight, this.editor.scrollHeight)
+      : Math.max(pageHeight, this.measureDocumentContentHeight());
     const pageCount = classic
       ? (explicitBreaks ? explicitPages : null)
       : Math.max(explicitPages, Math.ceil(contentHeight / pageHeight));
-    const signature = `${pageCount}:${Math.round(pageHeight)}:${this.options.editorWidth}`;
+    if (!classic) {
+      const surfaceHeight = `${pageCount * pageHeight}px`;
+      if (this.editor.style.minHeight !== surfaceHeight) {
+        this.editor.style.minHeight = surfaceHeight;
+      }
+    }
+    const signature = `${pageCount}:${pageHeight.toFixed(3)}:${this.options.editorWidth}`;
     if (signature === this.pageGuideSignature) return;
     const previousSignature = this.pageGuideSignature;
     this.pageGuideSignature = signature;
@@ -1075,8 +1126,8 @@ class EditraCore {
     for (let page = 0; page < (pageCount ?? 0); page += 1) {
       const guide = document.createElement("div");
       guide.className = "editra-page-guide";
-      guide.style.top = `${Math.round(page * pageHeight)}px`;
-      guide.style.height = `${Math.round(pageHeight)}px`;
+      guide.style.top = `${page * pageHeight}px`;
+      guide.style.height = `${pageHeight}px`;
       const label = document.createElement("span");
       label.textContent = `Page ${page + 1}`;
       guide.append(label);
@@ -1106,7 +1157,10 @@ class EditraCore {
     );
   }
 
-  setEditorSize(width, height) {
+  setEditorSize(width, height, settings = {}) {
+    if (this.options.theme === "Word" && settings.standard !== true) {
+      return false;
+    }
     const dimensions =
       width && typeof width === "object"
         ? { width: width.width, height: width.height }

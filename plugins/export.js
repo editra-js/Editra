@@ -21,6 +21,13 @@
     );
   }
 
+  function printDimension(value, measured) {
+    const dimension = String(value ?? "").trim();
+    return /^\d+(?:\.\d+)?(?:px|in|cm|mm|q|pt|pc)$/i.test(dimension)
+      ? dimension
+      : `${Math.round(measured * 100) / 100}px`;
+  }
+
   function coveredContentHeight(core, style) {
     const editorTop = core.editor.getBoundingClientRect().top;
     let bottom = Number.parseFloat(style.paddingTop) || 0;
@@ -41,17 +48,20 @@
 
   function pageMetrics(core, options = {}) {
     const editorStyle = getComputedStyle(core.editor);
+    const contentOnly = Boolean(
+      options.contentOnly && core.options.theme === "Classic",
+    );
     const width = core.editor.getBoundingClientRect().width ||
       Number.parseFloat(core.options.editorWidth) || 816;
     const configuredHeight = core.resolveEditorPixels(
       core.options.editorHeight,
       "1056px",
     );
-    const height = options.contentOnly
+    const height = contentOnly
       ? Math.max(1, coveredContentHeight(core, editorStyle))
       : configuredHeight;
     const explicit = core.editor.querySelectorAll(".editra-page-break").length + 1;
-    const pageCount = options.contentOnly
+    const pageCount = contentOnly
       ? 1
       : Math.max(
           explicit,
@@ -62,8 +72,10 @@
       width,
       height,
       pageCount,
-      widthCSS: `${Math.round(width * 100) / 100}px`,
-      heightCSS: `${Math.round(height * 100) / 100}px`,
+      widthCSS: printDimension(core.options.editorWidth, width),
+      heightCSS: contentOnly
+        ? `${Math.round(height * 100) / 100}px`
+        : printDimension(core.options.editorHeight, height),
       paddingTop: editorStyle.paddingTop,
       paddingRight: editorStyle.paddingRight,
       paddingBottom: editorStyle.paddingBottom,
@@ -73,7 +85,7 @@
       lineHeight: editorStyle.lineHeight,
       textIndent: editorStyle.textIndent,
       color: editorStyle.color,
-      contentOnly: Boolean(options.contentOnly),
+      contentOnly,
       pageSize: core.state.pageSize || core.options.pageSize || "Custom",
       orientation:
         core.state.orientation || core.options.orientation || "portrait",
@@ -338,7 +350,7 @@
       .editra-tab { display: inline-block; min-width: 2.5em; white-space: pre; }
       .editra-tab[data-editra-tab-stop] { min-width: 1px; }
       @media print {
-        html, body { background: #fff; }
+        html, body { width: ${width}; margin: 0 !important; padding: 0 !important; background: #fff; }
         .editra-export-page { margin: 0; border: 0; box-shadow: none; }
       }
     `;

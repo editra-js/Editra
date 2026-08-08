@@ -5,6 +5,8 @@
   const editor = await Editra.init({
     selector: "#marketplace-editor",
     theme: "Word",
+    pageSize: "Letter",
+    orientation: "portrait",
     plugins: ["formatting"],
     toolbar: "foreColor highlighter | undo redo",
   });

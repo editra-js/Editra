@@ -110,12 +110,37 @@ for a continuous editor layout similar to TinyMCE, Quill, and CKEditor.
 Classic mode only introduces a page boundary when the user inserts an
 explicit page break.
 
+In the Word theme, users type continuously: when Enter advances the caret past
+the writable area of Page 1, the next line begins in the writable area of Page
+2. Editra creates this separation only in its rendering layer. `getCode()` and
+textarea form submission contain the document's ordinary flowing HTML, without
+automatic page wrappers, spacer elements, or page-break tags. Print and PDF
+rendering use the calculated page assignment, so the same lines remain on their
+respective pages.
+
+Named paper sizes use physical CSS units rather than rounded screen pixels.
+For example, A4 is `210mm x 297mm` and Letter is `8.5in x 11in` in both the
+editor and its generated print-ready HTML. In the examples, **Get Code** shows
+the clean storage HTML while **Get HTML** downloads the paginated standalone
+document intended for browser printing. Keep the browser print scale at 100%
+and disable browser-added headers and footers for an exact match.
+
+All bundled Word examples explicitly select a standard page size and
+orientation. Examples for arbitrary editor dimensions and content-only
+printing use the Classic theme because those operations are intentionally not
+available in Word mode.
+
+Every automatic Word page is rendered as a complete sheet even when it holds
+only one line. Empty space below that line remains part of the page, and all
+page guides use the same physical height as the selected print format.
+
 Import `themes/word.css` for Word integrations or `themes/classic.css` for
 Classic integrations. Both entry points include Editra's shared controls and
 icons.
 
 Runnable examples:
 
+- [Native A4 page flow and print-ready HTML](../examples/native-page-flow.html)
 - [Word theme with a div host](../examples/word-theme.html)
 - [Word div with modular loading](../examples/word-div-modular.html)
 - [Classic theme with a textarea host](../examples/classic-theme.html)
@@ -244,7 +269,7 @@ Tables may flow across pages by default. Use a semantic `<thead>` for the header
 
 ### Page sizes and orientation
 
-Use Layout â†’ Page Size and Orientation or configure `pageSize` and `orientation`. Fifteen standard sizes and custom CSS dimensions are supported. See [page sizes](../examples/page-sizes.html) and [sized editor](../examples/sized-editor.html).
+Use Layout â†’ Page Size and Orientation or configure `pageSize` and `orientation`. The Word theme enforces fifteen standard physical sizes and does not accept custom width or height overrides. The Classic theme retains flexible CSS dimensions. See [page sizes](../examples/page-sizes.html) and the [custom Classic editor](../examples/sized-editor.html).
 
 ### Headers and footers
 

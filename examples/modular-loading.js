@@ -3,6 +3,8 @@
   globalThis.modularEditor = await Editra.init({
     selector: "#media-editor",
     theme: "Word",
+    pageSize: "Letter",
+    orientation: "portrait",
     plugins: ["formatting", "table"],
     toolbar: "foreColor highlighter | table undo redo",
   });

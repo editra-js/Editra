@@ -50,6 +50,12 @@
         maxDocumentBytes: 1024 * 1024,
       },
     });
+    assert(
+      instance.options.editorWidth === "8.5in" &&
+        instance.options.editorHeight === "11in" &&
+        instance.options.editorHeightFixed === false,
+      "Word initialization accepted a custom page dimension",
+    );
 
     const formatTrigger = [...document.querySelectorAll(".editra-menu-trigger")]
       .find((trigger) => trigger.textContent.trim() === "Format");
@@ -759,10 +765,11 @@
 
     const layout = await instance.executeCommand("setPageSize", "A4");
     assert(
-      layout?.height === "900px" &&
-        Number.parseFloat(layout.width) >= 635 &&
-        Number.parseFloat(layout.width) <= 637,
-      "fixed-height A4 layout did not preserve height and adjust width",
+      layout?.width === "210mm" &&
+        layout?.height === "297mm" &&
+        instance.options.editorWidth === "210mm" &&
+        instance.options.editorHeight === "297mm",
+      "Word theme did not enforce the standard A4 dimensions",
     );
 
     instance.setCode("<p>Plugin regression content</p>");
@@ -1004,6 +1011,15 @@
       textareaEditor.getCode().includes("Textarea content"),
       "form reset did not restore textarea default content",
     );
+    const classicCustomSize = textareaEditor.setEditorSize({
+      width: "640px",
+      height: "480px",
+    });
+    assert(
+      classicCustomSize.width === "640px" &&
+        classicCustomSize.height === "480px",
+      "Classic theme no longer accepts flexible dimensions",
+    );
     textareaEditor.destroy();
     assert(
       !textarea.hidden && textarea.style.display === "" && !textarea.editraInstance,
@@ -1016,7 +1032,8 @@
     const wordEditor = await Editra.init({
       selector: wordHost,
       theme: "Word",
-      plugins: ["bold"],
+      pageSize: "A4",
+      plugins: ["bold", "pagination", "export", "pagesize"],
       toolbar: "bold",
     });
     assert(
@@ -1024,6 +1041,144 @@
         wordEditor.toolbar.card.classList.contains("editra-theme-word") &&
         wordEditor.state.pageCount >= 1,
       "Word theme was not configured",
+    );
+    wordEditor.applyPageMargins({
+      top: 24,
+      right: 24,
+      bottom: 24,
+      left: 24,
+    });
+    wordEditor.setCode(
+      '<p style="height:1030px">This is line on Page 1</p>' +
+        '<p>This is line on Page 2</p>',
+    );
+    await wordEditor.ensurePlugin("pagination");
+    await wordEditor.ensurePlugin("export");
+    wordEditor.editor.dispatchEvent(new InputEvent("input", { bubbles: true }));
+    await wordEditor.executeCommand("reflowPagination");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) =>
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+    );
+    const wordHTML = wordEditor.getCode();
+    const automaticFlowSpacers = wordEditor.editor.querySelectorAll(
+      ':scope > .editra-pagination-spacer[data-editra-flow-spacer="automatic-flow"]',
+    ).length;
+    const wordBlockMetrics = [...wordEditor.editor.children].map((element) => ({
+      tag: element.tagName,
+      top: element.offsetTop,
+      height: element.getBoundingClientRect().height,
+      spacer: element.dataset.editraFlowSpacer || null,
+    }));
+    const paginationDiagnostics = {
+      plugin: Boolean(wordEditor.plugins.get("pagination")?.action),
+      command: wordEditor.commands.has("reflowPagination"),
+      height: wordEditor.options.editorHeight,
+      paddingTop: getComputedStyle(wordEditor.editor).paddingTop,
+      paddingBottom: getComputedStyle(wordEditor.editor).paddingBottom,
+    };
+    assert(
+      wordEditor.state.pageCount === 2 &&
+        automaticFlowSpacers === 1 &&
+        (wordHTML.match(/<p\b/g) || []).length === 2 &&
+        !wordHTML.includes("editra-pagination-spacer") &&
+        !wordHTML.includes("editra-page-break"),
+      `native page flow regression (${JSON.stringify({ pageCount: wordEditor.state.pageCount, automaticFlowSpacers, wordBlockMetrics, paginationDiagnostics })}): ${wordHTML}`,
+    );
+    const physicalPageHeight = wordEditor.resolveEditorPixels(
+      wordEditor.options.editorHeight,
+      "11in",
+    );
+    const renderedSurfaceHeight = wordEditor.editor.getBoundingClientRect().height;
+    const renderedGuides = [...wordEditor.pageGuides.querySelectorAll(
+      ".editra-page-guide",
+    )].map((guide) => guide.getBoundingClientRect().height);
+    assert(
+      Math.abs(renderedSurfaceHeight - physicalPageHeight * 2) < 1 &&
+        renderedGuides.length === 2 &&
+        renderedGuides.every(
+          (height) => Math.abs(height - physicalPageHeight) < 1,
+        ),
+      `Word pages did not retain equal full physical heights: ${JSON.stringify({ physicalPageHeight, renderedSurfaceHeight, renderedGuides })}`,
+    );
+    const wordPrint = await wordEditor.executeCommand("exportPDF", {
+      print: false,
+      returnHTML: true,
+    });
+    const printedDocument = new DOMParser().parseFromString(
+      wordPrint.html,
+      "text/html",
+    );
+    const printedPages = [...printedDocument.querySelectorAll(
+      ".editra-export-page",
+    )];
+    assert(
+      printedPages.length === 2 &&
+        printedPages[0].textContent.includes("This is line on Page 1") &&
+        !printedPages[0].textContent.includes("This is line on Page 2") &&
+        printedPages[1].textContent.includes("This is line on Page 2"),
+      "print rendering did not preserve the editor's native page separation",
+    );
+    const a4Layout = await wordEditor.executeCommand("setPageSize", "A4");
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+    const a4Export = await wordEditor.executeCommand("exportHTML", {
+      download: false,
+      returnHTML: true,
+    });
+    assert(
+      a4Layout.width === "210mm" &&
+        a4Layout.height === "297mm" &&
+        wordEditor.options.editorWidth === "210mm" &&
+        wordEditor.options.editorHeight === "297mm" &&
+        /@page\s*\{\s*size:\s*210mm 297mm;\s*margin:\s*0;\s*\}/.test(
+          a4Export.html,
+        ) &&
+        /width:\s*210mm;\s*height:\s*297mm;/.test(a4Export.html),
+      `A4 physical dimensions diverged between editor and print-ready HTML: ${JSON.stringify({ layout: a4Layout, editorWidth: wordEditor.options.editorWidth, editorHeight: wordEditor.options.editorHeight, pageRule: a4Export.html.match(/@page[^}]+}/)?.[0], pageBox: a4Export.html.match(/\.editra-export-page\s*\{[^}]+}/)?.[0] })}`,
+    );
+    const protectedWidth = wordEditor.options.editorWidth;
+    const protectedHeight = wordEditor.options.editorHeight;
+    const directResize = wordEditor.setEditorSize({
+      width: "500px",
+      height: "600px",
+    });
+    const customResize = await wordEditor.executeCommand("setCustomPageSize", {
+      width: "500px",
+      height: "600px",
+    });
+    assert(
+      directResize === false &&
+        customResize === false &&
+        wordEditor.options.editorWidth === protectedWidth &&
+        wordEditor.options.editorHeight === protectedHeight,
+      "Word theme accepted a custom page width or height",
+    );
+    const contentOnlyWord = await wordEditor.executeCommand(
+      "printContentOnly",
+      { print: false },
+    );
+    const forcedContentOnlyExport = await wordEditor.executeCommand(
+      "exportHTML",
+      { download: false, returnHTML: true, contentOnly: true },
+    );
+    assert(
+      contentOnlyWord === false &&
+        /@page\s*\{\s*size:\s*210mm 297mm;/.test(
+          forcedContentOnlyExport.html,
+        ),
+      "Word theme allowed content-only printing to change physical page size",
+    );
+    const landscapeA4 = await wordEditor.executeCommand("setPageSize", {
+      size: "A4",
+      orientation: "landscape",
+    });
+    assert(
+      landscapeA4.width === "297mm" && landscapeA4.height === "210mm",
+      "Word theme did not apply fixed A4 landscape dimensions",
     );
     wordEditor.destroy();
     wordHost.remove();

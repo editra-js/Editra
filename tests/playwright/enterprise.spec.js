@@ -114,3 +114,59 @@ test("demo server supplies enterprise response headers", async ({ request }) => 
     "font-src 'self'",
   );
 });
+
+test("examples consistently apply standard Word pages and flexible Classic sizing", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  const wordExamples = [
+    ["/examples/full.html", "demoEditor", "Letter", "8.5in", "11in"],
+    ["/examples/page-sizes.html", "demoEditor", "A4", "210mm", "297mm"],
+    ["/examples/native-page-flow.html", "demoEditor", "A4", "210mm", "297mm"],
+    ["/examples/word-div-modular.html", "wordDivEditor", "Letter", "8.5in", "11in"],
+    ["/examples/word-textarea-modular.html", "wordTextareaEditor", "Letter", "8.5in", "11in"],
+    ["/examples/modular-loading.html", "modularEditor", "Letter", "8.5in", "11in"],
+    ["/examples/plugin-marketplace.html", "marketplaceEditor", "Letter", "8.5in", "11in"],
+  ];
+  for (const [url, globalName, size, width, height] of wordExamples) {
+    await page.goto(url, { waitUntil: "networkidle" });
+    await page.waitForFunction((name) => globalThis[name], globalName);
+    const state = await page.evaluate((name) => {
+      const editor = globalThis[name];
+      return {
+        theme: editor.options.theme,
+        size: editor.options.pageSize,
+        width: editor.options.editorWidth,
+        height: editor.options.editorHeight,
+        contentOnlyMenu: Boolean(
+          editor.toolbar.card.querySelector('[data-command="printContentOnly"]'),
+        ),
+      };
+    }, globalName);
+    expect(state).toEqual({
+      theme: "Word",
+      size,
+      width,
+      height,
+      contentOnlyMenu: false,
+    });
+  }
+
+  for (const [url, expectedWidth, expectedHeight] of [
+    ["/examples/sized-editor.html", "720px", "900px"],
+    ["/examples/custom-print.html", "8.5in", "11in"],
+  ]) {
+    await page.goto(url, { waitUntil: "networkidle" });
+    await page.waitForFunction(() => globalThis.demoEditor);
+    const state = await page.evaluate(() => ({
+      theme: globalThis.demoEditor.options.theme,
+      width: globalThis.demoEditor.options.editorWidth,
+      height: globalThis.demoEditor.options.editorHeight,
+    }));
+    expect(state).toEqual({
+      theme: "Classic",
+      width: expectedWidth,
+      height: expectedHeight,
+    });
+  }
+});
