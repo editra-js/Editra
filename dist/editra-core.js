@@ -1528,36 +1528,66 @@ class EditraCore {
   openDocument() {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ".html,.htm,.txt,.md";
+    input.accept =
+      ".doc,.docx,.html,.htm,.txt,.md,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     input.hidden = true;
 
     input.addEventListener(
       "change",
-      () => {
+      async () => {
         const file = input.files?.[0];
         input.remove();
         if (!file) return;
-        const reader = new FileReader();
-        reader.addEventListener(
-          "load",
-          () => {
-            if (!this.destroyed && typeof reader.result === "string") {
-              const content = /\.html?$/i.test(file.name)
-                ? reader.result
-                : reader.result
-                    .split(/\r?\n/)
-                    .map((line) => {
-                      const paragraph = document.createElement("p");
-                      paragraph.textContent = line || " ";
-                      return paragraph.outerHTML;
-                    })
-                    .join("");
-              this.setHTML(content);
+        try {
+          const signature = new Uint8Array(
+            await file.slice(0, 4).arrayBuffer(),
+          );
+          const zipContainer =
+            signature.length >= 2 &&
+            signature[0] === 0x50 &&
+            signature[1] === 0x4b;
+          const wordDocument =
+            /\.docx?$/i.test(file.name) ||
+            /application\/(?:msword|vnd\.openxmlformats-officedocument\.wordprocessingml\.document)/i.test(
+              file.type,
+            );
+
+          if (zipContainer || wordDocument) {
+            const plugin = await this.ensurePlugin("productivity");
+            if (!plugin) {
+              throw new Error(
+                "Word import requires the Editra productivity plugin.",
+              );
             }
-          },
-          { once: true },
-        );
-        reader.readAsText(file);
+            await this.executeCommand("importWord", { file });
+            return;
+          }
+
+          const content = await file.text();
+          if (this.destroyed) return;
+          this.setHTML(
+            /\.html?$/i.test(file.name)
+              ? content
+              : content
+                  .split(/\r?\n/)
+                  .map((line) => {
+                    const paragraph = document.createElement("p");
+                    paragraph.textContent = line || " ";
+                    return paragraph.outerHTML;
+                  })
+                  .join(""),
+          );
+        } catch (error) {
+          if (this.destroyed) return;
+          const message = `Unable to open ${file.name}: ${error.message}`;
+          this.announce(message);
+          this.editor.dispatchEvent(
+            new CustomEvent("editra:file-open-error", {
+              bubbles: true,
+              detail: { file, error, message },
+            }),
+          );
+        }
       },
       { once: true },
     );

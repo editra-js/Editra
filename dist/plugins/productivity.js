@@ -718,14 +718,14 @@
     return table;
   }
 
-  async function docxToHTML(buffer) {
+  async function docxToHTML(core, buffer) {
     const xmlBytes = await extractZipEntry(buffer, "word/document.xml");
-    const xml = new DOMParser().parseFromString(
-      new TextDecoder().decode(xmlBytes),
-      "application/xml",
-    );
-    if (xml.querySelector("parsererror")) {
-      throw new Error("Unable to parse DOCX XML.");
+    const xml = core.security.parseXML(new TextDecoder().decode(xmlBytes));
+    const parseError = xml.querySelector("parsererror");
+    if (parseError) {
+      throw new Error(
+        `Unable to parse DOCX XML: ${parseError.textContent.trim()}`,
+      );
     }
     const body = [...xml.getElementsByTagName("*")].find(
       (node) => node.localName === "body",
@@ -758,15 +758,30 @@
   async function importWord(core, options = {}) {
     const file = options.file ?? (await pickFile(core, ".doc,.docx,.html"));
     if (!file) return false;
-    if (/\.html?$/i.test(file.name) || /\.doc$/i.test(file.name)) {
+    if (/\.html?$/i.test(file.name)) {
       const content = await readFile(file, "readAsText");
       core.setHTML(content);
       return true;
     }
 
     const bytes = await readFile(file, "readAsArrayBuffer");
+    const signature = new Uint8Array(bytes, 0, Math.min(8, bytes.byteLength));
+    const legacyBinaryWord =
+      signature.length === 8 &&
+      [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1].every(
+        (value, index) => signature[index] === value,
+      );
+    if (legacyBinaryWord) {
+      throw new Error(
+        "Legacy binary .doc files are not supported. Save the document as .docx and try again.",
+      );
+    }
+    if (/\.doc$/i.test(file.name)) {
+      core.setHTML(new TextDecoder().decode(new Uint8Array(bytes)));
+      return true;
+    }
     try {
-      core.setHTML(await docxToHTML(bytes));
+      core.setHTML(await docxToHTML(core, bytes));
       return true;
     } catch (error) {
       core.dispatchCommand("importWordData", {

@@ -3,6 +3,7 @@
 const childProcess = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
+const zlib = require("node:zlib");
 const { chromium } = require("@playwright/test");
 
 const root = path.resolve(__dirname, "../..");
@@ -12,6 +13,42 @@ const browsers = [
   ["Chrome", "C:/Program Files/Google/Chrome/Application/chrome.exe"],
   ["Edge", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"],
 ].filter(([, executable]) => fs.existsSync(executable));
+
+function createDocx() {
+  const name = Buffer.from("word/document.xml");
+  const content = Buffer.from(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+      '<w:body><w:p><w:r><w:t>Imported Word document</w:t></w:r></w:p></w:body></w:document>',
+  );
+  const compressed = zlib.deflateRawSync(content);
+  const local = Buffer.alloc(30);
+  local.writeUInt32LE(0x04034b50, 0);
+  local.writeUInt16LE(20, 4);
+  local.writeUInt16LE(8, 8);
+  local.writeUInt32LE(compressed.length, 18);
+  local.writeUInt32LE(content.length, 22);
+  local.writeUInt16LE(name.length, 26);
+
+  const central = Buffer.alloc(46);
+  central.writeUInt32LE(0x02014b50, 0);
+  central.writeUInt16LE(20, 4);
+  central.writeUInt16LE(20, 6);
+  central.writeUInt16LE(8, 10);
+  central.writeUInt32LE(compressed.length, 20);
+  central.writeUInt32LE(content.length, 24);
+  central.writeUInt16LE(name.length, 28);
+
+  const centralOffset = local.length + name.length + compressed.length;
+  const centralSize = central.length + name.length;
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(1, 8);
+  end.writeUInt16LE(1, 10);
+  end.writeUInt32LE(centralSize, 12);
+  end.writeUInt32LE(centralOffset, 16);
+  return Buffer.concat([local, name, compressed, central, name, end]);
+}
 
 if (!browsers.length) {
   throw new Error("Chrome or Edge is required for the local browser security suite.");
@@ -129,6 +166,44 @@ function waitForServer() {
         ) {
           throw new Error(
             `${name} Word example regression: ${JSON.stringify(wordExample)}`,
+          );
+        }
+        await page.evaluate(() => {
+          globalThis.__docxOpenError = "";
+          globalThis.demoEditor.editor.addEventListener(
+            "editra:file-open-error",
+            (event) => {
+              globalThis.__docxOpenError = event.detail?.message || "Unknown import error";
+            },
+            { once: true },
+          );
+        });
+        const fileChooserPromise = page.waitForEvent("filechooser");
+        await page.evaluate(() => globalThis.demoEditor.executeCommand("open"));
+        const fileChooser = await fileChooserPromise;
+        await fileChooser.setFiles({
+          name: "existing.docx",
+          mimeType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          buffer: createDocx(),
+        });
+        await page.waitForFunction(
+          () =>
+            globalThis.demoEditor.getText().includes("Imported Word document") ||
+            Boolean(globalThis.__docxOpenError),
+        );
+        const importedWord = await page.evaluate(() => ({
+          html: globalThis.demoEditor.getCode(),
+          text: globalThis.demoEditor.getText(),
+          error: globalThis.__docxOpenError,
+        }));
+        if (
+          !importedWord.text.includes("Imported Word document") ||
+          importedWord.text.includes("[Content_Types].xml") ||
+          importedWord.text.startsWith("PK")
+        ) {
+          throw new Error(
+            `${name} DOCX open regression: ${JSON.stringify(importedWord)}`,
           );
         }
         await page.goto(

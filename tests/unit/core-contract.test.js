@@ -45,4 +45,7 @@ assert.ok(core.includes(`EditraCore.VERSION = "${version}"`));
 assert.ok(core.includes('return "Word"'));
 assert.ok(core.includes('return "Classic"'));
 assert.ok(core.includes("HTMLTextAreaElement"));
+assert.ok(core.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+assert.ok(core.includes('this.executeCommand("importWord", { file })'));
+assert.ok(core.includes('new CustomEvent("editra:file-open-error"'));
 console.log("Editra core API contract passed.");

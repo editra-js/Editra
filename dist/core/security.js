@@ -38,6 +38,7 @@
   const UNSAFE_CSS =
     /(?:expression\s*\(|url\s*\(|@import|behavior\s*:|-moz-binding|javascript\s*:|vbscript\s*:)/i;
   const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f\s]+/g;
+  const XML_PARSE_CONTEXT = Symbol("editra-xml-parse");
 
   function bytes(value) {
     const text = String(value ?? "");
@@ -122,7 +123,8 @@
     if (!config.trustedTypes || !global.trustedTypes?.createPolicy) return null;
     try {
       return global.trustedTypes.createPolicy(config.trustedTypesPolicyName, {
-        createHTML(value) {
+        createHTML(value, context) {
+          if (context === XML_PARSE_CONTEXT) return String(value);
           return global.DOMPurify.sanitize(String(value), {
             RETURN_TRUSTED_TYPE: false,
             USE_PROFILES: { html: true },
@@ -195,6 +197,17 @@
       });
       throw new RangeError(
         `Editra rejected ${kind}: ${actual} bytes exceeds ${limit} bytes.`,
+      );
+    }
+
+    parseXML(value) {
+      const source = String(value ?? "");
+      const trustedSource = this.trustedTypesPolicy?.createHTML
+        ? this.trustedTypesPolicy.createHTML(source, XML_PARSE_CONTEXT)
+        : source;
+      return new DOMParser().parseFromString(
+        trustedSource,
+        "application/xml",
       );
     }
 

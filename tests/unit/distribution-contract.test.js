@@ -25,6 +25,7 @@ const cdnMigration = read("docs/CDN_MIGRATION.md");
 const pagination = read("plugins/pagination.js");
 const tablePlugin = read("plugins/table.js");
 const exportPlugin = read("plugins/export.js");
+const productivityPlugin = read("plugins/productivity.js");
 const menubar = read("ui/menubar.js");
 const registry = JSON.parse(read("plugins/registry.json"));
 
@@ -125,6 +126,7 @@ assert(tablePlugin.includes("createTHead"));
 assert(tablePlugin.includes("editraRepeatHeader"));
 assert(exportPlugin.includes("splitTableAcrossPages"));
 assert(exportPlugin.includes("table-header-group"));
+assert(productivityPlugin.includes("Legacy binary .doc files are not supported"));
 assert(demos.includes('pagination: {}'));
 assert(demos.includes('return editor.executeCommand("exportHTML"'));
 assert(demos.includes('"native-page-flow"'));
