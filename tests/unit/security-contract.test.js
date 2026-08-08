@@ -48,7 +48,7 @@ assert.ok(toolbar.includes("../assets/icons/"));
 assert.ok(toolbar.includes('document.createElement("img")'));
 assert.ok(!toolbar.includes("svg.innerHTML"));
 assert.ok(server.includes("font-src 'self'"));
-assert.equal(packageMetadata.dependencies.dompurify, "3.4.12");
+assert.equal(packageMetadata.dependencies.dompurify, "3.4.13");
 assert.equal(packageMetadata.dependencies["qrcode-generator"], "2.0.4");
 assert.equal(packageMetadata.dependencies.jsbarcode, "3.11.6");
 assert.equal(packageMetadata.devDependencies["@fontsource/libre-barcode-128"], "5.3.0");

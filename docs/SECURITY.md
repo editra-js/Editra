@@ -4,7 +4,7 @@
 
 Editra 1.0.0 treats all document HTML, pasted content, imported content, source-view content, collaboration operations, revision previews, headers, footers, and exported document content as untrusted.
 
-DOMPurify 3.4.12 is pinned in the lockfile and distributed locally. Sanitization is enabled by default and cannot be bypassed through `sanitizePaste: false`. A host can explicitly disable the entire security layer for a trusted offline migration, but that mode is not enterprise-safe.
+DOMPurify 3.4.13 is pinned in the lockfile and distributed locally. Sanitization is enabled by default and cannot be bypassed through `sanitizePaste: false`. A host can explicitly disable the entire security layer for a trusted offline migration, but that mode is not enterprise-safe.
 
 The same sanitization path applies to `<div>` and `<textarea>` hosts. A
 textarea's initial value is treated as untrusted HTML before it reaches the
@@ -122,7 +122,7 @@ into editor content and receive no sanitizer exemption.
 
 ## Supply-chain policy
 
-- Runtime dependency: exactly `dompurify@3.4.12`, with zero transitive runtime dependencies.
+- Runtime dependency: exactly `dompurify@3.4.13`, with zero transitive runtime dependencies.
 - Development dependencies are exact-pinned in `package.json` and locked by `package-lock.json`.
 - CI runs `npm ci --ignore-scripts`, `npm audit --audit-level=high`, dependency review, CodeQL, tests, build, and package inspection.
 - Renovation requires security review, lockfile diff review, upstream provenance/signature review, and the full browser matrix.

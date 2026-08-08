@@ -15,7 +15,7 @@ const assets = [
       "purify.min.js",
     ),
     target: "purify.min.js",
-    name: "DOMPurify 3.4.12",
+    name: "DOMPurify 3.4.13",
     purpose:
       "Vendors the pinned DOMPurify browser sanitizer used by the secure runtime.",
     license: "Apache-2.0 OR MPL-2.0",
