@@ -192,6 +192,15 @@
   }
 
   async function installPlugin(core, state, input) {
+    if (!core.security.config.allowCommunityPlugins) {
+      core.security.violation(
+        "community-plugin-blocked",
+        "The active security profile does not permit community plugins.",
+      );
+      throw new TypeError(
+        "Editra regulated mode does not permit community plugins.",
+      );
+    }
     const manifest = validateManifest(core, input);
     const current = state.installed.get(manifest.id);
     if (current && compareVersions(current.manifest.version, manifest.version) >= 0) {

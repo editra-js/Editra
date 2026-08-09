@@ -61,7 +61,7 @@
       .find((trigger) => trigger.textContent.trim() === "Format");
     formatTrigger?.click();
     const colorMenuItem = document.querySelector(
-      '.editra-menu.is-open [data-command="setForeColor"]',
+      '.editra-menu-list:not([hidden]) [data-command="setForeColor"]',
     );
     colorMenuItem?.dispatchEvent(
       new PointerEvent("pointerover", {
@@ -81,7 +81,7 @@
       "submenu parent did not expose its expanded state",
     );
     assert(
-      colorMenuItem?.closest(".editra-menu")?.classList.contains("is-open"),
+      instance.menubar?.openMenu?.classList.contains("is-open"),
       "parent menu closed while its submenu was open",
     );
     assert(
@@ -115,9 +115,7 @@
         chooserLeft: chooserRect?.left,
         chooserRight: chooserRect?.right,
         chooserStyleLeft: inlineChooser?.style.left,
-        hostLeft: colorMenuItem
-          ?.closest(".editra-menu")
-          ?.getBoundingClientRect().left,
+        hostLeft: instance.menubar?.openMenu?.getBoundingClientRect().left,
       })})`,
     );
     instance.menubar.closeMenus();
@@ -143,7 +141,7 @@
       .find((trigger) => trigger.textContent.trim() === "Insert");
     insertTrigger?.click();
     document
-      .querySelector('.editra-menu.is-open [data-command="special-characters"]')
+      .querySelector('.editra-menu-list:not([hidden]) [data-command="special-characters"]')
       ?.click();
     const characterPicker = document.querySelector(
       ".editra-popup--characters",
@@ -823,7 +821,7 @@
     )].find((button) => button.textContent.trim() === "Insert");
     insertMenuTrigger?.click();
     const linkMenuItem = document.querySelector(
-      '.editra-menubar [data-command="link"]',
+      '.editra-menu-list:not([hidden]) [data-command="link"]',
     );
     linkMenuItem?.click();
     const menuLinkDialog = document.querySelector(".editra-link-dialog");

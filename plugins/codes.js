@@ -123,7 +123,7 @@
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "false");
     dialog.setAttribute("aria-label", options.title);
-    dialog.innerHTML = `
+    dialog.innerHTML = core.security.trustedUIHTML(`
       <div class="editra-dialog-heading">${options.title}</div>
       <form class="editra-codes-form">
         ${options.format ? `<label class="editra-codes-field"><span>Format</span><select data-editra-code-format>${Object.entries(BARCODE_FORMATS).map(([value, item]) => `<option value="${value}">${item.label}</option>`).join("")}</select></label>` : ""}
@@ -137,7 +137,7 @@
           <button type="submit">Insert</button>
         </div>
       </form>
-    `;
+    `, "codes dialog");
     document.body.append(dialog);
     positionDialog(core, dialog, options.command);
 

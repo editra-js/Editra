@@ -4,6 +4,7 @@
   const bootstrapScript = document.currentScript;
   const projectBase = new URL("../", bootstrapScript.src);
   const scriptPromises = new Map();
+  const runtimeAssetIntegrity = new Map();
   const loaderPolicySymbol = Symbol.for("editra.loaderPolicy");
   let loaderPolicy = global[loaderPolicySymbol] ?? null;
   if (!loaderPolicy && global.trustedTypes?.createPolicy) {
@@ -444,30 +445,58 @@
     "ecosystem",
   ]);
 
+  function runtimeAsset(relativePath, securityConfig, kind) {
+    const url = new URL(relativePath, projectBase);
+    const allowedOrigins =
+      securityConfig?.allowedPluginOrigins ?? [global.location.origin];
+    if (!allowedOrigins.includes(url.origin)) {
+      throw new TypeError(`Editra blocked ${kind} origin: ${url.origin}`);
+    }
+    const integrity = securityConfig?.pluginIntegrity?.[relativePath] || "";
+    if (securityConfig?.requirePluginIntegrity && !integrity) {
+      throw new TypeError(
+        `Editra requires an integrity hash for ${relativePath}.`,
+      );
+    }
+    return { url, integrity };
+  }
+
+  function cachedRuntimeAsset(key, integrity, securityConfig) {
+    if (!scriptPromises.has(key)) return null;
+    if (
+      securityConfig?.requirePluginIntegrity &&
+      runtimeAssetIntegrity.get(key) !== integrity
+    ) {
+      return Promise.reject(
+        new TypeError(
+          `Editra regulated mode cannot reuse an unverified ${key.replace(/^style:/, "")} asset.`,
+        ),
+      );
+    }
+    return scriptPromises.get(key);
+  }
+
   function loadScript(relativePath, securityConfig = null) {
-    if (scriptPromises.has(relativePath)) return scriptPromises.get(relativePath);
+    let asset;
+    try {
+      asset = runtimeAsset(relativePath, securityConfig, "plugin");
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    const cached = cachedRuntimeAsset(
+      relativePath,
+      asset.integrity,
+      securityConfig,
+    );
+    if (cached) return cached;
 
     const promise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
-      const url = new URL(relativePath, projectBase);
-      const allowedOrigins =
-        securityConfig?.allowedPluginOrigins ?? [global.location.origin];
-      if (!allowedOrigins.includes(url.origin)) {
-        reject(new TypeError(`Editra blocked plugin origin: ${url.origin}`));
-        return;
-      }
-      const integrity = securityConfig?.pluginIntegrity?.[relativePath];
-      if (securityConfig?.requirePluginIntegrity && !integrity) {
-        reject(
-          new TypeError(`Editra requires an integrity hash for ${relativePath}.`),
-        );
-        return;
-      }
       script.src = loaderPolicy?.createScriptURL
-        ? loaderPolicy.createScriptURL(url.href)
-        : url.href;
-      if (integrity) {
-        script.integrity = integrity;
+        ? loaderPolicy.createScriptURL(asset.url.href)
+        : asset.url.href;
+      if (asset.integrity) {
+        script.integrity = asset.integrity;
         script.crossOrigin = "anonymous";
       }
       if (securityConfig?.pluginNonce) {
@@ -484,32 +513,26 @@
     });
 
     scriptPromises.set(relativePath, promise);
+    runtimeAssetIntegrity.set(relativePath, asset.integrity);
     return promise;
   }
 
   function loadStyle(relativePath, securityConfig = null) {
     const key = `style:${relativePath}`;
-    if (scriptPromises.has(key)) return scriptPromises.get(key);
+    let asset;
+    try {
+      asset = runtimeAsset(relativePath, securityConfig, "plugin style");
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    const cached = cachedRuntimeAsset(key, asset.integrity, securityConfig);
+    if (cached) return cached;
     const promise = new Promise((resolve, reject) => {
-      const url = new URL(relativePath, projectBase);
-      const allowedOrigins =
-        securityConfig?.allowedPluginOrigins ?? [global.location.origin];
-      if (!allowedOrigins.includes(url.origin)) {
-        reject(new TypeError(`Editra blocked plugin style origin: ${url.origin}`));
-        return;
-      }
       const link = document.createElement("link");
       link.rel = "stylesheet";
-      link.href = url.href;
-      const integrity = securityConfig?.pluginIntegrity?.[relativePath];
-      if (securityConfig?.requirePluginIntegrity && !integrity) {
-        reject(
-          new TypeError(`Editra requires an integrity hash for ${relativePath}.`),
-        );
-        return;
-      }
-      if (integrity) {
-        link.integrity = integrity;
+      link.href = asset.url.href;
+      if (asset.integrity) {
+        link.integrity = asset.integrity;
         link.crossOrigin = "anonymous";
       }
       link.addEventListener("load", resolve, { once: true });
@@ -521,6 +544,7 @@
       document.head.append(link);
     });
     scriptPromises.set(key, promise);
+    runtimeAssetIntegrity.set(key, asset.integrity);
     return promise;
   }
 
@@ -584,17 +608,33 @@ class EditraCore {
       return host.editraInstance;
     }
 
-    await loadScript("vendor/purify.min.js");
-    await loadScript("core/security.js");
+    const regulatedRequested =
+      config.regulated === true ||
+      String(config.security?.profile ?? "").trim().toLowerCase() ===
+        "regulated";
+    const bootstrapSecurity = regulatedRequested
+      ? {
+          allowedPluginOrigins: [global.location.origin],
+          requirePluginIntegrity: true,
+          pluginIntegrity: config.security?.pluginIntegrity ?? {},
+          pluginNonce: config.security?.pluginNonce ?? "",
+        }
+      : null;
+    await loadScript("vendor/purify.min.js", bootstrapSecurity);
+    await loadScript("core/security.js", bootstrapSecurity);
     if (typeof global.EditraSecurity !== "function") {
       throw new Error("Editra security runtime failed to initialize.");
     }
     const securityConfig = global.EditraSecurity.config(config);
-    const pluginNames = EditraCore.resolvePluginNames(config);
+    const effectiveConfig = securityConfig.regulated
+      ? { ...config, regulated: true }
+      : config;
+    const pluginNames = EditraCore.resolvePluginNames(effectiveConfig);
     const eagerPluginNames = pluginNames.filter(
       (name) => !PLUGIN_DEFINITIONS[name].lazy,
     );
     await Promise.all([
+      loadScript("core/document-schema.js", securityConfig),
       loadScript("ui/toolbar.js", securityConfig),
       loadScript("ui/menubar.js", securityConfig),
       ...pluginNames
@@ -627,8 +667,8 @@ class EditraCore {
     let instance;
     try {
       instance = new EditraCore(surface.editor, {
-        ...config,
-        theme: EditraCore.normalizeTheme(config.theme),
+        ...effectiveConfig,
+        theme: EditraCore.normalizeTheme(effectiveConfig.theme),
         plugins,
       }, surface);
     } catch (error) {
@@ -924,10 +964,19 @@ class EditraCore {
     this.objectDropTarget = null;
     this.objectDragGhost = null;
     this.security = new global.EditraSecurity(this, this.options);
+    if (typeof global.EditraDocumentSchema !== "function") {
+      throw new Error("Editra structured document runtime failed to initialize.");
+    }
+    this.documentSchema = new global.EditraDocumentSchema(this);
+    if (this.security.config.regulated) {
+      this.options.regulated = true;
+      this.options.sanitizePaste = true;
+    }
     this.editor.innerHTML = this.security.trustedHTML(
       surface.initialHTML ?? this.editor.innerHTML,
       "initial content",
     );
+    this.security.restoreDeferredStyles(this.editor);
 
     this.handleInput = this.handleInput.bind(this);
     this.handlePaste = this.handlePaste.bind(this);
@@ -991,6 +1040,7 @@ class EditraCore {
     this.editor.setAttribute("contenteditable", "true");
     this.editor.classList.add("editra-editor");
     this.editor.dataset.editraTheme = this.options.theme;
+    this.editor.dataset.editraSecurityProfile = this.security.config.profile;
     this.editor.setAttribute("role", "textbox");
     this.editor.setAttribute("aria-multiline", "true");
     this.editor.setAttribute("aria-label", this.options.label ?? "Document editor");
@@ -2776,7 +2826,7 @@ class EditraCore {
     dialog.className = "editra-media-dialog editra-link-dialog";
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-label", "Insert link");
-    dialog.innerHTML = this.security.trustedHTML(`
+    dialog.innerHTML = this.security.trustedUIHTML(`
       <div class="editra-dialog-heading">Insert link</div>
       <div class="editra-link-form">
         <label><span>Text to display</span><input type="text" data-editra-link-text /></label>
@@ -2979,6 +3029,7 @@ class EditraCore {
           snapshot,
           "last valid history snapshot",
         );
+        this.security.restoreDeferredStyles(this.editor);
         this.emitState();
         return;
       }
@@ -3179,6 +3230,7 @@ class EditraCore {
         snapshot,
         "history snapshot",
       );
+      this.security.restoreDeferredStyles(this.editor);
       this.rehydrate();
       this.placeCaretAtEnd();
       this.emitChange();
@@ -3442,6 +3494,18 @@ class EditraCore {
     return this.getCode();
   }
 
+  getJSON() {
+    return this.documentSchema.export();
+  }
+
+  validateJSON(documentModel) {
+    return this.documentSchema.validate(documentModel);
+  }
+
+  setJSON(documentModel) {
+    return this.setCode(this.documentSchema.import(documentModel));
+  }
+
   getCode() {
     const source = this.toolbar?.card?.querySelector(".editra-code-view");
     return source
@@ -3461,6 +3525,7 @@ class EditraCore {
       source?.value ?? this.pendingCode ?? "",
       "source view",
     );
+    this.security.restoreDeferredStyles(template.content);
     return template.content.textContent ?? "";
   }
 
@@ -3470,6 +3535,7 @@ class EditraCore {
       this.getCode(),
       "formatted output",
     );
+    this.security.restoreDeferredStyles(clone);
     clone
       .querySelectorAll(
         ".editra-resize-handle, [data-editra-table-handle], [data-editra-ui]",
@@ -3645,6 +3711,7 @@ class EditraCore {
         code,
         "setHTML input",
       );
+      this.security.restoreDeferredStyles(this.editor);
       if (this.pendingCode === code) this.pendingCode = null;
       this.syncImportedDocumentLayout();
       this.rehydrate();
@@ -3673,6 +3740,7 @@ class EditraCore {
         code,
         "setCode input",
       );
+      this.security.restoreDeferredStyles(this.editor);
       if (this.pendingCode === code) this.pendingCode = null;
       this.syncImportedDocumentLayout();
       this.recordHistory();
@@ -3776,7 +3844,7 @@ class EditraCore {
   }
 }
 
-  EditraCore.VERSION = "1.0.0";
+  EditraCore.VERSION = "1.1.1";
   EditraCore.PRODUCT = "Editra";
   global.EditraCore = EditraCore;
   global.Editra = EditraCore;

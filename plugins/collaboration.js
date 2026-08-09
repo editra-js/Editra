@@ -256,7 +256,7 @@
     box.className = "editra-comment-composer";
     box.dataset.editraUi = "true";
     box.setAttribute("aria-label", "Add comment");
-    box.innerHTML = `
+    box.innerHTML = core.security.trustedUIHTML(`
       <label>Add comment
         <textarea rows="3" placeholder="Write a comment…" required></textarea>
       </label>
@@ -264,7 +264,7 @@
         <button type="button" data-comment-cancel>Cancel</button>
         <button type="submit">Comment</button>
       </div>
-    `;
+    `, "comment composer");
     core.toolbar.card.append(box);
     let unregister = () => {};
     let closed = false;
@@ -327,13 +327,13 @@
     sidebar.className = "editra-comments-sidebar";
     sidebar.dataset.editraUi = "true";
     sidebar.setAttribute("aria-label", "Document comments");
-    sidebar.innerHTML = `
+    sidebar.innerHTML = core.security.trustedUIHTML(`
       <header>
         <strong>Comments</strong>
         <button type="button" data-comments-close aria-label="Hide comments">×</button>
       </header>
       <div class="editra-comment-list"></div>
-    `;
+    `, "comments sidebar");
     core.toolbar.card.append(sidebar);
     sidebar.addEventListener("click", state.handleSidebarClick);
     sidebar.addEventListener("submit", state.handleSidebarSubmit);
@@ -371,13 +371,13 @@
       });
       const form = document.createElement("form");
       form.className = "editra-comment-reply-form";
-      form.innerHTML = `
+      form.innerHTML = core.security.trustedUIHTML(`
         <input name="reply" aria-label="Reply" placeholder="Reply…" required>
         <button type="submit">Reply</button>
         <button type="button" data-resolve-comment>
           ${thread.resolved ? "Reopen" : "Resolve"}
         </button>
-      `;
+      `, "comment reply");
       card.append(form);
       fragment.append(card);
     });
@@ -491,8 +491,10 @@
     overlay.setAttribute("aria-label", "Revision history");
     const currentText = core.editor.textContent ?? "";
     const heading = document.createElement("header");
-    heading.innerHTML =
-      "<strong>Revision History</strong><button type=\"button\" data-revision-close aria-label=\"Close\">×</button>";
+    heading.innerHTML = core.security.trustedUIHTML(
+      "<strong>Revision History</strong><button type=\"button\" data-revision-close aria-label=\"Close\">×</button>",
+      "revision heading",
+    );
     const list = document.createElement("div");
     list.className = "editra-revision-list";
     [...state.revisions].reverse().forEach((revision, index) => {
@@ -510,8 +512,10 @@
       const comparison = document.createElement("small");
       comparison.textContent = `${difference.added} added · ${difference.removed} removed`;
       const actions = document.createElement("div");
-      actions.innerHTML =
-        '<button type="button" data-revision-preview>Compare</button><button type="button" data-revision-restore>Restore</button>';
+      actions.innerHTML = core.security.trustedUIHTML(
+        '<button type="button" data-revision-preview>Compare</button><button type="button" data-revision-restore>Restore</button>',
+        "revision actions",
+      );
       item.append(name, meta, comparison, actions);
       list.append(item);
     });
@@ -547,6 +551,7 @@
           revision.html,
           "revision preview",
         );
+        core.security.restoreDeferredStyles(frame);
         preview.replaceChildren(frame);
       } else if (event.target.closest("[data-revision-restore]")) {
         restoreRevision(core, state, { id: revision.id });
@@ -889,7 +894,7 @@
       };
     }
     if (options.url) {
-      const socket = new WebSocket(options.url);
+      const socket = new WebSocket(state.core.security.validateWebSocketURL(options.url));
       const receive = (event) => {
         try {
           onMessage(JSON.parse(event.data));
@@ -927,6 +932,7 @@
 
   function connectCollaboration(core, state, options = {}) {
     disconnectCollaboration(core, state);
+    state.core = core;
     state.documentId = safeText(options.documentId) || "default";
     state.user = {
       id: safeText(options.user?.id) || state.clientId,

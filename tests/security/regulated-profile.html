@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Editra regulated profile tests</title>
+  <link rel="stylesheet" href="../../themes/word.css">
+</head>
+<body>
+  <main>
+    <div id="regulated-word"><p>Word content</p></div>
+    <textarea id="regulated-classic"><p>Classic content</p><img src="https://outside.invalid/pixel.png" onerror="globalThis.regulatedXss = true"></textarea>
+    <output id="test-result">pending</output>
+  </main>
+  <script src="../../dist/editra.js"></script>
+  <script src="./regulated-profile.js"></script>
+</body>
+</html>

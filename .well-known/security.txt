@@ -1,0 +1,4 @@
+Contact: mailto:editra.dev@gmail.com
+Policy: https://github.com/editra-js/Editra/security/policy
+Preferred-Languages: en
+Expires: 2027-08-09T23:59:59Z

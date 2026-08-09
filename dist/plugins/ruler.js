@@ -64,7 +64,7 @@
     ruler.hidden = !state.visible;
     ruler.setAttribute("role", "group");
     ruler.setAttribute("aria-label", "Document ruler");
-    ruler.innerHTML = `
+    ruler.innerHTML = core.security.trustedUIHTML(`
       <div class="editra-ruler-track" data-ruler-track>
         <div class="editra-ruler-ticks" aria-hidden="true"></div>
         <button type="button" class="editra-ruler-marker is-margin" data-ruler-marker="leftMargin" aria-label="Left margin"></button>
@@ -73,7 +73,7 @@
         <button type="button" class="editra-ruler-marker is-first-line" data-ruler-marker="firstLineIndent" aria-label="First-line indent"></button>
         <div class="editra-ruler-tab-stops" data-ruler-tab-stops></div>
       </div>
-    `;
+    `, "ruler UI");
     const ticks = ruler.querySelector(".editra-ruler-ticks");
     const fragment = document.createDocumentFragment();
     for (let index = 0; index <= 20; index += 1) {

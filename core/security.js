@@ -19,6 +19,14 @@
     "meta",
     "link",
     "form",
+    "foreignobject",
+    "use",
+    "animate",
+    "animatemotion",
+    "animatetransform",
+    "set",
+    "filter",
+    "feimage",
   ]);
   const FORBID_ATTR = Object.freeze([
     "srcdoc",
@@ -42,6 +50,26 @@
   const UNSAFE_STYLESHEET =
     /(?:@import|@font-face|url\s*\(|expression\s*\(|behavior\s*:|-moz-binding|javascript\s*:|vbscript\s*:)/i;
   const ESCAPING_LAYOUT_CSS = /position\s*:\s*(?:fixed|sticky)\b/i;
+  const MAX_SANITIZER_PASSES = 4;
+
+  function normalizedOrigins(values) {
+    return Object.freeze(
+      [...new Set(Array.isArray(values) ? values : [])].flatMap((value) => {
+        try {
+          return [new URL(String(value), document.baseURI).origin];
+        } catch {
+          return [];
+        }
+      }),
+    );
+  }
+
+  function regulatedProfile(options, supplied) {
+    return (
+      options.regulated === true ||
+      String(supplied.profile ?? "").trim().toLowerCase() === "regulated"
+    );
+  }
 
   function bytes(value) {
     const text = String(value ?? "");
@@ -55,35 +83,92 @@
       options.security && typeof options.security === "object"
         ? options.security
         : {};
+    const regulated = regulatedProfile(options, supplied);
+    const currentOrigin = global.location?.origin;
+    const lockedOverrides = [];
+    if (regulated) {
+      if (options.sanitizePaste === false) lockedOverrides.push("sanitizePaste");
+      if (supplied.enabled === false) lockedOverrides.push("security.enabled");
+      if (supplied.sanitize === false) lockedOverrides.push("security.sanitize");
+      if (supplied.allowIframes === true) lockedOverrides.push("security.allowIframes");
+      if ((supplied.allowedIframeHosts ?? []).length) {
+        lockedOverrides.push("security.allowedIframeHosts");
+      }
+      if (
+        (supplied.allowedPluginOrigins ?? []).some(
+          (origin) => String(origin) !== currentOrigin,
+        )
+      ) {
+        lockedOverrides.push("security.allowedPluginOrigins");
+      }
+      if (supplied.requirePluginIntegrity === false) {
+        lockedOverrides.push("security.requirePluginIntegrity");
+      }
+      if (supplied.requireCommunityPluginIntegrity === false) {
+        lockedOverrides.push("security.requireCommunityPluginIntegrity");
+      }
+      if (supplied.allowCommunityPlugins === true) {
+        lockedOverrides.push("security.allowCommunityPlugins");
+      }
+      if (supplied.trustedTypes === false) {
+        lockedOverrides.push("security.trustedTypes");
+      }
+      if (supplied.enforceSameOriginRequests === false) {
+        lockedOverrides.push("security.enforceSameOriginRequests");
+      }
+    }
     return Object.freeze({
-      enabled: supplied.enabled !== false,
-      sanitize: supplied.sanitize !== false,
+      profile: regulated ? "regulated" : "standard",
+      regulated,
+      lockedOverrides: Object.freeze(lockedOverrides),
+      enabled: regulated || supplied.enabled !== false,
+      sanitize: regulated || supplied.sanitize !== false,
       allowDataImages: supplied.allowDataImages !== false,
       allowBlobUrls: supplied.allowBlobUrls !== false,
-      allowIframes: supplied.allowIframes === true,
-      allowedIframeHosts: Object.freeze(
-        Array.isArray(supplied.allowedIframeHosts)
-          ? supplied.allowedIframeHosts.map((host) =>
-              String(host).trim().toLowerCase(),
-            )
-          : [],
+      allowIframes: regulated ? false : supplied.allowIframes === true,
+      allowedIframeHosts: regulated
+        ? Object.freeze([])
+        : Object.freeze(
+            Array.isArray(supplied.allowedIframeHosts)
+              ? supplied.allowedIframeHosts.map((host) =>
+                  String(host).trim().toLowerCase(),
+                )
+              : [],
+          ),
+      allowedPluginOrigins: regulated
+        ? Object.freeze([currentOrigin].filter(Boolean))
+        : normalizedOrigins(
+            Array.isArray(supplied.allowedPluginOrigins)
+              ? supplied.allowedPluginOrigins
+              : [currentOrigin].filter(Boolean),
+          ),
+      allowedUrlOrigins: normalizedOrigins(supplied.allowedUrlOrigins),
+      allowedConnectionOrigins: normalizedOrigins(
+        supplied.allowedConnectionOrigins,
       ),
-      allowedPluginOrigins: Object.freeze(
-        Array.isArray(supplied.allowedPluginOrigins)
-          ? supplied.allowedPluginOrigins.map((origin) => String(origin))
-          : [global.location?.origin].filter(Boolean),
+      allowedExternalProtocols: Object.freeze(
+        (Array.isArray(supplied.allowedExternalProtocols)
+          ? supplied.allowedExternalProtocols
+          : []
+        )
+          .map((protocol) => String(protocol).trim().toLowerCase())
+          .filter((protocol) => ["mailto:", "tel:"].includes(protocol)),
       ),
-      requirePluginIntegrity: supplied.requirePluginIntegrity === true,
+      requirePluginIntegrity:
+        regulated || supplied.requirePluginIntegrity === true,
       requireCommunityPluginIntegrity:
-        supplied.requireCommunityPluginIntegrity !== false,
+        regulated || supplied.requireCommunityPluginIntegrity !== false,
+      allowCommunityPlugins:
+        !regulated && supplied.allowCommunityPlugins !== false,
       pluginIntegrity: Object.freeze({ ...(supplied.pluginIntegrity ?? {}) }),
       pluginNonce: supplied.pluginNonce ? String(supplied.pluginNonce) : "",
-      trustedTypes: supplied.trustedTypes !== false,
+      trustedTypes: regulated || supplied.trustedTypes !== false,
       trustedTypesPolicyName:
         supplied.trustedTypesPolicyName || "default",
       csrfHeader: supplied.csrfHeader || "X-CSRF-Token",
       csrfToken: supplied.csrfToken ?? null,
-      enforceSameOriginRequests: supplied.enforceSameOriginRequests !== false,
+      enforceSameOriginRequests:
+        regulated || supplied.enforceSameOriginRequests !== false,
       ...DEFAULT_LIMITS,
       ...Object.fromEntries(
         Object.keys(DEFAULT_LIMITS).map((key) => [
@@ -165,11 +250,34 @@
       this.trustedTypesPolicy = createDefaultTrustedTypesPolicy(this.config);
       this.attributeHook = this.attributeHook.bind(this);
       this.afterAttributeHook = this.afterAttributeHook.bind(this);
+      this.restoreDeferredStyles = this.restoreDeferredStyles.bind(this);
       global.DOMPurify.addHook("uponSanitizeAttribute", this.attributeHook);
       global.DOMPurify.addHook(
         "afterSanitizeAttributes",
         this.afterAttributeHook,
       );
+      this.config.lockedOverrides.forEach((setting) => {
+        this.violation(
+          "regulated-profile-lock",
+          `The regulated profile ignored an unsafe ${setting} override.`,
+          { setting },
+        );
+      });
+      this.deferredStyleObserver = this.config.regulated
+        ? new MutationObserver((records) => {
+            records.forEach((record) =>
+              record.addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                  this.restoreDeferredStyles(node);
+                }
+              }),
+            );
+          })
+        : null;
+      this.deferredStyleObserver?.observe(this.core.editor, {
+        childList: true,
+        subtree: true,
+      });
     }
 
     violation(type, message, detail = {}) {
@@ -305,6 +413,21 @@
         if (!["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) {
           return false;
         }
+        if (
+          this.config.regulated &&
+          ["mailto:", "tel:"].includes(url.protocol) &&
+          !this.config.allowedExternalProtocols.includes(url.protocol)
+        ) {
+          return false;
+        }
+        if (
+          this.config.regulated &&
+          ["http:", "https:"].includes(url.protocol) &&
+          url.origin !== global.location.origin &&
+          !this.config.allowedUrlOrigins.includes(url.origin)
+        ) {
+          return false;
+        }
         if (iframe) {
           return (
             this.config.allowIframes &&
@@ -356,7 +479,7 @@
     sanitizerConfig(returnTrustedType = false) {
       return {
         RETURN_TRUSTED_TYPE: returnTrustedType,
-        USE_PROFILES: { html: true, svg: true, svgFilters: true },
+        USE_PROFILES: { html: true, svg: true, svgFilters: false },
         FORBID_TAGS: this.config.allowIframes
           ? FORBID_TAGS.filter((tag) => tag !== "iframe")
           : FORBID_TAGS,
@@ -371,22 +494,91 @@
       };
     }
 
+    deferInlineStyles(fragment) {
+      if (!this.config.regulated) return fragment;
+      fragment.querySelectorAll?.("[style]").forEach((element) => {
+        const declaration = String(element.getAttribute("style") || "").trim();
+        element.removeAttribute("style");
+        if (
+          declaration &&
+          !UNSAFE_CSS.test(declaration) &&
+          !ESCAPING_LAYOUT_CSS.test(declaration)
+        ) {
+          element.setAttribute("data-editra-deferred-style", declaration);
+        }
+      });
+      return fragment;
+    }
+
+    restoreDeferredStyles(root) {
+      if (!this.config.regulated || !root) return root;
+      const elements = [];
+      if (root.nodeType === Node.ELEMENT_NODE && root.matches?.("[data-editra-deferred-style]")) {
+        elements.push(root);
+      }
+      root.querySelectorAll?.("[data-editra-deferred-style]").forEach((element) =>
+        elements.push(element),
+      );
+      elements.forEach((element) => {
+        const declaration = String(
+          element.getAttribute("data-editra-deferred-style") || "",
+        );
+        element.removeAttribute("data-editra-deferred-style");
+        if (
+          declaration &&
+          !UNSAFE_CSS.test(declaration) &&
+          !ESCAPING_LAYOUT_CSS.test(declaration)
+        ) {
+          element.style.cssText = declaration;
+        }
+      });
+      return root;
+    }
+
     sanitize(value, { trusted = false, kind = "document" } = {}) {
       const source = String(value ?? "");
       this.assertSize(source, kind);
       if (!this.config.enabled || !this.config.sanitize) return source;
-      const clean = global.DOMPurify.sanitize(
-        source,
-        this.sanitizerConfig(trusted),
-      );
-      const fragment = global.DOMPurify.sanitize(
-        String(clean),
-        {
+      const prepareForSanitizer = (input) => {
+        const markup = String(input);
+        if (!this.config.regulated) return markup;
+        return markup
+          .replace(/<\s*\/?\s*style\b[^>]*>/gi, "")
+          .replace(/(\s)style(\s*=)/gi, "$1data-editra-deferred-style$2");
+      };
+      const sanitizeFragment = (input) =>
+        global.DOMPurify.sanitize(prepareForSanitizer(input), {
           ...this.sanitizerConfig(false),
           RETURN_DOM_FRAGMENT: true,
           RETURN_TRUSTED_TYPE: false,
-        },
-      );
+        });
+      const serializeFragment = (input) => {
+        const container = document.createElement("div");
+        container.append(input.cloneNode(true));
+        return container.innerHTML;
+      };
+
+      let fragment = this.deferInlineStyles(sanitizeFragment(source));
+      let serialized = serializeFragment(fragment);
+      let stable = false;
+      for (let pass = 1; pass < MAX_SANITIZER_PASSES; pass += 1) {
+        const nextFragment = this.deferInlineStyles(sanitizeFragment(serialized));
+        const nextSerialized = serializeFragment(nextFragment);
+        fragment = nextFragment;
+        if (nextSerialized === serialized) {
+          stable = true;
+          break;
+        }
+        serialized = nextSerialized;
+      }
+      if (!stable) {
+        this.violation(
+          "sanitizer-instability",
+          `${kind} did not reach a stable sanitized DOM.`,
+          { passes: MAX_SANITIZER_PASSES },
+        );
+        throw new TypeError(`Editra rejected unstable ${kind} markup.`);
+      }
       let nodes = 0;
       let maximumDepth = 0;
       const stack = [...fragment.childNodes].map((node) => [node, 1]);
@@ -406,11 +598,59 @@
         }
         node.childNodes?.forEach((child) => stack.push([child, depth + 1]));
       }
-      return clean;
+      if (!trusted) return serialized;
+      const trustedResult = global.DOMPurify.sanitize(
+        serialized,
+        this.sanitizerConfig(true),
+      );
+      if (String(trustedResult) !== serialized) {
+        this.violation(
+          "sanitizer-instability",
+          `${kind} changed while producing TrustedHTML.`,
+          { passes: MAX_SANITIZER_PASSES + 1 },
+        );
+        throw new TypeError(`Editra rejected unstable ${kind} markup.`);
+      }
+      return trustedResult;
     }
 
     trustedHTML(value, kind = "document") {
       return this.sanitize(value, { trusted: true, kind });
+    }
+
+    trustedUIHTML(value, kind = "editor UI") {
+      const source = String(value ?? "");
+      this.assertSize(
+        source,
+        kind,
+        Math.min(this.config.maxDocumentBytes, 512 * 1024),
+      );
+      const config = {
+        RETURN_TRUSTED_TYPE: false,
+        USE_PROFILES: { html: true },
+        FORBID_TAGS: FORBID_TAGS.filter((tag) => tag !== "form"),
+        FORBID_ATTR,
+        SANITIZE_DOM: true,
+        SANITIZE_NAMED_PROPS: true,
+        ALLOW_UNKNOWN_PROTOCOLS: false,
+      };
+      const clean = String(global.DOMPurify.sanitize(source, config));
+      const stable = String(global.DOMPurify.sanitize(clean, config));
+      if (stable !== clean) {
+        this.violation(
+          "sanitizer-instability",
+          `${kind} did not reach stable UI markup.`,
+        );
+        throw new TypeError(`Editra rejected unstable ${kind} markup.`);
+      }
+      const trustedResult = global.DOMPurify.sanitize(stable, {
+        ...config,
+        RETURN_TRUSTED_TYPE: true,
+      });
+      if (String(trustedResult) !== stable) {
+        throw new TypeError(`Editra rejected unstable ${kind} markup.`);
+      }
+      return trustedResult;
     }
 
     permitCommand(name) {
@@ -467,7 +707,30 @@
       };
     }
 
+    validateWebSocketURL(value) {
+      const target = new URL(String(value), document.baseURI);
+      if (!["ws:", "wss:"].includes(target.protocol)) {
+        throw new TypeError("Editra requires a ws: or wss: collaboration URL.");
+      }
+      if (global.location.protocol === "https:" && target.protocol !== "wss:") {
+        throw new TypeError("Editra blocked an insecure collaboration socket.");
+      }
+      const sameHost = target.host === global.location.host;
+      if (
+        this.config.regulated &&
+        !sameHost &&
+        !this.config.allowedConnectionOrigins.includes(target.origin)
+      ) {
+        throw new TypeError(
+          "Editra regulated mode blocked a non-allowlisted collaboration origin.",
+        );
+      }
+      return target.href;
+    }
+
     destroy() {
+      this.deferredStyleObserver?.disconnect();
+      this.deferredStyleObserver = null;
       global.DOMPurify.removeHook(
         "uponSanitizeAttribute",
         this.attributeHook,

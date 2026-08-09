@@ -1,19 +1,24 @@
 # Editra Release Notes
 
-## Version 1.0.0
+## Version 1.1.1
 
-Release date: 2026-08-01
+Release date: 2026-08-09
 
-### Official launch
+### Version 1.1.1 patch release
 
-- Launched Editra as a new application maintained by the Editra Team.
 - Prepared the `editra-js` package and GitHub release artifacts for the
-  `v1.0.0` public release.
+  `v1.1.1` release maintained by the Editra Team.
+- Restored viewport-safe mobile menus, bottom-sheet pickers, and selection
+  capture/restore for textarea and menu-driven formatting without removing the
+  newer toolbar property detection, table resizing, link, emoji, or import work.
 - Included dynamic modular plugin loading, standardized Word and Classic
   themes, textarea initialization examples, and updated developer and
   contributor documentation.
-- Aligned release metadata and automated governance checks with the official
-  `1.0.0` package version.
+- Added higher-fidelity DOCX and styled HTML import, secure document handling,
+  structured document data, isolated hosting, runtime integrity verification,
+  and expanded table and draggable-object editing.
+- Aligned package metadata, lockfile, runtime exports, documentation, SBOM,
+  and automated governance checks with version `1.1.1`.
 
 ### Repository, domain, and team identity
 

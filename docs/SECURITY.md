@@ -1,155 +1,78 @@
-# Editra Security
+# Editra security architecture
 
-## Security posture
+Editra 1.1.1 treats initial HTML, paste, source view, imported content, collaboration updates, revisions, headers/footers, JSON documents, and export content as untrusted. These controls reduce integration risk; they are not a certification or a substitute for an independent assessment of the deployed application.
 
-Editra 1.0.0 treats all document HTML, pasted content, imported content, source-view content, collaboration operations, revision previews, headers, footers, and exported document content as untrusted.
+## Trust boundaries and data flow
 
-DOMPurify 3.4.13 is pinned in the lockfile and distributed locally. Sanitization is enabled by default and cannot be bypassed through `sanitizePaste: false`. A host can explicitly disable the entire security layer for a trusted offline migration, but that mode is not enterprise-safe.
+Content enters through DIV/textarea hosts, editor commands, HTML/DOCX imports, JSON import, collaboration, and plugins. It passes through size/depth/node limits, URL/CSS policy, stable parse/sanitize/serialize processing, and DOMPurify before reaching the editable DOM. Export paths sanitize again. The host application remains responsible for authentication, document authorization, server-side validation/sanitization, malware scanning, storage, encryption, retention, audit logging, network controls, and safe document-conversion workers.
 
-The same sanitization path applies to `<div>` and `<textarea>` hosts. A
-textarea's initial value is treated as untrusted HTML before it reaches the
-editable surface, and its synchronized form value contains the sanitized
-serialized editor content; applications must still sanitize and authorize
-stored content server-side.
+The initial Editra entry script and integrity manifest are deployment trust anchors. Built-in runtime files load only from approved origins and, in regulated mode, require matching SHA-256 SRI entries. Community plugins are disabled in regulated mode.
 
-> Assurance statement: “Editra is safe to integrate into enterprise applications without weakening host security” when the mandatory host controls in this document are implemented and the security layer remains enabled.
+## Regulated profile
 
-No software can guarantee the absence of every future vulnerability. This assurance is a documented integration posture, not a security certification, HIPAA attestation, regulatory opinion, or replacement for an application threat model and penetration test.
+Enable with `regulated: true` or `security.profile: "regulated"`. The profile locks sanitization, paste sanitization, Trusted Types, same-origin requests, runtime origin restrictions, and SRI. It disables document iframes and community plugins and denies external content/collaboration origins unless explicitly allowlisted. Unsafe override attempts are ignored and reported as `regulated-profile-lock` events.
 
-## Enforced editor controls
+Generate reviewed runtime hashes with `npm run security:integrity` and provide `plugins/runtime-integrity.json` as `security.pluginIntegrity`. Protect the entry script and manifest as immutable application assets.
 
-| Threat | Editra control |
-|---|---|
-| Stored and DOM XSS | DOMPurify HTML-profile allowlist; scripts, active embeds, forms, dangerous attributes, unsafe protocols, named-property clobbering, and executable CSS are removed. |
-| Encoded payloads | Browser parsing plus DOMPurify canonicalization occurs before insertion. |
-| Source-view bypass | HTML is sanitized before source view is applied to WYSIWYG. |
-| Export leakage/XSS | Export page content is sanitized again before HTML, Word, and print output. |
-| Malicious collaboration content | Remote blocks and revision previews pass through the same sanitizer. |
-| Untrusted media | `file:` and executable data URLs are rejected; image data URLs use an image-only base64 pattern. |
-| Embedded players | Iframes are denied by default. Hosts must opt in to exact domains; accepted frames receive a restrictive sandbox and referrer policy. |
-| Oversized input | Configurable byte, DOM-node, depth, media-size, history-byte, and command-rate limits fail closed. |
-| Malicious document import | DOCX ZIP integrity, entry count, expanded size, paths, active/macro content, embedded objects, and external relationships are checked before rendering. HTML active content and unsafe/external CSS or media fail closed before insertion. |
-| Plugin compromise | Built-ins resolve through a frozen manifest with origin/integrity controls. Community plugins use validated metadata, SHA-256 entry verification, sandboxed iframes, source-checked messages, and capability allowlists. |
-| DOM sink abuse | Trusted Types support uses `editra-loader`, `dompurify`, and a sanitized `default` policy when the host enforces Trusted Types. |
-| Memory leaks | `destroy()` cancels animation frames, disconnects observers, removes document listeners, revokes object URLs, destroys UI, removes sanitizer hooks, clears maps/history, and releases callbacks. |
-| Slow updates | Input state, serialization, layout, and plugin work use keyed `requestAnimationFrame` batching. |
+## XSS, CSS, and DOM safeguards
 
-## Secure initialization
+- Sanitization iterates parse/sanitize/serialize until stable and rejects non-converging markup. The final inspected DOM is the returned representation.
+- Trusted Types separates document content (`trustedHTML`) from fixed editor UI templates (`trustedUIHTML`). Source contracts reject unclassified direct HTML sinks.
+- Scripts, active embeds/forms, event attributes, executable protocols, named-property clobbering, SVG filters, active SVG re-contextualization elements, external-resource CSS, and fixed/sticky layout escape are rejected.
+- Inert SVG shapes needed by generated QR codes and barcodes remain supported.
+- Imports, source view, collaboration, revisions, headers/footers, and exports use the same security invariants.
+- Byte, media, node, depth, history, message, and command-rate limits fail closed.
+- The browser suite exercises fixed and generated mXSS cases in Chromium, Firefox, and WebKit.
 
-```html
-<script nonce="SERVER_NONCE" src="/vendor/editra/core/editor.js"></script>
-<script nonce="SERVER_NONCE">
-  Editra.init({
-    selector: "#editra-editor",
-    sanitizePaste: true,
-    security: {
-      maxDocumentBytes: 5 * 1024 * 1024,
-      maxNodes: 50000,
-      maxDepth: 100,
-      maxMediaBytes: 10 * 1024 * 1024,
-      maxCommandsPerSecond: 120,
-      allowIframes: false,
-      allowedIframeHosts: [],
-      allowedPluginOrigins: [location.origin],
-      requirePluginIntegrity: false,
-      pluginNonce: "SERVER_NONCE",
-      csrfToken: document.querySelector('meta[name="csrf-token"]').content
-    },
-    onSecurityViolation(event) {
-      securityTelemetry.record(event);
-    }
-  });
-</script>
-```
+Approved regulated formatting is deferred before browser parsing and restored through CSSOM after safe insertion, allowing `style-src-attr 'none'` without weakening content filtering.
 
-If external plugin delivery is approved, enable `requirePluginIntegrity` and provide a `security.pluginIntegrity` map keyed by the exact Editra plugin path. Never generate integrity hashes at runtime.
+## Strict CSP
 
-## Required response headers
-
-The application server, reverse proxy, or gateway—not a JavaScript component—must send security headers. A strict starting policy is:
+The tested regulated policy contains neither `unsafe-inline` nor `unsafe-eval`:
 
 ```http
-Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{RANDOM}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src 'self'; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'none'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' blob:; frame-src 'none'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'
 X-Content-Type-Options: nosniff
-Referrer-Policy: strict-origin-when-cross-origin
+Referrer-Policy: no-referrer
 Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
-Cross-Origin-Opener-Policy: same-origin
-X-Frame-Options: DENY
 ```
 
-`frame-ancestors 'none'` and `X-Frame-Options: DENY` protect a top-level authoring application from clickjacking. If the application intentionally embeds its editor route, replace `frame-ancestors 'none'` with an explicit allowlist and use `X-Frame-Options: SAMEORIGIN` where compatible. JavaScript “frame busting” is not a substitute for headers.
+The application gateway must send and monitor these headers. Adjust `frame-src` and `frame-ancestors` only for the separate-origin mode described below.
 
-`frame-src 'self'` permits reviewed same-origin community sandboxes. If an
-application does not use community plugins, reduce it to `frame-src 'none'`.
-Cross-origin plugin frames require an explicit origin in both CSP and
-`allowedPluginOrigins`.
+## Separate-origin isolation
 
-## Host responsibilities
+Set `isolation: "iframe"` and `isolationUrl` to run Editra inside the packaged sandbox frame. Regulated mode rejects a frame on the parent origin. Deploy `isolation/frame.html` and its assets on a dedicated trusted origin, allow that exact origin through the parent's `frame-src`, and allow only the application through the frame's `frame-ancestors`.
 
-Editra cannot safely implement server controls on behalf of its host:
+The frame uses `allow-scripts allow-same-origin`; the required cross-origin boundary prevents the parent from reading the editor DOM. Messages require the expected window, exact origin, cryptographically random channel, known operation, request identifier, and payload limits. Wildcard message targets are not used. The asynchronous proxy is documented in [API_REFERENCE.md](./API_REFERENCE.md#isolated-iframe-mode).
 
-- CSRF: validate synchronizer/double-submit tokens server-side, reject unexpected `Origin`/`Referer`, and use `SameSite=Lax` or `Strict`, `Secure`, and `HttpOnly` cookies. `secureRequest()` requires a configured token for state-changing requests, but the server must verify it.
-- SQL/NoSQL/command injection: store editor output only through parameterized queries and typed repository APIs. Never concatenate content into SQL, shell commands, document-conversion arguments, templates, or logs.
-- Bots and abuse: protect save, collaboration, feedback, import, and export endpoints with authenticated quotas, rate limits, anomaly logging, and CAPTCHA/challenge controls where appropriate.
-- Data protection: classify data, minimize collection, encrypt transport and storage, restrict access, set retention periods, redact telemetry, and complete applicable GDPR/HIPAA/legal assessments.
-- Export services: use isolated workers/containers, fixed executable arguments, timeouts, memory/CPU limits, and patched converters. Sanitize again on the server.
-- Authentication and authorization: verify every document and collaboration action server-side; never trust editor callbacks as authorization.
-- Malware: scan uploaded media and documents on the server before persistence or redistribution.
+## Structured JSON
 
-## Plugin policy
+`getJSON`, `validateJSON`, and `setJSON` use the versioned [Editra document schema](./EDITRA-DOCUMENT-SCHEMA.json). Runtime validation is stricter than the generic JSON Schema: unknown nodes/elements/attributes and oversized structures are rejected, DOM nodes are constructed through browser APIs, and resulting HTML passes through the normal stable sanitizer.
 
-Editra does not use `eval`, `new Function`, or string timers. Built-in plugin
-names resolve only through the frozen manifest. Approved built-in scripts use
-origin allowlists and optional SRI. Community code is never accepted as a
-plugin object and never receives the editor core. It runs in an iframe with
-`sandbox="allow-scripts"` and no `allow-same-origin`; messages are matched to
-the installed frame and filtered through declared capabilities and command
-allowlists. Community entry documents require SHA-256 metadata verification by
-default. Use immutable URLs to prevent changes between verification and frame
-navigation.
+## Host requirements
 
-### Sanitized HTML and CSS
+- Authorize every document, collaboration, import, save, and export action server-side.
+- Use CSRF protection, secure cookies, parameterized storage, authenticated quotas, and safe logging.
+- Scan uploaded files/media before persistence or redistribution. DOCX structural checks are not malware assurance.
+- Sanitize and authorize stored output again at every server rendering boundary.
+- Isolate converters with fixed arguments, patched binaries, CPU/memory/time limits, and no ambient credentials.
+- Encrypt transport/storage, classify data, restrict access, define retention, and keep regulated content out of telemetry.
+- Inventory and approve all host/payment-page scripts and monitor deployed scripts and headers for unauthorized change.
 
-Document content uses DOMPurify's HTML/SVG profiles. `script`, `style`,
-`object`, `embed`, `applet`, `base`, `meta`, `link`, and `form` are always
-forbidden. `iframe` is forbidden unless the host enables it and allowlists the
-exact hostname. Attributes beginning with `on`, plus `srcdoc`, `action`,
-`formaction`, `nonce`, and `ping`, are removed. URL attributes accept only
-approved HTTP(S), mail, telephone, restricted image data, and managed blob
-URLs. Inline CSS containing `expression`, `url()`, `@import`, browser behavior,
-bindings, or executable protocols is removed. Node, depth, byte, media, and
-command-rate limits fail closed. Plugin sandbox documents are not inserted
-into editor content and receive no sanitizer exemption.
+## Security events
 
-For file imports, safe embedded stylesheet rules are parsed in an isolated
-shadow tree and flattened to inline formatting before the normal DOMPurify
-pass. Imports are rejected rather than partially accepted when active markup,
-external media/resource loading, fixed or sticky document-escaping layout, or
-unsafe CSS is detected. DOCX alternative HTML chunks, tracked changes, macros,
-ActiveX, OLE/embedded packages, executables, archive traversal, oversized ZIP
-expansion, and non-hyperlink external relationships are not rendered. HTTPS
-hyperlinks may remain, but are sanitized and receive the normal link safety
-controls.
+Editra dispatches `editra:security-violation` and calls `onSecurityViolation` with `{ type, message, detail, timestamp }`. Hosts should map types to allowlisted codes, add authenticated server correlation, redact content and secrets, apply quotas/retention, and alert on abnormal volume. Browser telemetry can be suppressed or forged and does not replace server audit logs.
 
-## Supply-chain policy
+## Supply chain and release
 
-- Runtime dependencies are exact-pinned at the application boundary. DOCX ZIP
-  and WordprocessingML parsing is implemented by Editra without an additional
-  runtime package.
-- Development dependencies are exact-pinned in `package.json` and locked by `package-lock.json`.
-- CI runs `npm ci --ignore-scripts`, `npm audit --audit-level=high`, dependency review, CodeQL, tests, build, and package inspection.
-- Renovation requires security review, lockfile diff review, upstream provenance/signature review, and the full browser matrix.
-- Release artifacts must be produced from a protected tag and accompanied by checksums/signatures in the release process.
+Dependencies are exact-pinned and locked. CI performs immutable installation, audit, CodeQL, dependency review, build/unit/browser tests, SRI and SBOM validation, and package inspection. Tag builds produce checksums, release evidence, and GitHub build-provenance attestation. The CycloneDX SBOM is `artifacts/editra-sbom.cdx.json`.
+
+Administrators must separately enable protected branches/tags, required reviews, private vulnerability reporting, secret scanning/push protection, restricted environments, and minimal workflow permissions. Releases must come from a clean reviewed commit and immutable signed tag; never overwrite a published package or move a tag.
 
 ## Vulnerability reporting
 
-Do not disclose exploitable findings in a public issue. Use GitHub private vulnerability reporting for `editra-js/Editra`, or contact `security@editra.in` with affected versions, reproduction steps, impact, and suggested remediation. Do not include real personal or regulated data.
+Follow the repository [security policy](../SECURITY.md). Do not disclose exploitable findings publicly or include real personal, payment-card, authentication, or regulated data.
 
-## Primary standards references
+## Verification
 
-- [OWASP XSS Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
-- [OWASP CSRF Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
-- [OWASP Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Injection_Prevention_Cheat_Sheet.html)
-- [OWASP Denial of Service](https://owasp.org/www-community/attacks/Denial_of_Service)
-- [Trusted Types](https://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API)
-- [DOMPurify](https://github.com/cure53/DOMPurify)
+Run `npm run security:assurance`. It builds the distribution and runs unit/security contracts, Chromium/Firefox/WebKit tests, dependency audit, runtime integrity, SBOM verification, and package inspection. The generated local assurance JSON is transient CI evidence and is not part of the npm package.

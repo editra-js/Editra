@@ -17,7 +17,14 @@ const metadataExtensions = new Set([
   ".svg",
   ".txt",
 ]);
-const ignoredDirectories = new Set([".git", ".npm-cache", "node_modules"]);
+const ignoredDirectories = new Set([
+  ".git",
+  ".npm-cache",
+  ".tmp-package-test",
+  "coverage",
+  "node_modules",
+  "test-results",
+]);
 const errors = [];
 
 function walk(directory) {
@@ -284,6 +291,23 @@ const packageMetadata = JSON.parse(
 );
 if (packageMetadata.version !== packageVersion) {
   errors.push("package.json version does not match package_version");
+}
+const packageLockMetadata = JSON.parse(
+  fs.readFileSync(path.join(root, "package-lock.json"), "utf8"),
+);
+if (
+  packageLockMetadata.version !== packageVersion ||
+  packageLockMetadata.packages?.[""]?.version !== packageVersion
+) {
+  errors.push("package-lock.json version does not match package_version");
+}
+for (const documentation of [
+  ["README.md", fs.readFileSync(path.join(root, "README.md"), "utf8")],
+  ["docs/USER_GUIDE.md", guide],
+]) {
+  if (!documentation[1].includes(`Editra@v${version}`)) {
+    errors.push(`${documentation[0]} GitHub CDN version does not match version.prop`);
+  }
 }
 if (packageMetadata.main !== "index.js") {
   errors.push("package.json main must be index.js");

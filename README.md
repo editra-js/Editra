@@ -17,8 +17,8 @@ lock-in.
 
 Editra is an open-source WYSIWYG editor for the web, offering Word-style text editing, pagination control, tables, media embedding, and export to PDF/Word/HTML. Available via npm or CDN, it delivers enterprise-grade features with a clean, developer-friendly API.
 
-Editra is a modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.0.0 is licensed under the MIT License.
-Package version: 1.0.0
+Editra is a modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.1.1 is licensed under the MIT License.
+Package version: 1.1.1
 
 ## Quick start
 
@@ -69,8 +69,8 @@ The package is published as `editra-js`. A local release archive can be verified
 Currently published through the GitHub-backed jsDelivr endpoint:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/themes/word.css">
-<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.1.1/themes/word.css">
+<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.1.1/dist/editra.js"></script>
 <script>
   Editra.init({ selector: "#editra-editor", theme: "Word" });
 </script>
@@ -155,6 +155,8 @@ See the canonical [Word modular div example](examples/word-div-modular.html),
 - [Contribution guide](docs/CONTRIBUTING.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Enterprise security](docs/SECURITY.md)
+- [Structured document schema](docs/EDITRA-DOCUMENT-SCHEMA.json)
+- [Vulnerability reporting](SECURITY.md)
 - [Standards and compliance](docs/COMPLIANCE.md)
 - [Performance benchmarks](docs/PERFORMANCE.md)
 - [Plugin developer guide](docs/PLUGIN_DEVELOPER_GUIDE.md)
@@ -167,6 +169,9 @@ See the canonical [Word modular div example](examples/word-div-modular.html),
 ```powershell
 npm test
 npm run security:audit
+npm run security:integrity:check
+npm run security:sbom:check
+npm run security:assurance
 npm run test:cross-browser
 npm run pack:check
 ```

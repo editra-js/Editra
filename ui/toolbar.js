@@ -250,7 +250,10 @@
     }
 
     preserveSelection(event) {
-      if (event.target.closest("button[data-command]")) event.preventDefault();
+      const control = event.target.closest("[data-command]");
+      if (!control || !this.element.contains(control)) return;
+      this.core.captureSelection();
+      if (control.closest("button[data-command]")) event.preventDefault();
     }
 
     handleClick(event) {
@@ -267,6 +270,7 @@
         }
         return;
       }
+      this.core.restoreSelection();
       this.core.executeCommand(
         command,
         command === "insertEmoji" || command === "special-characters"
@@ -281,6 +285,7 @@
     handleChange(event) {
       const control = event.target.closest("[data-command]");
       if (!control || !this.element.contains(control)) return;
+      this.core.restoreSelection();
       this.core.executeCommand(control.dataset.command, control.value);
     }
 

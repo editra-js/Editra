@@ -20,6 +20,14 @@ const mimeTypes = {
   ".mp4": "video/mp4",
   ".webm": "video/webm",
 };
+const standardCsp =
+  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src 'self' blob: https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'";
+const regulatedCsp =
+  "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'none'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' blob:; frame-src 'none'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'";
+const isolatedHostCsp =
+  "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'none'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' blob:; frame-src http://localhost:*; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'";
+const isolatedFrameCsp =
+  "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'none'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' blob:; frame-src 'none'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors http://127.0.0.1:*; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'";
 
 const server = http.createServer((request, response) => {
   const isHttps = Boolean(request.socket?.encrypted);
@@ -51,13 +59,20 @@ const server = http.createServer((request, response) => {
       "Cache-Control": "no-cache",
       "Referrer-Policy": "no-referrer",
       "X-Content-Type-Options": "nosniff",
-      "X-Frame-Options": "SAMEORIGIN",
       "Permissions-Policy":
         "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
       "Cross-Origin-Opener-Policy": "same-origin",
-      "Content-Security-Policy":
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob: https:; frame-src 'self' blob: https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; trusted-types default dompurify editra-loader; require-trusted-types-for 'script'",
+      "Content-Security-Policy": pathname === "/tests/security/regulated-profile.html"
+        ? regulatedCsp
+        : pathname === "/tests/security/isolated-host.html"
+          ? isolatedHostCsp
+          : pathname === "/isolation/frame.html"
+            ? isolatedFrameCsp
+            : standardCsp,
     };
+    if (pathname !== "/isolation/frame.html") {
+      headers["X-Frame-Options"] = "SAMEORIGIN";
+    }
     if (isHttps) {
       headers["Strict-Transport-Security"] =
         "max-age=31536000; includeSubDomains";

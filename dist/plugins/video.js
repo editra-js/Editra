@@ -88,7 +88,7 @@
     dialog.className = "editra-media-dialog";
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-label", "Insert video");
-    dialog.innerHTML = `
+    dialog.innerHTML = core.security.trustedUIHTML(`
       <div class="editra-dialog-heading">Insert video</div>
       <label class="editra-file-button">
         <span>Choose from device</span>
@@ -99,7 +99,7 @@
         <input type="text" inputmode="url" placeholder="YouTube, Vimeo, MP4 or video URL" aria-label="Video URL" required />
         <button type="submit">Insert</button>
       </form>
-    `;
+    `, "video dialog");
     document.body.append(dialog);
 
     const trigger = core.toolbar.getButton("video");

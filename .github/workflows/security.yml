@@ -25,6 +25,8 @@ jobs:
       - run: npm audit --audit-level=high
       - run: npm run build
       - run: npm run test:unit
+      - run: npm run security:sbom
+      - run: npm run security:sbom:check
       - run: npm run pack:check
 
   browser-matrix:

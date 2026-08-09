@@ -2421,6 +2421,59 @@ body {
   }
 }
 
+/* Compact-device overlay contract: menus remain viewport-safe and rich
+   pickers use predictable bottom-sheet placement. */
+@media (max-width: 720px), (pointer: coarse) and (max-width: 960px) {
+  .editra-menu-list {
+    z-index: 2100;
+    min-width: 0;
+    overscroll-behavior: contain;
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgba(20, 24, 31, 0.24);
+  }
+
+  .editra-menu-item {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+  }
+
+  .editra-menu-chooser,
+  .editra-help-dialog,
+  .editra-emoji-picker,
+  .editra-productivity-overlay,
+  .editra-comment-composer,
+  .editra-media-dialog,
+  .editra-table-picker,
+  .editra-table-context-menu {
+    position: fixed !important;
+    inset: auto max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)) !important;
+    z-index: 2200 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: min(72dvh, 520px) !important;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border-radius: 14px !important;
+    box-shadow: 0 22px 60px rgba(20, 24, 31, 0.3) !important;
+  }
+
+  .editra-menu-color-grid {
+    grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
+  }
+
+  .editra-url-form,
+  .editra-codes-actions {
+    flex-wrap: wrap;
+  }
+
+  .editra-url-form button,
+  .editra-codes-actions button {
+    min-height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .editra-tool {
     transition: none;

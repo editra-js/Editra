@@ -15,7 +15,7 @@ Editra supports two compatible delivery models:
 <div id="editor"></div>
 <script src="/editra/dist/editra-core.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#editor",
     theme: "Word",
     plugins: ["formatting", "table", "image"]
@@ -39,7 +39,7 @@ surface and synchronized back for form submission.
 <div id="document-editor"></div>
 <script src="/editra/dist/editra.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#document-editor",
     theme: "Classic",
     plugins: ["formatting", "table"]
@@ -52,7 +52,7 @@ surface and synchronized back for form submission.
 <textarea id="editor"></textarea>
 <script src="/editra/dist/editra-core.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#editor",
     theme: "Word",
     plugins: ["formatting", "table", "image"]
@@ -65,7 +65,7 @@ surface and synchronized back for form submission.
 <textarea id="editor"></textarea>
 <script src="/editra/dist/editra.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#editor",
     theme: "Classic",
     plugins: ["formatting", "table"]

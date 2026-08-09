@@ -49,6 +49,24 @@ test("security, accessibility, RTL, lifecycle, and performance contracts pass", 
   );
 });
 
+test("regulated profile remains locked in Word DIV and Classic textarea hosts", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await page.goto("/tests/security/regulated-profile.html");
+  await expectSecurityContractsToPass(page);
+  await expect(page.locator("#test-result")).toHaveText("passed");
+});
+
+test("regulated iframe isolation enforces a separate-origin message boundary", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await page.goto("/tests/security/isolated-host.html");
+  await expectSecurityContractsToPass(page);
+  await expect(page.locator("#test-result")).toHaveText("passed");
+});
+
 test("toolbar SVG assets load without 404 or CSP regressions", async ({
   page,
 }) => {
@@ -113,6 +131,25 @@ test("demo server supplies enterprise response headers", async ({ request }) => 
   expect(response.headers()["content-security-policy"]).toContain(
     "font-src 'self'",
   );
+  const regulatedResponse = await request.get(
+    "/tests/security/regulated-profile.html",
+  );
+  const regulatedPolicy =
+    regulatedResponse.headers()["content-security-policy"] || "";
+  expect(regulatedPolicy).not.toContain("'unsafe-inline'");
+  expect(regulatedPolicy).not.toContain("'unsafe-eval'");
+  expect(regulatedPolicy).toContain("style-src-attr 'none'");
+  const isolatedHostResponse = await request.get(
+    "/tests/security/isolated-host.html",
+  );
+  const isolatedHostPolicy =
+    isolatedHostResponse.headers()["content-security-policy"] || "";
+  expect(isolatedHostPolicy).toContain("frame-src http://localhost:*");
+  const isolatedFrameResponse = await request.get("/isolation/frame.html");
+  const isolatedFramePolicy =
+    isolatedFrameResponse.headers()["content-security-policy"] || "";
+  expect(isolatedFramePolicy).toContain("frame-ancestors http://127.0.0.1:*");
+  expect(isolatedFrameResponse.headers()["x-frame-options"]).toBeUndefined();
 });
 
 test("examples consistently apply standard Word pages and flexible Classic sizing", async ({

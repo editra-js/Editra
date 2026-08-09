@@ -6,10 +6,13 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const versionFile = path.join(root, "version.prop");
 const packageFile = path.join(root, "package.json");
+const packageLockFile = path.join(root, "package-lock.json");
 const releaseNotesFile = path.join(root, "RELEASE_NOTES.md");
 const packageName = "editra-js";
 const releaseMetadata = fs.readFileSync(versionFile, "utf8");
 const author = releaseMetadata.match(/^author=(.+)$/m)?.[1]?.trim() || "";
+const releaseDate =
+  releaseMetadata.match(/^release_date=(.+)$/m)?.[1]?.trim() || "";
 const supportedExtensions = new Set([
   ".js",
   ".mjs",
@@ -20,7 +23,14 @@ const supportedExtensions = new Set([
   ".svg",
   ".txt",
 ]);
-const ignoredDirectories = new Set([".git", ".npm-cache", "node_modules"]);
+const ignoredDirectories = new Set([
+  ".git",
+  ".npm-cache",
+  ".tmp-package-test",
+  "coverage",
+  "node_modules",
+  "test-results",
+]);
 
 function readVersion() {
   const contents = fs.readFileSync(versionFile, "utf8");
@@ -71,6 +81,20 @@ function updatePackageVersion(version) {
   packageMetadata.name = packageName;
   packageMetadata.author = author;
   fs.writeFileSync(packageFile, `${JSON.stringify(packageMetadata, null, 2)}\n`);
+
+  if (fs.existsSync(packageLockFile)) {
+    const lockMetadata = JSON.parse(fs.readFileSync(packageLockFile, "utf8"));
+    lockMetadata.name = packageName;
+    lockMetadata.version = version;
+    if (lockMetadata.packages?.[""]) {
+      lockMetadata.packages[""].name = packageName;
+      lockMetadata.packages[""].version = version;
+    }
+    fs.writeFileSync(
+      packageLockFile,
+      `${JSON.stringify(lockMetadata, null, 2)}\n`,
+    );
+  }
 }
 
 function replaceInFile(file, pattern, replacement) {
@@ -85,6 +109,13 @@ function updateRuntimeVersions(version) {
     /^## Version .+$/m,
     `## Version ${version}`,
   );
+  if (releaseDate) {
+    replaceInFile(
+      releaseNotesFile,
+      /^Release date: .+$/m,
+      `Release date: ${releaseDate}`,
+    );
+  }
   replaceInFile(
     path.join(root, "core", "editor.js"),
     /EditraCore\.VERSION\s*=\s*"[^"]+"/,
@@ -132,6 +163,24 @@ function updateRuntimeVersions(version) {
     /\/v[\d.]+\//g,
     `/v${version}/`,
   );
+  [path.join(root, "README.md"), path.join(root, "docs", "USER_GUIDE.md")]
+    .forEach((file) => {
+      replaceInFile(
+        file,
+        /(Editra@v)[\d.]+/g,
+        `$1${version}`,
+      );
+      replaceInFile(
+        file,
+        /(editra-js@)[\d.]+/g,
+        `$1${version}`,
+      );
+      replaceInFile(
+        file,
+        /\/editra@[\d.]+\//g,
+        `/editra-js@${version}/`,
+      );
+  });
 }
 
 function updateAdditionalMetadata() {

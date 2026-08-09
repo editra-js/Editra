@@ -427,6 +427,7 @@
       this.core = core;
       this.card = card;
       this.openMenu = null;
+      this.openMenuList = null;
       this.chooser = null;
       this.handleClick = this.handleClick.bind(this);
       this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -434,6 +435,7 @@
       this.handlePointerOut = this.handlePointerOut.bind(this);
       this.handleDocumentPointer = this.handleDocumentPointer.bind(this);
       this.handleKeydown = this.handleKeydown.bind(this);
+      this.handleViewportChange = this.handleViewportChange.bind(this);
       this.refreshContext = this.refreshContext.bind(this);
 
       this.element = document.createElement("nav");
@@ -457,6 +459,9 @@
       this.element.addEventListener("pointerout", this.handlePointerOut);
       document.addEventListener("pointerdown", this.handleDocumentPointer);
       document.addEventListener("keydown", this.handleKeydown);
+      window.addEventListener("resize", this.handleViewportChange, { passive: true });
+      window.visualViewport?.addEventListener("resize", this.handleViewportChange, { passive: true });
+      window.visualViewport?.addEventListener("scroll", this.handleViewportChange, { passive: true });
       this.contextObserver = new MutationObserver(() =>
         requestAnimationFrame(this.refreshContext),
       );
@@ -490,6 +495,7 @@
 
       const list = document.createElement("div");
       list.className = "editra-menu-list";
+      list.dataset.editraUi = "true";
       list.setAttribute("role", "menu");
       list.hidden = true;
 
@@ -532,7 +538,10 @@
     }
 
     handlePointerDown(event) {
-      if (event.target.closest("button")) event.preventDefault();
+      if (event.target.closest("button")) {
+        this.core.captureSelection();
+        event.preventDefault();
+      }
     }
 
     controlFor(item) {
@@ -544,7 +553,7 @@
 
     handlePointerOver(event) {
       const item = event.target.closest(".editra-menu-item.has-submenu");
-      if (!item || !this.element.contains(item) || !this.openMenu) return;
+      if (!item || !this.openMenuList?.contains(item) || !this.openMenu) return;
       if (item.contains(event.relatedTarget)) return;
       const control = this.controlFor(item);
       if (control?.type === "select" || control?.type === "color") {
@@ -579,7 +588,10 @@
       }
 
       const item = event.target.closest("[data-command]");
-      if (!item || !this.element.contains(item)) return;
+      if (
+        !item ||
+        (!this.element.contains(item) && !this.openMenuList?.contains(item))
+      ) return;
       const control = this.controlFor(item);
       if (control?.type === "select" || control?.type === "color") {
         this.openChooser(item, control, { focus: true });
@@ -594,6 +606,7 @@
       };
       this.closeMenus();
       const command = item.dataset.command;
+      this.core.restoreSelection();
       const result = this.core.executeCommand(
         command,
         HELP_COMMANDS.has(command) ||
@@ -618,11 +631,6 @@
 
     openChooser(item, control, options = {}) {
       if (this.chooserParent === item && this.chooser?.isConnected) return;
-      const rect = item.getBoundingClientRect();
-      const cardRect = this.card.getBoundingClientRect();
-      const menuHost = item.closest(".editra-menu");
-      const host = menuHost || this.card;
-      const hostRect = host.getBoundingClientRect();
       const command = item.dataset.command;
       this.closeChooser();
       const chooser = document.createElement("div");
@@ -632,7 +640,7 @@
       chooser.setAttribute("aria-label", control.label);
       chooser.dataset.parentCommand = command;
       item.setAttribute("aria-expanded", "true");
-      chooser.style.position = "absolute";
+      chooser.style.position = "fixed";
       chooser.style.right = "auto";
       const heading = document.createElement("header");
       heading.textContent = control.label;
@@ -680,7 +688,7 @@
         button.setAttribute("aria-pressed", String(selected));
         choices.append(button);
       });
-      if (!menuHost) chooser.append(heading);
+      chooser.append(heading);
       chooser.append(choices);
       if (control.type === "color") {
         const advanced = document.createElement("label");
@@ -706,30 +714,10 @@
         chooser._editraAdvanced = { input: advancedInput, advancedChange };
         advancedInput.addEventListener("change", advancedChange);
       }
-      host.append(chooser);
-      const chooserWidth = Math.ceil(chooser.getBoundingClientRect().width);
-      if (menuHost) {
-        const opensRight = rect.right + chooserWidth + 6 <= innerWidth - 8;
-        chooser.style.left = `${
-          opensRight
-            ? rect.right - hostRect.left + 4
-            : rect.left - hostRect.left - chooserWidth - 4
-        }px`;
-        chooser.style.top = `${rect.top - hostRect.top}px`;
-      } else {
-        const preferredLeft = rect.right - cardRect.left + 4;
-        const placedLeft =
-          preferredLeft + chooserWidth <= cardRect.width
-            ? preferredLeft
-            : rect.left - cardRect.left - chooserWidth - 4;
-        chooser.style.left = `${Math.max(
-          8,
-          Math.min(placedLeft, cardRect.width - chooserWidth - 8),
-        )}px`;
-        chooser.style.top = `${Math.max(8, rect.top - cardRect.top)}px`;
-      }
+      document.body.append(chooser);
       this.chooser = chooser;
       this.chooserParent = item;
+      this.positionChooser();
       const choose = (event) => {
         const choice = event.target.closest("[data-menu-value]");
         if (!choice) return;
@@ -742,6 +730,41 @@
       if (options.focus) {
         choices.querySelector("button")?.focus({ preventScroll: true });
       }
+    }
+
+    positionChooser() {
+      if (!this.chooser?.isConnected || !this.chooserParent?.isConnected) return;
+      const viewport = window.visualViewport;
+      const viewportLeft = viewport?.offsetLeft ?? 0;
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const viewportWidth = viewport?.width ?? window.innerWidth;
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const margin = 8;
+      const gap = 6;
+      const parentRect = this.chooserParent.getBoundingClientRect();
+      const chooserRect = this.chooser.getBoundingClientRect();
+      const opensRight =
+        parentRect.right + gap + chooserRect.width <=
+        viewportLeft + viewportWidth - margin;
+      const preferredLeft = opensRight
+        ? parentRect.right + gap
+        : parentRect.left - chooserRect.width - gap;
+      const left = Math.max(
+        viewportLeft + margin,
+        Math.min(
+          preferredLeft,
+          viewportLeft + viewportWidth - chooserRect.width - margin,
+        ),
+      );
+      const top = Math.max(
+        viewportTop + margin,
+        Math.min(
+          parentRect.top,
+          viewportTop + viewportHeight - chooserRect.height - margin,
+        ),
+      );
+      this.chooser.style.left = `${Math.round(left)}px`;
+      this.chooser.style.top = `${Math.round(top)}px`;
     }
 
     closeChooser() {
@@ -767,10 +790,17 @@
 
       const trigger = menu.querySelector(".editra-menu-trigger");
       const list = menu.querySelector(".editra-menu-list");
+      list.addEventListener("click", this.handleClick);
+      list.addEventListener("mousedown", this.handlePointerDown);
+      list.addEventListener("pointerover", this.handlePointerOver);
+      list.addEventListener("pointerout", this.handlePointerOut);
+      document.body.append(list);
       list.hidden = false;
       trigger.setAttribute("aria-expanded", "true");
       menu.classList.add("is-open");
       this.openMenu = menu;
+      this.openMenuList = list;
+      this.positionOpenMenu();
       this.core.notifyUI("menuToggle", {
         visible: true,
         menu: menu.querySelector(".editra-menu-trigger").textContent,
@@ -778,15 +808,84 @@
       });
     }
 
+    positionOpenMenu() {
+      if (!this.openMenu) return;
+      const trigger = this.openMenu.querySelector(".editra-menu-trigger");
+      const list = this.openMenuList;
+      if (!trigger || !list || list.hidden) return;
+      const viewport = window.visualViewport;
+      const viewportLeft = viewport?.offsetLeft ?? 0;
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const viewportWidth = viewport?.width ?? window.innerWidth;
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const margin = 8;
+      const compact = window.matchMedia(
+        "(max-width: 720px), (pointer: coarse) and (max-width: 960px)",
+      ).matches;
+      const triggerRect = trigger.getBoundingClientRect();
+
+      list.style.position = "fixed";
+      list.style.right = "auto";
+      list.style.width = compact
+        ? `${Math.max(0, viewportWidth - margin * 2)}px`
+        : "max-content";
+      list.style.maxWidth = `${Math.max(0, viewportWidth - margin * 2)}px`;
+      const availableBelow =
+        viewportTop + viewportHeight - triggerRect.bottom - margin;
+      const availableAbove = triggerRect.top - viewportTop - margin;
+      list.style.maxHeight = `${Math.min(
+        520,
+        Math.max(160, Math.max(availableBelow, availableAbove)),
+      )}px`;
+      const listRect = list.getBoundingClientRect();
+      const left = compact
+        ? viewportLeft + margin
+        : Math.max(
+            viewportLeft + margin,
+            Math.min(
+              triggerRect.left,
+              viewportLeft + viewportWidth - listRect.width - margin,
+            ),
+          );
+      const openBelow =
+        availableBelow >= Math.min(listRect.height, 260) ||
+        availableBelow >= availableAbove;
+      const top = openBelow
+        ? triggerRect.bottom + 4
+        : Math.max(viewportTop + margin, triggerRect.top - listRect.height - 4);
+      list.style.left = `${Math.round(left)}px`;
+      list.style.top = `${Math.round(top)}px`;
+    }
+
+    handleViewportChange() {
+      if (!this.openMenu && !this.chooser) return;
+      requestAnimationFrame(() => {
+        this.positionOpenMenu();
+        this.positionChooser();
+      });
+    }
+
     closeMenus() {
       if (!this.openMenu) return;
       this.closeChooser();
-      this.openMenu.querySelector(".editra-menu-list").hidden = true;
+      const list = this.openMenuList;
+      if (list) {
+        list.hidden = true;
+        list.removeEventListener("click", this.handleClick);
+        list.removeEventListener("mousedown", this.handlePointerDown);
+        list.removeEventListener("pointerover", this.handlePointerOver);
+        list.removeEventListener("pointerout", this.handlePointerOut);
+        for (const property of [
+          "position", "right", "width", "maxWidth", "maxHeight", "left", "top",
+        ]) list.style[property] = "";
+        this.openMenu.append(list);
+      }
       this.openMenu
         .querySelector(".editra-menu-trigger")
         .setAttribute("aria-expanded", "false");
       this.openMenu.classList.remove("is-open");
       this.openMenu = null;
+      this.openMenuList = null;
       this.core.notifyUI("menuToggle", {
         visible: false,
         reason: "user",
@@ -814,6 +913,7 @@
     handleDocumentPointer(event) {
       if (
         !this.element.contains(event.target) &&
+        !this.openMenuList?.contains(event.target) &&
         !this.chooser?.contains(event.target)
       ) {
         this.closeMenus();
@@ -830,7 +930,7 @@
       if (!this.openMenu) return;
 
       const items = [
-        ...this.openMenu.querySelectorAll(".editra-menu-item"),
+        ...(this.openMenuList?.querySelectorAll(".editra-menu-item") ?? []),
       ];
       const currentIndex = items.indexOf(document.activeElement);
       if (event.key === "ArrowDown") {
@@ -850,6 +950,10 @@
           list.dataset.editraThemeMode = mode;
           list.style.colorScheme = mode;
         });
+      if (this.openMenuList) {
+        this.openMenuList.dataset.editraThemeMode = mode;
+        this.openMenuList.style.colorScheme = mode;
+      }
       if (this.chooser) {
         this.chooser.dataset.editraThemeMode = mode;
         this.chooser.style.colorScheme = mode;
@@ -871,6 +975,9 @@
       this.element.removeEventListener("pointerout", this.handlePointerOut);
       document.removeEventListener("pointerdown", this.handleDocumentPointer);
       document.removeEventListener("keydown", this.handleKeydown);
+      window.removeEventListener("resize", this.handleViewportChange);
+      window.visualViewport?.removeEventListener("resize", this.handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", this.handleViewportChange);
       this.contextObserver?.disconnect();
       this.element.remove();
     }

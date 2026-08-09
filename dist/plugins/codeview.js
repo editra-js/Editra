@@ -66,6 +66,7 @@
       sanitized,
       "HTML source view",
     );
+    core.security.restoreDeferredStyles(core.editor);
     if (record) core.recordHistory();
     core.scheduleUpdate("codeview-change", () => {
       core.emitChange();
@@ -122,8 +123,10 @@
       const signature = `${state.sourceVersion}:${start}:${end}`;
       if (signature !== state.highlightSignature) {
         const prefix = virtual ? "\n".repeat(start) : "";
-        state.highlight.innerHTML =
-          prefix + highlightHTML(state.sourceLines.slice(start, end).join("\n"));
+        state.highlight.innerHTML = core.security.trustedUIHTML(
+          prefix + highlightHTML(state.sourceLines.slice(start, end).join("\n")),
+          "source highlighting",
+        );
         state.highlightSignature = signature;
       }
       syncScroll(state);
@@ -213,8 +216,10 @@
     wrapper.dataset.editraUi = "true";
     wrapper.setAttribute("aria-label", "HTML source editor");
     const header = document.createElement("header");
-    header.innerHTML =
-      '<span class="editra-code-language">HTML</span><span>Source</span>';
+    header.innerHTML = core.security.trustedUIHTML(
+      '<span class="editra-code-language">HTML</span><span>Source</span>',
+      "source header",
+    );
     const body = document.createElement("div");
     body.className = "editra-code-editor-body";
     const gutter = document.createElement("div");

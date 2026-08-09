@@ -18,8 +18,8 @@ checks below.
 Publish assets below an immutable semantic-version directory:
 
 ```text
-https://cdn.editra.in/v1.0.0/dist/editra.min.js
-https://cdn.editra.in/v1.0.0/themes/word.min.css
+https://cdn.editra.in/v1.1.1/dist/editra.min.js
+https://cdn.editra.in/v1.1.1/themes/word.min.css
 ```
 
 Applications should pin a full version. A mutable alias such as `/latest/` may

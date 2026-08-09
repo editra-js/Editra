@@ -102,6 +102,7 @@
           resolveDefinition(header, index + 1, pageCount),
           "header preview",
         );
+        core.security.restoreDeferredStyles(preview);
         guide.append(preview);
       }
       if (footer) {
@@ -111,6 +112,7 @@
           resolveDefinition(footer, index + 1, pageCount),
           "footer preview",
         );
+        core.security.restoreDeferredStyles(preview);
         guide.append(preview);
       }
     });
@@ -140,6 +142,7 @@
       definition.template,
       `${part} content`,
     );
+    core.security.restoreDeferredStyles(source);
     core.state[part] = { ...definition };
     core.recordHistory();
     core.scheduleUpdate("header-footer", () => {

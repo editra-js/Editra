@@ -68,7 +68,7 @@
       clone.querySelectorAll("th,td").forEach((item) => {
         item.removeAttribute("rowspan");
         item.removeAttribute("colspan");
-        item.innerHTML = "<br>";
+        item.replaceChildren(document.createElement("br"));
       });
       row.parentElement.append(clone);
       focusCell(core, clone.querySelector("th,td"));

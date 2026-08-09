@@ -1,0 +1,45 @@
+name: Release security evidence
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run security:release-check
+      - run: npm pack --cache ./.npm-cache
+      - run: node tools/collect-release-evidence.js
+      - run: sha256sum editra-js-*.tgz > artifacts/package.sha256
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: editra-js-*.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: editra-security-evidence-${{ github.ref_name }}
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            editra-js-*.tgz
+            artifacts/editra-sbom.cdx.json
+            artifacts/security-assurance.json
+            artifacts/release-evidence.json
+            artifacts/package.sha256
+            plugins/runtime-integrity.json

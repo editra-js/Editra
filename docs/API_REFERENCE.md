@@ -1,6 +1,6 @@
 ﻿# Editra API Reference
 
-Version 1.0.0
+Version 1.1.1
 
 ## Pagination
 
@@ -64,8 +64,8 @@ named plugins plus required system plugins.
 Layout themes are selected during initialization:
 
 ```js
-Editra.init({ selector: "#document-editor", theme: "Word" });
-Editra.init({ selector: "#message-editor", theme: "Classic" });
+await Editra.init({ selector: "#document-editor", theme: "Word" });
+await Editra.init({ selector: "#message-editor", theme: "Classic" });
 ```
 
 `Word` provides a page-like Word-processing surface with automatic page
@@ -95,6 +95,12 @@ breaks remain available.
 | `header` / `footer` | string/object | none | Repeated page content |
 | `printContentOnly` | boolean | `false` | Crop print output to content |
 | `sanitizePaste` | boolean | `true` | Sanitize pasted HTML; enterprise security cannot be bypassed through this flag |
+| `regulated` | boolean | `false` | Enable the locked regulated security profile |
+| `security.profile` | `standard`/`regulated` | `standard` | Named security profile; `regulated` is equivalent to `regulated: true` |
+| `security.pluginIntegrity` | object | `{}` | SHA-256 SRI map keyed by runtime-relative asset path; mandatory in regulated mode |
+| `security.allowedUrlOrigins` | string[] | `[]` | External content/link origins explicitly approved in regulated mode |
+| `security.allowedConnectionOrigins` | string[] | `[]` | External WebSocket origins explicitly approved in regulated mode |
+| `security.allowedExternalProtocols` | string[] | `[]` | Optional `mailto:`/`tel:` protocols approved in regulated mode |
 | `historyLimit` | number | `100` | Maximum undo snapshots |
 
 ## Content methods
@@ -110,7 +116,7 @@ breaks remain available.
 | `destroy()` | Remove listeners, observers, UI, and object URLs |
 | `sanitizeHTML(html)` | Sanitize untrusted HTML with the active enterprise policy |
 | `secureRequest(url, options)` | Make an origin-checked request with CSRF enforcement |
-| `installCommunityPlugin(manifest)` | Validate and install a sandboxed community plugin |
+| `installCommunityPlugin(manifest)` | Validate and install a sandboxed community plugin; unavailable in regulated mode |
 | `uninstallCommunityPlugin(id)` | Remove a community plugin iframe and capabilities |
 | `getInstalledCommunityPlugins()` | Return frozen validated manifest data |
 | `checkCommunityPluginUpdates(url)` | Compare installed versions with a registry |
@@ -218,7 +224,7 @@ Toolbar icons are served as same-origin SVG images from `assets/icons/`.
 Use `iconBaseUrl` when Editra's assets are hosted at a custom path:
 
 ```js
-Editra.init({
+await Editra.init({
   selector: "#editra-editor",
   iconBaseUrl: "/static/editra/icons/"
 });
@@ -236,3 +242,14 @@ const pdf = await editor.executeCommand("exportPDF", {
   returnHTML: true
 });
 ```
+## Isolated iframe mode
+
+Set `isolation: "iframe"` and an `isolationUrl` to receive an asynchronous editor proxy instead of an in-document editor instance. Regulated mode requires the frame to use a separate origin. The proxy exposes asynchronous `getCode`, `getHTML`, `getText`, `getState`, `getJSON`, `validateJSON`, `setCode`, `setHTML`, `setJSON`, `focus`, `executeCommand`, and `destroy` operations. Deployment and sandbox requirements are documented in [SECURITY.md](./SECURITY.md#separate-origin-isolation).
+
+## Structured document methods
+
+- `getJSON()` returns the deterministic Editra document model.
+- `validateJSON(value)` returns `{ valid, errors }` without changing content.
+- `setJSON(value)` validates, sanitizes, and replaces the current content; invalid documents throw `TypeError`.
+
+The root schema identity is `https://editra.in/schema/document/v1`, version `1.0.0`. Unknown node types, unsupported elements and attributes, excessive depth, excessive nodes, and oversized text are rejected. JSON imports pass through the same stable sanitizer as HTML imports. See [EDITRA-DOCUMENT-SCHEMA.json](./EDITRA-DOCUMENT-SCHEMA.json).

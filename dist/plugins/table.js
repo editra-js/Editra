@@ -726,7 +726,7 @@
     const menu = document.createElement("div");
     menu.className = "editra-table-context-menu";
     menu.setAttribute("role", "menu");
-    menu.innerHTML = `
+    menu.innerHTML = core.security.trustedUIHTML(`
       <div class="editra-table-context-title">Table cell</div>
       <div class="editra-table-context-grid">
         <button data-table-command="mergeCells" data-direction="horizontal">Merge right</button>
@@ -759,7 +759,7 @@
         <label>Row <input type="color" value="#e8f0ff" data-color-scope="row"></label>
         <label>Column <input type="color" value="#f2eaff" data-color-scope="column"></label>
       </div>
-    `;
+    `, "table context menu");
     document.body.append(menu);
     const rect = menu.getBoundingClientRect();
     menu.style.left = `${Math.max(8, Math.min(x, innerWidth - rect.width - 8))}px`;

@@ -12,7 +12,7 @@ list. The recommended modular pattern with a Word-theme `<div>` is:
 <div id="editor"></div>
 <script src="/editra/dist/editra-core.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#editor",
     theme: "Word",
     plugins: ["formatting", "table", "image"]
@@ -27,7 +27,7 @@ The optional single-bundle pattern with a Classic-theme `<textarea>` is:
 <textarea id="editor"></textarea>
 <script src="/editra/dist/editra.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#editor",
     theme: "Classic",
     plugins: ["formatting", "table"]
@@ -52,7 +52,7 @@ for normal form submission. This is the Word theme with modular loading:
 <textarea id="editor"></textarea>
 <script src="/editra/dist/editra-core.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#editor",
     theme: "Word",
     plugins: ["formatting", "table", "image"]
@@ -67,7 +67,7 @@ This is the Classic theme with the established single-bundle entry:
 <textarea id="editor"></textarea>
 <script src="/editra/dist/editra.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#editor",
     theme: "Classic",
     plugins: ["formatting", "table"]

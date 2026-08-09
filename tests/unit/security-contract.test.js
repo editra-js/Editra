@@ -11,9 +11,11 @@ const core = read("core/editor.js");
 const paste = read("plugins/paste.js");
 const exportPlugin = read("plugins/export.js");
 const ecosystem = read("plugins/ecosystem.js");
+const collaboration = read("plugins/collaboration.js");
 const toolbar = read("ui/toolbar.js");
 const server = read("serve.js");
 const packageMetadata = JSON.parse(read("package.json"));
+const runtimeIntegrity = JSON.parse(read("plugins/runtime-integrity.json"));
 
 for (const token of [
   "DOMPurify",
@@ -26,14 +28,23 @@ for (const token of [
   "allowedPluginOrigins",
   "requirePluginIntegrity",
   "requireCommunityPluginIntegrity",
+  "allowCommunityPlugins",
+  "allowedUrlOrigins",
+  "allowedConnectionOrigins",
+  "regulated-profile-lock",
+  "validateWebSocketURL",
+  "trustedUIHTML",
+  "MAX_SANITIZER_PASSES",
   "csrfToken",
   "editra:security-violation",
 ]) {
   assert.ok(security.includes(token), `Missing security control: ${token}`);
 }
 
-assert.ok(core.includes('loadScript("vendor/purify.min.js")'));
-assert.ok(core.includes('loadScript("core/security.js")'));
+assert.ok(core.includes('loadScript("vendor/purify.min.js",'));
+assert.ok(core.includes('loadScript("core/security.js",'));
+assert.ok(core.includes("regulatedRequested"));
+assert.ok(core.includes("cachedRuntimeAsset"));
 assert.ok(security.includes("parseXML(value)"));
 assert.ok(security.includes("inspectHTMLImport(value)"));
 assert.ok(core.includes("this.security.trustedHTML"));
@@ -44,6 +55,8 @@ assert.ok(ecosystem.includes('frame.sandbox = "allow-scripts"'));
 assert.ok(ecosystem.includes("allowedPluginOrigins"));
 assert.ok(ecosystem.includes("crypto.subtle.digest"));
 assert.ok(ecosystem.includes("CAPABILITIES"));
+assert.ok(ecosystem.includes("allowCommunityPlugins"));
+assert.ok(collaboration.includes("validateWebSocketURL"));
 assert.ok(!ecosystem.includes("allow-same-origin"));
 assert.ok(!exportPlugin.includes("frameDocument.write"));
 assert.ok(toolbar.includes("../assets/icons/"));
@@ -61,6 +74,22 @@ assert.equal(
 );
 assert.equal(packageMetadata.devDependencies.webpack, "5.109.0");
 assert.equal(packageMetadata.devDependencies["webpack-cli"], "6.0.1");
+assert.equal(runtimeIntegrity.schemaVersion, "1.0.0");
+assert.equal(runtimeIntegrity.algorithm, "sha256");
+for (const asset of [
+  "core/editor.js",
+  "core/security.js",
+  "plugins/ecosystem.js",
+  "plugins/paste.js",
+  "ui/toolbar.js",
+  "vendor/purify.min.js",
+]) {
+  assert.match(
+    runtimeIntegrity.integrity[asset],
+    /^sha256-[A-Za-z0-9+/]+={0,2}$/,
+    `Missing regulated runtime integrity for ${asset}`,
+  );
+}
 
 for (const icon of [
   "bold.svg",
@@ -123,6 +152,13 @@ for (const file of executableFiles) {
   assert.ok(!/\beval\s*\(/.test(source), `${file} uses eval`);
   assert.ok(!/\bnew\s+Function\s*\(/.test(source), `${file} uses new Function`);
   assert.ok(!/document\.write\s*\(/.test(source), `${file} uses document.write`);
+  source.split(/\r?\n/).forEach((line, index) => {
+    if (!line.includes("innerHTML =")) return;
+    assert.ok(
+      line.includes("trustedHTML") || line.includes("trustedUIHTML"),
+      `${file}:${index + 1} assigns innerHTML outside a Trusted Types boundary`,
+    );
+  });
 }
 
 console.log("Enterprise security contract passed.");

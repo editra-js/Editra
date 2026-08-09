@@ -34,4 +34,8 @@ fs.copyFileSync(
   path.join(root, "core", "security.js"),
   path.join(dist, "core", "security.js"),
 );
-console.log("Built modular Editra core, plugin, UI, security, and asset distribution.");
+fs.copyFileSync(
+  path.join(root, "core", "document-schema.js"),
+  path.join(dist, "core", "document-schema.js"),
+);
+console.log("Built modular Editra core, plugin, UI, security, schema, and asset distribution.");

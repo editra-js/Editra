@@ -38,7 +38,7 @@
     dialog.className = "editra-media-dialog";
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-label", "Insert image");
-    dialog.innerHTML = `
+    dialog.innerHTML = core.security.trustedUIHTML(`
       <div class="editra-dialog-heading">Insert image</div>
       <label class="editra-file-button">
         <span>Choose from device</span>
@@ -49,7 +49,7 @@
         <input type="text" inputmode="url" placeholder="https://example.com/image.jpg" aria-label="Image URL" required />
         <button type="submit">Insert</button>
       </form>
-    `;
+    `, "image dialog");
     document.body.append(dialog);
 
     const trigger = core.toolbar.getButton("image");

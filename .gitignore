@@ -17,3 +17,6 @@ Thumbs.db
 .openai/
 playwright-report/
 test-results/
+artifacts/security-assurance.json
+artifacts/release-evidence.json
+artifacts/package.sha256

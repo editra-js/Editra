@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document is a technical control mapping for Editra 1.0.0. It is not a certification. Compliance belongs to the complete deployed application, including identity, APIs, storage, infrastructure, monitoring, policies, and operating procedures.
+This document is a technical control mapping for Editra 1.1.1. It is not a certification. Compliance belongs to the complete deployed application, including identity, APIs, storage, infrastructure, monitoring, policies, and operating procedures.
 
 ## OWASP mapping
 
@@ -69,3 +69,39 @@ Editra has no analytics, tracking pixel, cloud upload, or automatic draft persis
 - `tests/playwright/enterprise.spec.js`: Chromium/Firefox/WebKit matrix.
 - `.github/workflows/security.yml`: audits, dependency review, CodeQL, browser matrix, build, and package inspection.
 - `docs/PERFORMANCE.md`: benchmark procedure, budgets, and results.
+
+## Financial-services readiness
+
+Status legend: **Implemented** means repository evidence exists, **Adopter** means the integrating organization must operate the control, and **External** requires independent assurance. This mapping is readiness guidance, not a PCI DSS validation, SOC 2 report, legal opinion, or central-bank certification.
+
+### PCI DSS v4.0.1
+
+| Area | Status | Editra contribution | Remaining responsibility |
+|---|---|---|---|
+| Requirement 6 secure development and vulnerability management | Implemented + Adopter | Threat-based security architecture, locked dependencies, SBOM, VDP, automated tests and release gates | Operate secure-SDLC policy, training, reviews, patch deployment, inventory and evidence retention |
+| Public web/payment-page application protection | Adopter | CSP, SRI and script-origin controls support the host | Deploy required public-facing protection; authorize, inventory and integrity-monitor every payment-page script |
+| Requirement 11 testing/change detection | External + Adopter | Cross-browser adversarial regression suite and immutable artifact evidence | Commission independent penetration testing and retesting; monitor deployed page/header/script changes |
+| Requirement 12 incident and third-party governance | Implemented + Adopter | Public VDP, SBOM and response/release process | Integrate enterprise incident contacts, exercises, acquirer/QSA/regulator notification and vendor oversight |
+
+PCI scope depends on whether the deployed environment stores, processes, or transmits payment account data and must be confirmed with the adopting organization's QSA. Authoritative references: [PCI SSC standards](https://www.pcisecuritystandards.org/standards/), [document library](https://www.pcisecuritystandards.org/document_library/), and [Secure Software Standard](https://www.pcisecuritystandards.org/standards/secure-software/).
+
+### SOC 2
+
+| Trust Services area | Status | Editra contribution | Organization-level gap |
+|---|---|---|---|
+| Logical/technical access | Implemented + Adopter | Least-capability iframe API, exact origins, CSP and SRI | Identity, privileged access, secrets, infrastructure and access reviews |
+| Detection and response | Implemented + Adopter | Security callbacks, automated gates and VDP | Central monitoring, alert ownership, incident operation and retained evidence |
+| Change management and vendor risk | Implemented + Adopter | Lockfile, dependency review, SBOM and provenance workflow | Enforce approvals, segregation, protected repository settings, deployments and vendor governance |
+| Availability, confidentiality and processing integrity | Adopter + External | Isolation and content-integrity controls contribute | Define the service boundary/commitments, operate controls over time and obtain an independent CPA examination |
+
+The AICPA Trust Services Criteria address security, availability, processing integrity, confidentiality and privacy. A SOC 2 Type II conclusion requires an authorized independent examination over an operating period. References: [AICPA Trust Services Criteria](https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022) and [SOC suite](https://www.aicpa-cima.com/soc).
+
+### Regional central-bank requirements
+
+No jurisdiction, regulated-entity type, hosting model or outsourcing classification has been specified. The adopter must select the exact current regulator/circular and map secure SDLC, outsourcing, data localization, cryptography, logging/SOC, incident notification, continuity, vulnerability testing, audit access and retention. Editra cannot claim central-bank compliance without that mapping and operational evidence.
+
+## Independent assurance and residual risk
+
+Editra has not undergone an independent third-party penetration audit and has no SOC 2, ISO 27001, PCI DSS AOC/ROC, PCI Secure Software listing, or central-bank approval. Before a regulated production decision, commission an assessor to cover mXSS/parser differentials, CSP/Trusted Types bypass, iframe/message escape, plugin and supply-chain tampering, JSON/schema confusion, malicious imports/resource exhaustion, and host authorization/storage/output boundaries; remediate and retest findings.
+
+Residual risks include browser or sanitizer zero-days, compromised host JavaScript, unsafe server-side reuse, malicious dependencies/plugins, malformed or oversized imports, client-telemetry suppression, editable DOCX/HTML fidelity differences and regulator-scope interpretation. The adopter must assign owners, compensating controls, acceptance dates and approval authority for each applicable risk.

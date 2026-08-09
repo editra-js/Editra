@@ -109,7 +109,7 @@
     overlay.dataset.editraUi = "true";
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-label", "Find and replace");
-    overlay.innerHTML = `
+    overlay.innerHTML = core.security.trustedUIHTML(`
       <div class="editra-productivity-heading">
         <span>Find &amp; Replace</span>
         <button type="button" data-find-action="close" aria-label="Close">×</button>
@@ -130,7 +130,7 @@
         <button type="button" data-find-action="all">Replace all</button>
       </div>
       <div class="editra-find-status" aria-live="polite">Ready</div>
-    `;
+    `, "find and replace dialog");
     core.toolbar.card.append(overlay);
 
     const findInput = overlay.querySelector("[data-find-input]");
@@ -353,7 +353,7 @@
     overlay.dataset.editraUi = "true";
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-label", "Insert merge field");
-    overlay.innerHTML = `
+    overlay.innerHTML = core.security.trustedUIHTML(`
       <div class="editra-productivity-heading">
         <span>Insert merge field</span>
         <button type="button" data-merge-close aria-label="Close">×</button>
@@ -368,7 +368,7 @@
         <input type="text" placeholder="Custom field name" aria-label="Custom field name" required>
         <button type="submit">Insert</button>
       </form>
-    `;
+    `, "merge field dialog");
     core.toolbar.card.append(overlay);
     const form = overlay.querySelector("form");
     const input = form.querySelector("input");
@@ -895,6 +895,7 @@
     const { host, shadow } = createImportSandbox();
     const body = document.createElement("body");
     body.innerHTML = core.security.trustedHTML(cleanBody, "HTML import sandbox");
+    core.security.restoreDeferredStyles(body);
     shadow.append(body);
     try {
       return await flattenRenderedDocument(core, body, cssTexts, "html");
@@ -2011,6 +2012,7 @@
           header.style.left = twips(page.layout.marginLeft);
           header.style.right = twips(page.layout.marginRight);
           header.innerHTML = core.security.trustedHTML(page.header, "DOCX header");
+          core.security.restoreDeferredStyles(header);
           section.append(header);
         }
         const article = document.createElement("article");
@@ -2025,6 +2027,7 @@
           footer.style.left = twips(page.layout.marginLeft);
           footer.style.right = twips(page.layout.marginRight);
           footer.innerHTML = core.security.trustedHTML(page.footer, "DOCX footer");
+          core.security.restoreDeferredStyles(footer);
           section.append(footer);
         }
         return section.outerHTML;
@@ -2091,11 +2094,14 @@
   async function productivityStressTest(core, options = {}) {
     const paragraphs = Math.max(1000, Number(options.paragraphs) || 10000);
     const container = document.createElement("div");
-    container.innerHTML = Array.from(
-      { length: paragraphs },
-      (_, index) =>
-        `<p>Productivity stress sample ${index + 1}: Name and Date fields.</p>`,
-    ).join("");
+    container.innerHTML = core.security.trustedUIHTML(
+      Array.from(
+        { length: paragraphs },
+        (_, index) =>
+          `<p>Productivity stress sample ${index + 1}: Name and Date fields.</p>`,
+      ).join(""),
+      "productivity stress fixture",
+    );
     const startedAt = performance.now();
     const matches = await collectMatches(container, "Name", {
       caseSensitive: true,

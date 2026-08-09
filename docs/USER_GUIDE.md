@@ -1,6 +1,6 @@
 # Editra User Guide
 
-Version 1.0.0
+Version 1.1.1
 
 ## Installation
 
@@ -48,10 +48,10 @@ The currently published GitHub-backed jsDelivr build is:
 ```html
 <div id="editra-editor"></div>
 <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/themes/word.css">
-<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js"></script>
+      href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.1.1/themes/word.css">
+<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.1.1/dist/editra.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#editra-editor",
     theme: "Word"
   });
@@ -66,7 +66,7 @@ After this package is published under the `editra-js` name, jsDelivr usage is:
       href="https://cdn.jsdelivr.net/npm/editra-js/themes/word.css">
 <script src="https://cdn.jsdelivr.net/npm/editra-js/dist/editra.min.js"></script>
 <script>
-  Editra.init({
+  await Editra.init({
     selector: "#editra-editor",
     theme: "Word"
   });
@@ -81,7 +81,7 @@ The equivalent unpkg links are:
 <script src="https://unpkg.com/editra-js/dist/editra.min.js"></script>
 ```
 
-Both npm CDNs must serve the complete release treeâ€”`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra@1.0.0/` instead of `/editra/` when deterministic production builds are required.
+Both npm CDNs must serve the complete release treeâ€”`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra-js@1.1.1/` instead of `/editra/` when deterministic production builds are required.
 
 ### Local files
 
@@ -97,7 +97,7 @@ Copy `core/`, `plugins/`, `ui/`, and `themes/` into the same web project. Add on
 <link rel="stylesheet" href="./themes/word.css">
 <script src="./core/editor.js"></script>
 <script>
-  Editra.init({ selector: "#editra-editor", theme: "Word" });
+  await Editra.init({ selector: "#editra-editor", theme: "Word" });
 </script>
 ```
 
@@ -150,8 +150,8 @@ Runnable examples:
 - [Plugin marketplace](../examples/plugin-marketplace.html)
 
 ```js
-Editra.init({ selector: "#document-editor", theme: "Word" });
-Editra.init({ selector: "#message-editor", theme: "Classic" });
+await Editra.init({ selector: "#document-editor", theme: "Word" });
+await Editra.init({ selector: "#message-editor", theme: "Classic" });
 ```
 
 Both existing div hosts and textarea form controls work without a separate
@@ -471,7 +471,7 @@ a clear explanation and direct documentation links. See the
 ## Feature configuration examples
 
 ```js
-Editra.init({
+await Editra.init({
   selector: "#editra-editor",
   pageSize: "A4",
   orientation: "portrait",

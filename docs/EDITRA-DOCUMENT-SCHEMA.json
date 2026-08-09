@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://editra.in/schema/document/v1",
+  "title": "Editra structured document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "type", "content"],
+  "properties": {
+    "schema": { "const": "https://editra.in/schema/document/v1" },
+    "version": { "const": "1.0.0" },
+    "type": { "const": "document" },
+    "content": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    }
+  },
+  "$defs": {
+    "node": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "text"],
+          "properties": {
+            "type": { "const": "text" },
+            "text": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "tag", "content"],
+          "properties": {
+            "type": { "const": "element" },
+            "tag": { "type": "string", "minLength": 1 },
+            "namespace": { "const": "svg" },
+            "attributes": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "content": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/node" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

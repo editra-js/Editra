@@ -7,6 +7,7 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "../..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const metadata = JSON.parse(read("package.json"));
+const lockMetadata = JSON.parse(read("package-lock.json"));
 const version = read("version.prop").match(/^version=(.+)$/m)?.[1]?.trim();
 const theme = read("ui/theme-word.css");
 const documentTheme = read("themes/word.css");
@@ -27,10 +28,13 @@ const tablePlugin = read("plugins/table.js");
 const exportPlugin = read("plugins/export.js");
 const productivityPlugin = read("plugins/productivity.js");
 const menubar = read("ui/menubar.js");
+const toolbar = read("ui/toolbar.js");
 const registry = JSON.parse(read("plugins/registry.json"));
 
 assert.equal(metadata.name, "editra-js");
 assert.equal(metadata.version, version);
+assert.equal(lockMetadata.version, version);
+assert.equal(lockMetadata.packages[""].version, version);
 assert.equal(metadata.description, "Word-style WYSIWYG Editor for the Web");
 assert.equal(metadata.license, "MIT");
 assert.equal(metadata.main, "index.js");
@@ -41,6 +45,7 @@ assert.equal(
 );
 assert.equal(metadata.author, "Editra Team");
 assert.equal(metadata.homepage, "https://editra.in");
+assert(guide.includes(`Editra@v${version}`));
 assert.deepEqual(metadata.keywords, [
   "wysiwyg",
   "editor",
@@ -57,10 +62,27 @@ assert(metadata.exports["./themes/classic.css"]);
 assert(metadata.exports["./dist/editra-core.js"]);
 assert(metadata.exports["./dist/editra-core.css"]);
 assert.equal(registry.schemaVersion, "1.0.0");
+for (const token of [
+  "positionOpenMenu",
+  "positionChooser",
+  "visualViewport",
+  'list.style.position = "fixed"',
+  "captureSelection()",
+  "restoreSelection()",
+]) {
+  assert(menubar.includes(token), `Menubar interaction contract missing ${token}`);
+}
+for (const token of ["captureSelection()", "restoreSelection()"] ) {
+  assert(toolbar.includes(token), `Toolbar selection contract missing ${token}`);
+}
+for (const token of ["safe-area-inset-left", "72dvh", "min-height: 44px"]) {
+  assert(wordTheme.includes(token), `Compact-device theme contract missing ${token}`);
+}
 assert(registry.plugins.some((plugin) => plugin.id === "spell-checker"));
 for (const asset of [
   "dist/editra-core.js",
   "dist/editra-core.css",
+  "dist/core/document-schema.js",
   "dist/plugins/formatting.js",
   "dist/plugins/formatting.css",
   "dist/plugins/table.js",
@@ -101,7 +123,7 @@ assert(guide.includes("https://cdn.jsdelivr.net/npm/editra-js/dist/editra.min.js
 assert(guide.includes("https://unpkg.com/editra-js/dist/editra.min.js"));
 assert(
   guide.includes(
-    "https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.0/dist/editra.js",
+    `https://cdn.jsdelivr.net/gh/editra-js/Editra@v${version}/dist/editra.js`,
   ),
 );
 assert(guide.includes("https://cdn.editra.in"));

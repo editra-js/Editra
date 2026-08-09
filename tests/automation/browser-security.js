@@ -762,8 +762,19 @@ async function verifyRealObjectMovement(page, browserName) {
         const pageErrors = [];
         page.on("pageerror", (error) => pageErrors.push(error.message));
         page.on("requestfailed", (request) => {
+          const failure = request.failure()?.errorText || "failed";
+          if (
+            request.resourceType() === "media" &&
+            request.url().startsWith("blob:") &&
+            /ERR_(?:ABORTED|FILE_NOT_FOUND)/.test(failure)
+          ) {
+            // Synthetic media blobs are intentionally revoked during editor
+            // cleanup and page navigation. Edge reports that lifecycle as a
+            // failed request even though insertion and cleanup are asserted.
+            return;
+          }
           requestFailures.push(
-            `${request.resourceType()} ${request.url()}: ${request.failure()?.errorText || "failed"}`,
+            `${request.resourceType()} ${request.url()}: ${failure}`,
           );
         });
         page.on("response", (response) => {
