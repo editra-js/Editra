@@ -1,3 +1,8 @@
+/**
+ * Builds the editor toolbar from active plugin definitions.
+ * Selection is captured before toolbar interaction and restored before command
+ * execution so clicking a control does not lose the formatting target.
+ */
 (function (global) {
   "use strict";
 
@@ -46,6 +51,7 @@
     borderColor: "border-color.svg",
   });
 
+  /** Creates an accessible SVG icon from the shared icon definition. */
   function createIcon(core, name) {
     const image = document.createElement("img");
     const configuredBase = core.options.iconBaseUrl
@@ -61,6 +67,7 @@
   }
 
   class Toolbar {
+    /** Builds toolbar controls for one editor and the requested plugin layout. */
     constructor(core, plugins, layout) {
       this.core = core;
       this.plugins = plugins;
@@ -146,6 +153,7 @@
       });
     }
 
+    /** Creates one command button with label, icon, and shortcut metadata. */
     createButton(command, control) {
       const button = document.createElement("button");
       button.type = "button";
@@ -165,6 +173,7 @@
       return button;
     }
 
+    /** Creates a button, select, or color control from plugin metadata. */
     createControl(command, control) {
       if (control.type === "select") {
         const select = document.createElement("select");
@@ -216,6 +225,7 @@
       return this.createButton(command, control);
     }
 
+    /** Converts the toolbar layout string into controls and separators. */
     parseLayout(layout, available, defaultItems) {
       const fallback = `${defaultItems.join(" ")} | undo redo`;
       const source =
@@ -235,6 +245,7 @@
         .filter((group) => group.length);
     }
 
+    /** Returns metadata for a control implemented directly by the core. */
     coreControl(name) {
       return {
         undo: { label: "Undo", icon: "undo", shortcut: "z" },
@@ -242,6 +253,7 @@
       }[name];
     }
 
+    /** Formats a platform-appropriate keyboard shortcut for a tooltip. */
     shortcutLabel(key) {
       const modifier = /Mac|iPhone|iPad/.test(navigator.platform)
         ? "Cmd+"
@@ -249,6 +261,7 @@
       return `${modifier}${key.toUpperCase()}`;
     }
 
+    /** Saves selection before a pointer action moves focus into the toolbar. */
     preserveSelection(event) {
       const control = event.target.closest("[data-command]");
       if (!control || !this.element.contains(control)) return;
@@ -256,6 +269,7 @@
       if (control.closest("button[data-command]")) event.preventDefault();
     }
 
+    /** Resolves and executes a toolbar button command. */
     handleClick(event) {
       const control = event.target.closest("[data-command]");
       if (!control || !this.element.contains(control)) return;
@@ -282,6 +296,7 @@
       );
     }
 
+    /** Executes the command associated with a select or color input. */
     handleChange(event) {
       const control = event.target.closest("[data-command]");
       if (!control || !this.element.contains(control)) return;
@@ -289,6 +304,7 @@
       this.core.executeCommand(control.dataset.command, control.value);
     }
 
+    /** Synchronizes enabled, pressed, selected, and property UI with editor state. */
     update(state) {
       const stateKeyByCommand = {
         setFontFamily: "fontFamily",
@@ -368,6 +384,7 @@
       });
     }
 
+    /** Returns a toolbar button by command name. */
     getButton(name) {
       return (
         this.buttons.get(name) ||
@@ -375,10 +392,12 @@
       );
     }
 
+    /** Returns any toolbar control associated with a command. */
     getControl(command) {
       return this.controls.get(command) ?? null;
     }
 
+    /** Releases toolbar listeners and removes the generated editor card. */
     destroy() {
       this.element.removeEventListener("mousedown", this.preserveSelection);
       this.element.removeEventListener("click", this.handleClick);

@@ -1,3 +1,9 @@
+/**
+ * CommonJS and browser-compatible package entry for Editra.
+ *
+ * The entry stays small and loads the browser runtime only when needed. This
+ * preserves the modular source layout and supports self-hosted asset URLs.
+ */
 "use strict";
 
 const host =
@@ -59,6 +65,13 @@ function regulatedRuntime(config) {
   );
 }
 
+/**
+ * Loads the core browser runtime once and reuses it for later editor instances.
+ *
+ * @param {string|URL} [baseUrl] Base URL containing Editra runtime assets.
+ * @param {object|null} [config=null] Security options used while loading.
+ * @returns {Promise<object>} Runtime object exposing `init(config)`.
+ */
 function loadRuntime(baseUrl, config = null) {
   const regulated = regulatedRuntime(config);
   const expectedIntegrity = config?.security?.pluginIntegrity?.["core/editor.js"] || "";
@@ -200,6 +213,7 @@ function loadIsolation(baseUrl, config = null) {
   return isolationPromise;
 }
 
+/** Accepts both `init(config)` and `init(selector, options)` call styles. */
 function normalizeConfig(selector, options) {
   if (selector && typeof selector === "object" && options === undefined) {
     return { ...selector };
@@ -210,6 +224,13 @@ function normalizeConfig(selector, options) {
   };
 }
 
+/**
+ * Initializes a normal or iframe-isolated Editra instance.
+ *
+ * @param {string|HTMLElement|object} selector Host selector or full config.
+ * @param {object} [options] Options used with the selector call style.
+ * @returns {Promise<object>} Ready editor instance or isolation proxy.
+ */
 async function init(selector, options) {
   const config = normalizeConfig(selector, options);
   const baseUrl = config.baseUrl;

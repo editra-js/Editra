@@ -1,3 +1,10 @@
+/**
+ * Generates SHA-256 integrity values for runtime-loadable Editra assets.
+ *
+ * Regulated mode uses this manifest to reject missing or modified scripts and
+ * styles. Use `--check` in CI to verify the committed manifest without changing
+ * it.
+ */
 "use strict";
 
 const crypto = require("node:crypto");

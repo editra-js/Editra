@@ -1,3 +1,8 @@
+/**
+ * Generates Editra's CycloneDX software bill of materials from locked package
+ * metadata and bundled third-party assets. Regenerate the output with this tool
+ * instead of editing the release artifact by hand.
+ */
 "use strict";
 
 const fs = require("node:fs");

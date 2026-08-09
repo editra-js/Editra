@@ -1,3 +1,10 @@
+/**
+ * Security boundary for untrusted document content and external resources.
+ *
+ * The standard profile sanitizes HTML and validates URLs. Regulated mode adds
+ * stricter origin, integrity, size, rate, and request controls. Keep security
+ * checks centralized here so plugins cannot accidentally apply different rules.
+ */
 (function (global) {
   "use strict";
 
@@ -52,6 +59,7 @@
   const ESCAPING_LAYOUT_CSS = /position\s*:\s*(?:fixed|sticky)\b/i;
   const MAX_SANITIZER_PASSES = 4;
 
+  /** Converts configured origin values to unique, absolute origins. */
   function normalizedOrigins(values) {
     return Object.freeze(
       [...new Set(Array.isArray(values) ? values : [])].flatMap((value) => {
@@ -64,6 +72,7 @@
     );
   }
 
+  /** Reports whether either supported regulated-mode option was requested. */
   function regulatedProfile(options, supplied) {
     return (
       options.regulated === true ||
@@ -71,6 +80,7 @@
     );
   }
 
+  /** Returns the UTF-8 byte size used by all security limits. */
   function bytes(value) {
     const text = String(value ?? "");
     return typeof TextEncoder === "function"
@@ -78,6 +88,7 @@
       : new Blob([text]).size;
   }
 
+  /** Builds the immutable effective security configuration for an editor. */
   function normalizedSecurity(options = {}) {
     const supplied =
       options.security && typeof options.security === "object"
@@ -181,6 +192,7 @@
     });
   }
 
+  /** Creates the shared Trusted Types policy used for runtime script URLs. */
   function createLoaderPolicy() {
     if (!global.trustedTypes?.createPolicy) return null;
     try {
@@ -201,12 +213,14 @@
   const loaderPolicy =
     global[Symbol.for("editra.loaderPolicy")] || createLoaderPolicy();
 
+  /** Converts a validated runtime URL through the loader Trusted Types policy. */
   function trustedScriptURL(value) {
     return loaderPolicy?.createScriptURL
       ? loaderPolicy.createScriptURL(String(value))
       : String(value);
   }
 
+  /** Creates the per-editor TrustedHTML policy when the browser supports it. */
   function createDefaultTrustedTypesPolicy(config) {
     if (!config.trustedTypes || !global.trustedTypes?.createPolicy) return null;
     try {
@@ -236,7 +250,9 @@
     }
   }
 
+  /** Applies Editra's active security policy to one editor instance. */
   class EditraSecurity {
+    /** Creates and attaches the effective security policy for one editor. */
     constructor(core, options = {}) {
       if (!global.DOMPurify?.isSupported) {
         throw new Error(
@@ -280,6 +296,7 @@
       });
     }
 
+    /** Emits a frozen security violation to DOM and configuration listeners. */
     violation(type, message, detail = {}) {
       const payload = Object.freeze({
         type,
@@ -299,6 +316,14 @@
       return payload;
     }
 
+    /**
+     * Rejects oversized input before parsing or sanitization allocates more DOM.
+     *
+     * @param {unknown} value Value whose UTF-8 size is measured.
+     * @param {string} [kind="document"] Human-readable input description.
+     * @param {number} [limit] Maximum permitted byte count.
+     * @returns {number} Actual byte count when it is allowed.
+     */
     assertSize(value, kind = "document", limit = this.config.maxDocumentBytes) {
       const actual = bytes(value);
       if (actual <= limit) return actual;
@@ -311,6 +336,7 @@
       );
     }
 
+    /** Parses XML through the configured Trusted Types boundary. */
     parseXML(value) {
       const trustedSource = this.trustedParserInput(value);
       return new DOMParser().parseFromString(
@@ -319,11 +345,13 @@
       );
     }
 
+    /** Parses HTML through the configured Trusted Types boundary. */
     parseHTML(value) {
       const trustedSource = this.trustedParserInput(value);
       return new DOMParser().parseFromString(trustedSource, "text/html");
     }
 
+    /** Produces parser input accepted by browsers enforcing Trusted Types. */
     trustedParserInput(value) {
       const source = String(value ?? "");
       return this.trustedTypesPolicy?.createHTML
@@ -331,6 +359,7 @@
         : source;
     }
 
+    /** Performs a non-mutating preflight inspection of imported HTML and CSS. */
     inspectHTMLImport(value) {
       const source = String(value ?? "");
       this.assertSize(source, "HTML import");
@@ -395,6 +424,7 @@
       });
     }
 
+    /** Validates protocol, origin, and media-specific URL allowances. */
     isSafeUrl(value, { image = false, iframe = false } = {}) {
       const source = String(value ?? "").trim();
       if (!source) return false;
@@ -440,6 +470,7 @@
       }
     }
 
+    /** DOMPurify hook that removes unsafe attributes before they reach the DOM. */
     attributeHook(node, data) {
       const name = data.attrName.toLowerCase();
       if (name.startsWith("on") || FORBID_ATTR.includes(name)) {
@@ -460,6 +491,7 @@
       }
     }
 
+    /** DOMPurify hook that applies safe post-attribute normalization. */
     afterAttributeHook(node) {
       if (
         node.nodeName.toLowerCase() === "a" &&
@@ -476,6 +508,7 @@
       }
     }
 
+    /** Returns the DOMPurify settings for document content. */
     sanitizerConfig(returnTrustedType = false) {
       return {
         RETURN_TRUSTED_TYPE: returnTrustedType,
@@ -494,6 +527,7 @@
       };
     }
 
+    /** Moves regulated inline styles to inert attributes for later validation. */
     deferInlineStyles(fragment) {
       if (!this.config.regulated) return fragment;
       fragment.querySelectorAll?.("[style]").forEach((element) => {
@@ -510,6 +544,7 @@
       return fragment;
     }
 
+    /** Restores previously validated inline styles after safe DOM creation. */
     restoreDeferredStyles(root) {
       if (!this.config.regulated || !root) return root;
       const elements = [];
@@ -535,6 +570,15 @@
       return root;
     }
 
+    /**
+     * Sanitizes untrusted markup and verifies that repeated sanitization is stable.
+     * Stability prevents mutation-based markup from becoming unsafe after a later
+     * browser parse. Regulated mode defers safe inline styles until after parsing.
+     *
+     * @param {unknown} value Markup to sanitize.
+     * @param {object} [options] Output and reporting options.
+     * @returns {string|TrustedHTML} Sanitized markup in the requested form.
+     */
     sanitize(value, { trusted = false, kind = "document" } = {}) {
       const source = String(value ?? "");
       this.assertSize(source, kind);
@@ -558,6 +602,8 @@
         return container.innerHTML;
       };
 
+      // Sanitizing until the serialized DOM stops changing protects against
+      // browser mutation behavior that a single string-based pass can miss.
       let fragment = this.deferInlineStyles(sanitizeFragment(source));
       let serialized = serializeFragment(fragment);
       let stable = false;
@@ -579,6 +625,8 @@
         );
         throw new TypeError(`Editra rejected unstable ${kind} markup.`);
       }
+      // Use an explicit stack instead of recursion so hostile nesting cannot
+      // overflow the JavaScript call stack before the depth limit is enforced.
       let nodes = 0;
       let maximumDepth = 0;
       const stack = [...fragment.childNodes].map((node) => [node, 1]);
@@ -614,10 +662,12 @@
       return trustedResult;
     }
 
+    /** Returns sanitized TrustedHTML when supported by the current browser. */
     trustedHTML(value, kind = "document") {
       return this.sanitize(value, { trusted: true, kind });
     }
 
+    /** Sanitizes trusted editor-owned UI with a smaller allowed surface. */
     trustedUIHTML(value, kind = "editor UI") {
       const source = String(value ?? "");
       this.assertSize(
@@ -653,6 +703,7 @@
       return trustedResult;
     }
 
+    /** Limits command bursts so automation cannot monopolize the main thread. */
     permitCommand(name) {
       const now = performance.now();
       if (now - this.commandWindowStartedAt >= 1000) {
@@ -665,6 +716,7 @@
       return false;
     }
 
+    /** Validates a plugin origin and returns its configured integrity value. */
     assertPluginURL(url, relativePath) {
       if (!this.config.allowedPluginOrigins.includes(url.origin)) {
         throw new TypeError(`Editra blocked plugin origin: ${url.origin}`);
@@ -678,6 +730,14 @@
       return integrity || null;
     }
 
+    /**
+     * Validates an application request and adds CSRF protection when it changes
+     * server state.
+     *
+     * @param {string|URL} url Requested URL.
+     * @param {RequestInit} [init={}] Fetch options supplied by the caller.
+     * @returns {{url: string, init: RequestInit}} Safe arguments for `fetch()`.
+     */
     validateRequest(url, init = {}) {
       const target = new URL(url, document.baseURI);
       if (
@@ -707,6 +767,7 @@
       };
     }
 
+    /** Validates collaboration WebSocket protocol and origin. */
     validateWebSocketURL(value) {
       const target = new URL(String(value), document.baseURI);
       if (!["ws:", "wss:"].includes(target.protocol)) {
@@ -728,6 +789,7 @@
       return target.href;
     }
 
+    /** Removes sanitizer hooks and clears references owned by this policy. */
     destroy() {
       this.deferredStyleObserver?.disconnect();
       this.deferredStyleObserver = null;
@@ -742,10 +804,12 @@
       this.core = null;
     }
 
+    /** Returns normalized security configuration without creating an editor. */
     static config(options) {
       return normalizedSecurity(options);
     }
 
+    /** Exposes the shared Trusted Types runtime URL conversion. */
     static trustedScriptURL(value) {
       return trustedScriptURL(value);
     }

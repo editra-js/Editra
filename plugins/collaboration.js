@@ -1,3 +1,8 @@
+/**
+ * Local change tracking, comments, revision history, and collaboration transport.
+ * The host application remains responsible for identity, authorization,
+ * persistence, and transport security.
+ */
 (function (global) {
   "use strict";
 
@@ -70,6 +75,7 @@
     core.selection = range.cloneRange();
   }
 
+  /** Batches local block synchronization after a tracked document mutation. */
   function queueCollaborationMutation(core, state) {
     core.recordHistory();
     core.scheduleUpdate("collaboration-change", () => core.emitChange());
@@ -85,6 +91,7 @@
     );
   }
 
+  /** Adds author, time, and change-kind metadata to a tracked DOM node. */
   function markChange(node, state, kind, detail = "") {
     const author = authorOf(state);
     node.classList.add(`editra-change-${kind}`);
@@ -124,6 +131,7 @@
     return selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
   }
 
+  /** Records deletion as reviewable markup instead of immediately losing text. */
   function trackDeletion(core, state, suppliedRange, direction = "backward") {
     let range = suppliedRange ?? selectionRange(core, true);
     if (!range) return false;
@@ -181,6 +189,7 @@
     );
   }
 
+  /** Enables or disables local tracked-change capture and updates the UI. */
   function toggleTrackChanges(core, state, options = {}) {
     state.tracking =
       typeof options.enabled === "boolean" ? options.enabled : !state.tracking;
@@ -188,6 +197,7 @@
     return state.tracking;
   }
 
+  /** Accepts or rejects all tracked insertions, deletions, and format changes. */
   function finalizeChanges(core, state, accept) {
     const changes = [...core.editor.querySelectorAll(TRACKED_SELECTOR)];
     let count = 0;
@@ -212,6 +222,7 @@
     return count;
   }
 
+  /** Wraps a selected range with stable metadata linked to one comment thread. */
   function wrapCommentSelection(core, state, comment, options = {}) {
     const range = selectionRange(core);
     if (!range) return false;
@@ -341,6 +352,7 @@
     return sidebar;
   }
 
+  /** Rebuilds the comments sidebar from current thread and selection state. */
   function renderComments(core, state) {
     if (!state.showComments) return;
     const sidebar = createCommentsSidebar(core, state);
@@ -437,6 +449,7 @@
     return thread.resolved;
   }
 
+  /** Stores a bounded sanitized snapshot for local revision history. */
   function captureRevision(core, state, options = {}) {
     const html = core.editor.innerHTML;
     if (!options.force && html === state.lastRevisionHTML) return false;
@@ -565,6 +578,7 @@
     return overlay;
   }
 
+  /** Restores a selected revision through the core sanitization/history path. */
   function restoreRevision(core, state, options = {}) {
     const revision =
       state.revisions.find((entry) => entry.id === options.id) ??
@@ -607,6 +621,7 @@
     return incoming.clientId > existing.clientId;
   }
 
+  /** Creates stable block snapshots used by collaboration conflict resolution. */
   function snapshotBlocks(core, state) {
     ensureBlocks(core, state);
     return [...core.editor.querySelectorAll(BLOCK_SELECTOR)].map(
@@ -630,6 +645,7 @@
     return true;
   }
 
+  /** Sends only changed or removed blocks instead of the complete document. */
   function syncLocalBlocks(core, state) {
     if (!state.connection || state.applyingRemote) return;
     const blocks = snapshotBlocks(core, state);
@@ -667,6 +683,7 @@
     return template.content.firstElementChild;
   }
 
+  /** Applies newer remote block operations while preserving local selection. */
   function applyRemoteOperations(core, state, operations) {
     const accepted = operations.filter((operation) =>
       newerVersion(operation.version, state.blockVersions.get(operation.id)),
@@ -699,6 +716,8 @@
           state.blockHTML.set(operation.id, incoming.outerHTML);
           state.blockPositions.set(operation.id, operation.index ?? 0);
         });
+      // Remote operations can arrive in different orders. Sort by shared block
+      // position and then stable client/id tie-breakers so every peer converges.
       [...core.editor.children]
         .sort((left, right) => {
           const leftId = left.dataset.editraBlockId;
@@ -724,6 +743,7 @@
     return true;
   }
 
+  /** Converts a live cursor node to a transport-safe child-index path. */
   function nodePath(root, node) {
     const path = [];
     let current = node;
@@ -736,6 +756,7 @@
     return current === root ? path : null;
   }
 
+  /** Resolves a transported child-index path against the current document. */
   function nodeFromPath(root, path) {
     let node = root;
     for (const index of path ?? []) {
@@ -745,6 +766,7 @@
     return node;
   }
 
+  /** Captures the local selection without sending DOM nodes across transport. */
   function localCursor(core, state) {
     const selection = global.getSelection();
     if (!selection?.rangeCount) return null;
@@ -758,6 +780,7 @@
     };
   }
 
+  /** Reconstructs a remote selection and clamps offsets to current node lengths. */
   function cursorRange(core, cursor) {
     const start = nodeFromPath(core.editor, cursor.anchorPath);
     const end = nodeFromPath(core.editor, cursor.focusPath);
@@ -772,6 +795,7 @@
     }
   }
 
+  /** Renders a remote selection using CSS highlights or a safe marker fallback. */
   function renderRemoteCursor(core, state, message) {
     const range = cursorRange(core, message.cursor);
     if (!range) return;
@@ -827,6 +851,7 @@
     });
   }
 
+  /** Validates and routes one collaboration transport message. */
   function handleMessage(core, state, message) {
     if (
       !message ||
@@ -885,6 +910,7 @@
     state.remoteCursors.delete(clientId);
   }
 
+  /** Creates the supplied, WebSocket, or BroadcastChannel transport adapter. */
   function createConnection(state, options, onMessage) {
     if (options.transport) {
       const unsubscribe = options.transport.subscribe(onMessage);
@@ -930,6 +956,7 @@
     };
   }
 
+  /** Starts collaboration transport and publishes the local document state. */
   function connectCollaboration(core, state, options = {}) {
     disconnectCollaboration(core, state);
     state.core = core;
@@ -955,6 +982,7 @@
     };
   }
 
+  /** Stops transport, clears remote cursors, and preserves local content. */
   function disconnectCollaboration(core, state) {
     if (!state.connection) return false;
     sendMessage(state, { type: "leave" });
@@ -966,6 +994,7 @@
     return true;
   }
 
+  /** Measures revision and block-sync behavior on a large document. */
   async function collaborationStressTest(core, options = {}) {
     const collaborators = Math.max(2, Number(options.collaborators) || 8);
     const blocks = Math.max(100, Number(options.blocks) || 1000);
@@ -1010,6 +1039,7 @@
     };
   }
 
+  /** Installs collaboration commands, input tracking, transport, and cleanup. */
   function install(core) {
     if (installations.has(core)) return installations.get(core);
     const state = {
@@ -1244,6 +1274,7 @@
     return state;
   }
 
+  /** Plugin entry that installs collaboration and optionally runs a command. */
   function CollaborationPlugin(core, options) {
     const state = install(core);
     return toggleTrackChanges(core, state, options);

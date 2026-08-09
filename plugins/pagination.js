@@ -1,3 +1,9 @@
+/**
+ * Page-flow rules and visual pagination for the Word editing surface.
+ *
+ * Layout measurement is animation-frame batched. Spacers used to preview page
+ * boundaries are editor-only elements and are excluded from serialized output.
+ */
 (function (global) {
   "use strict";
 
@@ -30,10 +36,12 @@
   const nextFrame = () =>
     new Promise((resolve) => requestAnimationFrame(resolve));
 
+  /** Returns a supplied boolean or preserves the previous rule value. */
   function booleanValue(value, fallback) {
     return typeof value === "boolean" ? value : fallback;
   }
 
+  /** Merges a partial pagination update with the current effective rules. */
   function normalizeRules(value = {}, previous = DEFAULT_RULES) {
     const options = value && typeof value === "object" ? value : {};
     return {
@@ -68,6 +76,7 @@
     };
   }
 
+  /** Resolves the selected matching element with an optional first-item fallback. */
   function currentElement(core, selector, options = {}) {
     if (options?.selector) {
       const selected = core.editor.querySelector(options.selector);
@@ -89,6 +98,7 @@
       : core.editor.querySelector(selector);
   }
 
+  /** Resolves the top-level document block containing the current selection. */
   function directBlock(core, options = {}) {
     let element = currentElement(
       core,
@@ -101,6 +111,7 @@
     return element?.parentElement === core.editor ? element : null;
   }
 
+  /** Stores a pagination flag only when the target element exists. */
   function setBooleanAttribute(element, name, enabled) {
     if (!element) return false;
     if (enabled) element.setAttribute(name, "true");
@@ -108,6 +119,7 @@
     return element;
   }
 
+  /** Mirrors effective pagination rules to CSS-readable data attributes. */
   function applyRuleAttributes(core, state) {
     const rules = state.rules;
     core.editor.classList.add("editra-pagination-enabled");
@@ -141,6 +153,7 @@
     });
   }
 
+  /** Reports whether a block should move intact when it fits on one page. */
   function isKeptBlock(block, rules) {
     if (!block || block.dataset.editraKeepTogether === "false") return false;
     if (
@@ -161,6 +174,7 @@
     return false;
   }
 
+  /** Creates a non-persistent spacer that moves content to a page boundary. */
   function makeSpacer(height, kind) {
     const spacer = document.createElement("div");
     spacer.className = "editra-pagination-spacer";
@@ -172,6 +186,7 @@
     return spacer;
   }
 
+  /** Calculates usable page height after top and bottom margins. */
   function pageFlowMetrics(core, pageHeight) {
     const style = getComputedStyle(core.editor);
     const paddingTop = Number.parseFloat(style.paddingTop) || 0;
@@ -183,6 +198,7 @@
     };
   }
 
+  /** Maps a vertical document position to its page content boundaries. */
   function flowPosition(top, pageHeight, metrics) {
     const page = Math.max(0, Math.floor(top / pageHeight));
     return {
@@ -193,6 +209,7 @@
     };
   }
 
+  /** Detects short text blocks that must not remain inside a page margin. */
   function isSingleLineBlock(block, height) {
     if (block.matches("table,ul,ol,pre,blockquote,figure,form,section,article")) {
       return false;
@@ -201,6 +218,11 @@
     return Number.isFinite(lineHeight) && height <= lineHeight * 1.5;
   }
 
+  /**
+   * Adds visual copies of a table header where body rows enter a new page.
+   * Copies are marked as editor UI so persistence and export never duplicate
+   * the semantic `thead` stored in the document.
+   */
   async function repeatTableHeaders(
     core,
     state,
@@ -249,6 +271,11 @@
     return true;
   }
 
+  /**
+   * Recomputes visual page flow using temporary spacer elements.
+   * A generation number cancels stale measurements when content changes again
+   * before an earlier asynchronous pass has completed.
+   */
   async function reflow(core, state) {
     const generation = ++state.generation;
     state.reflowing = true;
@@ -285,6 +312,8 @@
         ),
     );
 
+    // Measure in chunks to keep large documents responsive. Each chunk yields
+    // before continuing, and a newer generation can cancel the remaining work.
     for (let start = 0; start < blocks.length; start += 60) {
       const chunk = blocks.slice(start, start + 60);
       for (const block of chunk) {
@@ -353,6 +382,7 @@
     return true;
   }
 
+  /** Schedules one deduplicated pagination pass on the next animation frame. */
   function scheduleReflow(core, state) {
     core.scheduleUpdate("pagination-reflow", () => {
       reflow(core, state).catch(() => {
@@ -362,6 +392,7 @@
     return true;
   }
 
+  /** Records rule changes, emits content updates, and schedules reflow. */
   function commit(core, state) {
     core.recordHistory();
     core.state.pagination = { ...state.rules };
@@ -373,6 +404,7 @@
     return true;
   }
 
+  /** Applies a partial set of document-wide pagination rules. */
   function setPaginationRules(core, state, options = {}) {
     state.rules = normalizeRules(options, state.rules);
     core.options.pagination = { ...state.rules };
@@ -381,6 +413,7 @@
     return { ...state.rules };
   }
 
+  /** Sets keep-together behavior on the selected top-level block. */
   function setKeepTogether(core, state, value = true) {
     const options = value && typeof value === "object" ? value : {};
     const block = directBlock(core, options);
@@ -395,6 +428,7 @@
     return block;
   }
 
+  /** Toggles keep-together behavior on the selected block. */
   function toggleKeepTogether(core, state, options = {}) {
     const block = directBlock(core, options);
     if (!block) return false;
@@ -404,6 +438,7 @@
     });
   }
 
+  /** Keeps the selected block with its following sibling when both fit. */
   function keepWithNext(core, state, options = {}) {
     const block = directBlock(core, options);
     if (!block) return false;
@@ -419,6 +454,7 @@
     return block;
   }
 
+  /** Controls whether list items may split across physical pages. */
   function setListItemSplitting(core, state, options = {}) {
     const list = currentElement(core, "ul,ol", options);
     if (!list) return false;
@@ -431,6 +467,7 @@
     return list;
   }
 
+  /** Applies table, row-splitting, and repeated-header pagination settings. */
   function setTablePagination(core, state, options = {}) {
     const table = currentElement(core, "table", options);
     if (!table) return false;
@@ -458,6 +495,7 @@
     return table;
   }
 
+  /** Controls whether the selected code block may split across pages. */
   function setCodeBlockSplitting(core, state, options = {}) {
     const block = currentElement(core, "pre,.editra-code-block", options);
     if (!block) return false;
@@ -475,6 +513,7 @@
     return block;
   }
 
+  /** Inserts an explicit page break and immediately schedules new page flow. */
   function insertPageBreak(core, state) {
     const pageBreak = document.createElement("div");
     pageBreak.className = "editra-page-break";
@@ -497,6 +536,7 @@
     return pageBreak;
   }
 
+  /** Measures repeated pagination changes for regression and performance tests. */
   async function paginationStressTest(core, state, options = {}) {
     const blocks = Math.max(100, Number(options.blocks) || 1000);
     const startedAt = performance.now();
@@ -526,6 +566,7 @@
     };
   }
 
+  /** Installs pagination commands and cleanup once per editor instance. */
   function install(core) {
     if (installations.has(core)) return installations.get(core);
     const state = {
@@ -598,6 +639,7 @@
     return state;
   }
 
+  /** Plugin entry that installs pagination and optionally applies initial rules. */
   function PaginationPlugin(core, options = {}) {
     const state = install(core);
     return setPaginationRules(core, state, options);

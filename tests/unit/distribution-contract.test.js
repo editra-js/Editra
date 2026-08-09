@@ -37,6 +37,9 @@ assert.equal(lockMetadata.version, version);
 assert.equal(lockMetadata.packages[""].version, version);
 assert.equal(metadata.description, "Word-style WYSIWYG Editor for the Web");
 assert.equal(metadata.license, "MIT");
+assert.equal(metadata.types, "./index.d.ts");
+assert.equal(metadata.exports["."].types, "./index.d.ts");
+assert(metadata.files.includes("index.d.ts"));
 assert.equal(metadata.main, "index.js");
 assert.equal(metadata.module, "index.mjs");
 assert.equal(

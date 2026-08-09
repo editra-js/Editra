@@ -1,3 +1,8 @@
+/**
+ * Image insertion from trusted URLs, pasted files, and local uploads.
+ * Object URLs are registered with the core so removed media and destroyed
+ * editors release browser memory correctly.
+ */
 (function (global) {
   "use strict";
 
@@ -5,6 +10,7 @@
   const TEST_IMAGE =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
+  /** Positions the image dialog within the current visual viewport. */
   function positionDialog(dialog, trigger) {
     const rect = trigger?.getBoundingClientRect();
     if (!rect) return;
@@ -16,12 +22,14 @@
     dialog.style.top = `${Math.min(rect.bottom + 8, innerHeight - 230)}px`;
   }
 
+  /** Closes any existing media dialog before a new one opens. */
   function closeOpenDialog() {
     document
       .querySelector(".editra-media-dialog")
       ?.dispatchEvent(new CustomEvent("editra:close"));
   }
 
+  /** Inserts validated image bytes using an editor-owned object URL. */
   function insertBytes(core, bytes, options = {}) {
     const blob =
       bytes instanceof Blob
@@ -32,6 +40,7 @@
     return ImagePlugin.insertFile(core, blob, options);
   }
 
+  /** Opens the accessible local-file and URL image chooser. */
   function openDialog(core, options = {}) {
     closeOpenDialog();
     const dialog = document.createElement("div");
@@ -113,6 +122,7 @@
     return dialog;
   }
 
+  /** Routes file, URL, and interactive image insertion through one command. */
   function insertImageCommand(core, options = {}) {
     if (options instanceof Blob) return ImagePlugin.insertFile(core, options);
     if (options.file instanceof Blob) {
@@ -131,6 +141,7 @@
     return openDialog(core, options);
   }
 
+  /** Installs image commands and file insertion support once per editor. */
   function install(core) {
     if (installations.has(core)) return;
     const unregisterCommands = [
@@ -152,6 +163,7 @@
     installations.set(core, true);
   }
 
+  /** Plugin entry that installs image support and optionally inserts an image. */
   function ImagePlugin(core, options) {
     install(core);
     return insertImageCommand(core, options);

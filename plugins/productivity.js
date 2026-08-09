@@ -1,3 +1,11 @@
+/**
+ * Productivity features such as find/replace, format painter, merge fields,
+ * Markdown export, and Word/HTML import.
+ *
+ * Merge fields are stored as non-editable DOM nodes so a template token cannot
+ * be partially edited. Import paths pass content back through the core security
+ * and history boundaries before it becomes part of the document.
+ */
 (function (global) {
   "use strict";
 
@@ -21,6 +29,7 @@
     );
   }
 
+  /** Finds text-node matches in chunks without replacing surrounding markup. */
   async function collectMatches(root, query, options = {}) {
     if (!query) return [];
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -72,6 +81,7 @@
     return true;
   }
 
+  /** Replaces matches from the end so earlier DOM ranges remain valid. */
   async function replaceAll(core, query, replacement, options = {}) {
     if (!query) return 0;
     const walker = document.createTreeWalker(
@@ -102,6 +112,7 @@
     return replacements;
   }
 
+  /** Opens the find/replace panel and preserves editor selection and cleanup. */
   function openFindReplace(core, state, options = {}) {
     state.findOverlay?.dispatchEvent(new CustomEvent("editra:close"));
     const overlay = document.createElement("div");
@@ -235,6 +246,7 @@
     return overlay;
   }
 
+  /** Captures computed inline formatting from the active selection. */
   function captureFormat(core, state) {
     const selection = getSelection();
     if (!selection?.rangeCount || selection.isCollapsed) return false;
@@ -302,6 +314,7 @@
     painterButton?.setAttribute("aria-pressed", "false");
   }
 
+  /** Applies captured formatting to a selected range and clears painter mode. */
   function applyFormatPainter(core, state) {
     if (!state.painter) return false;
     const selection = getSelection();
@@ -324,6 +337,7 @@
     return true;
   }
 
+  /** Captures, applies, or directly supplies format-painter styles. */
   function formatPainter(core, state, options = {}) {
     if (options.format) {
       state.painter = options.format;
@@ -333,6 +347,11 @@
     return captureFormat(core, state);
   }
 
+  /**
+   * Inserts one canonical merge-field token at the current selection.
+   * The non-editable span keeps the token atomic while `data-field` retains its
+   * stable name when preview text is temporarily displayed.
+   */
   function insertFieldNode(core, field) {
     const cleanField = String(field || "Field")
       .replace(/[{}]/g, "")
@@ -420,6 +439,10 @@
     return overlay;
   }
 
+  /**
+   * Toggles human-readable merge-field previews without changing field identity.
+   * Large templates yield between chunks so the browser can paint and respond.
+   */
   async function previewMergeFields(core, state, options = {}) {
     const enabled =
       typeof options.enabled === "boolean" ? options.enabled : !state.preview;
@@ -449,6 +472,7 @@
     return enabled;
   }
 
+  /** Clones serializable content after pending editor work has settled. */
   async function serializeAsync(core) {
     const clone = core.editor.cloneNode(true);
     const controls = [
@@ -522,6 +546,7 @@
     return content;
   }
 
+  /** Converts supported document structure to Markdown and downloads it. */
   async function exportMarkdown(core) {
     const clone = core.editor.cloneNode(true);
     const children = [...clone.childNodes];
@@ -860,6 +885,7 @@
     return String(core.sanitizeHTML(html, { kind: `${format} import` }));
   }
 
+  /** Creates an off-screen isolated surface for computed-style HTML import. */
   function createImportSandbox() {
     const host = document.createElement("div");
     host.dataset.editraUi = "true";
@@ -876,6 +902,7 @@
     return { host, shadow };
   }
 
+  /** Flattens safe stylesheet effects into portable inline document styles. */
   async function styledHTMLToHTML(core, source) {
     const inspection = core.security.inspectHTMLImport(source);
     if (!inspection.safe) {
@@ -942,6 +969,7 @@
     return normalizePackagePath(`${base}/${String(target).replace(/^\//, "")}`);
   }
 
+  /** Validates ZIP structure and exposes bounded access to DOCX package entries. */
   function createDocxArchive(core, buffer) {
     const bytes = new Uint8Array(buffer);
     const view = new DataView(buffer);
@@ -954,6 +982,8 @@
       );
     }
 
+    // ZIP stores its end record near the end of the file. Searching only the
+    // specification's maximum comment window avoids scanning unbounded input.
     let endOffset = -1;
     for (
       let offset = bytes.length - 22;
@@ -975,6 +1005,8 @@
     const entries = new Map();
     let expandedBytes = 0;
 
+    // Read the central directory before expanding entries. This lets Editra
+    // reject encryption, active content, path traversal, and ZIP bombs early.
     for (let index = 0; index < entryCount; index += 1) {
       if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) {
         throw new Error("Unsafe DOCX file blocked: malformed ZIP directory.");
@@ -1056,6 +1088,8 @@
           .pipeThrough(new DecompressionStream("deflate-raw"));
         result = new Uint8Array(await new Response(stream).arrayBuffer());
       }
+      // Verify both declared length and CRC after decompression. A structurally
+      // valid archive can still contain truncated or substituted entry bytes.
       if (
         result.length !== entry.uncompressedSize ||
         crc32(result) !== entry.checksum
@@ -1199,6 +1233,7 @@
     return { ...(base || {}), ...(extra || {}) };
   }
 
+  /** Resolves inherited Word style definitions into reusable CSS properties. */
   function parseWordStyles(xml) {
     const definitions = new Map();
     const documentDefaults = wordChild(
@@ -1328,6 +1363,7 @@
     return styles;
   }
 
+  /** Reads Word numbering definitions used to reconstruct document lists. */
   function parseNumbering(xml) {
     const abstracts = new Map();
     const numbers = new Map();
@@ -1363,6 +1399,7 @@
     return { abstracts, numbers };
   }
 
+  /** Resolves safe DOCX relationships relative to their owning package part. */
   async function parseRelationships(core, archive, partPath) {
     const pieces = partPath.split("/");
     const file = pieces.pop();
@@ -1400,6 +1437,7 @@
     };
   }
 
+  /** Converts a Word text run, fields, links, breaks, and media to safe HTML. */
   async function renderWordRun(context, run, inheritedStyle = {}, tabState = null) {
     const output = [];
     const properties = wordChild(run, "rPr");
@@ -1527,6 +1565,7 @@
     return { label, level };
   }
 
+  /** Converts a Word paragraph with styles, numbering, tabs, and page rules. */
   async function renderWordParagraph(context, paragraph) {
     const properties = wordChild(paragraph, "pPr");
     const styleId = wordValue(wordChild(properties, "pStyle"));
@@ -1650,6 +1689,7 @@
     );
   }
 
+  /** Converts Word table structure, spans, widths, borders, and cell content. */
   async function renderWordTable(context, tableNode) {
     const table = document.createElement("table");
     table.style.borderCollapse = "collapse";
@@ -1836,6 +1876,7 @@
     return container.innerHTML;
   }
 
+  /** Measures imported blocks and groups them into their physical Word pages. */
   async function measureWordPages(blocks, layout) {
     const contentHeight = Math.max(
       1,
@@ -1884,6 +1925,7 @@
     return pages;
   }
 
+  /** Converts a validated DOCX package into sanitized, page-aware Editra HTML. */
   async function renderDocxToHTML(core, buffer) {
     const archive = createDocxArchive(core, buffer);
     const documentSource = await archive.text("word/document.xml");
@@ -2037,6 +2079,7 @@
     return String(core.sanitizeHTML(html, { kind: "DOCX import" }));
   }
 
+  /** Imports an HTML file after security inspection and style normalization. */
   async function importHTML(core, options = {}) {
     const file = options.file ?? (await pickFile(core, ".html,.htm"));
     if (!file) return false;
@@ -2045,6 +2088,7 @@
     return true;
   }
 
+  /** Routes HTML, DOCX, and compatible Word files through their safe importers. */
   async function importWord(core, options = {}) {
     const file = options.file ?? (await pickFile(core, ".doc,.docx,.html"));
     if (!file) return false;
@@ -2091,6 +2135,7 @@
     }
   }
 
+  /** Measures merge-field and find/replace behavior on a large document. */
   async function productivityStressTest(core, options = {}) {
     const paragraphs = Math.max(1000, Number(options.paragraphs) || 10000);
     const container = document.createElement("div");
@@ -2116,6 +2161,7 @@
     };
   }
 
+  /** Installs productivity commands, overlays, keyboard handling, and cleanup. */
   function install(core) {
     if (installations.has(core)) return installations.get(core);
     const state = {
@@ -2176,6 +2222,7 @@
     return state;
   }
 
+  /** Plugin entry that installs productivity tools and runs an optional action. */
   function ProductivityPlugin(core, options) {
     const state = install(core);
     return formatPainter(core, state, options);

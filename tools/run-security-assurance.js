@@ -1,3 +1,8 @@
+/**
+ * Runs release-level security assurance and records the outcome.
+ * This verifies audit, integrity, SBOM, package, and regulated-profile checks
+ * used when preparing an Editra release.
+ */
 "use strict";
 
 const crypto = require("node:crypto");

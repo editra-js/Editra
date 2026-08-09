@@ -1,3 +1,8 @@
+/**
+ * Table creation, selection, resizing, structure editing, and pagination data.
+ * Table handles are temporary UI; serialization removes them while preserving
+ * semantic sections such as `thead`, `tbody`, and `tfoot`.
+ */
 (function (global) {
   "use strict";
 
@@ -8,24 +13,28 @@
     return new Promise((resolve) => global.requestAnimationFrame(resolve));
   }
 
+  /** Resolves a table from a table, wrapper, cell, row, or descendant node. */
   function getTable(value) {
     if (value instanceof HTMLTableElement) return value;
     if (value instanceof HTMLTableCellElement) return value.closest("table");
     return value?.table ?? value?.cell?.closest("table") ?? null;
   }
 
+  /** Resolves the active table cell from options or the current selection. */
   function getCell(options = {}) {
     return options instanceof HTMLTableCellElement
       ? options
       : options.cell ?? null;
   }
 
+  /** Returns a cell's first visual column after accounting for column spans. */
   function visualColumnIndex(cell) {
     return [...cell.parentElement.cells]
       .slice(0, cell.cellIndex)
       .reduce((index, item) => index + Math.max(1, item.colSpan), 0);
   }
 
+  /** Returns the greatest visual column count across all table rows. */
   function visualColumnCount(table) {
     return Math.max(
       table.querySelector(":scope > colgroup")?.children.length ?? 0,
@@ -39,6 +48,7 @@
     );
   }
 
+  /** Reads stored column widths and fills missing values evenly. */
   function visualColumnWidths(table) {
     const cells = [...(table.rows[0]?.cells ?? [])];
     const widths = [];
@@ -50,6 +60,7 @@
     return widths;
   }
 
+  /** Measures visible column edges when stored widths are unavailable. */
   function measuredColumnWidths(table, columns) {
     const measured = columns.map(
       (column) => column.getBoundingClientRect().width,
@@ -63,6 +74,7 @@
     return visualColumnWidths(table);
   }
 
+  /** Finds the cell covering a visual column in a row with spans. */
   function findCellAtColumn(row, column) {
     let cursor = 0;
     for (const cell of row.cells) {
@@ -75,6 +87,7 @@
     return null;
   }
 
+  /** Inserts a new cell at a visual column while respecting existing spans. */
   function insertCellAtColumn(row, column) {
     let cursor = 0;
     for (const cell of row.cells) {
@@ -90,6 +103,7 @@
     return inserted;
   }
 
+  /** Moves cell children while preserving a readable separator between values. */
   function appendCellContent(target, source) {
     if (
       target.textContent?.trim() ||
@@ -100,6 +114,7 @@
     while (source.firstChild) target.append(source.firstChild);
   }
 
+  /** Positions column, row, and corner handles from measured table geometry. */
   function positionHandles(core, wrapper) {
     wrapper.dataset.editraTableId ||= String(++tableSequence);
     core.scheduleUpdate(`table-handles-${wrapper.dataset.editraTableId}`, () => {
@@ -121,6 +136,8 @@
           });
           if (!cell) return;
           const rect = cell.getBoundingClientRect();
+          // A colspan has one DOM cell but several visual column boundaries.
+          // Divide its measured width to place a handle at each boundary.
           const withinSpan = column - cursor + 1;
           handle.style.left = `${
             rect.left -
@@ -151,6 +168,7 @@
     });
   }
 
+  /** Places the whole-table resize handle at the measured bottom-right corner. */
   function positionCornerHandle(wrapper, table) {
     const corner = wrapper.querySelector(
       '[data-editra-table-axis="corner"]',
@@ -162,6 +180,7 @@
     corner.style.top = `${tableRect.bottom - wrapperRect.top}px`;
   }
 
+  /** Synchronizes the table's colgroup with its current visual columns. */
   function ensureColumns(table) {
     const columnCount = visualColumnCount(table);
     let colgroup = table.querySelector(":scope > colgroup");
@@ -180,6 +199,7 @@
     return colgroup;
   }
 
+  /** Adds non-persistent selection, resize, and movement UI around a table. */
   function decorateTable(core, table) {
     let wrapper = table.closest(".editra-table-frame");
     if (!wrapper) {
@@ -242,6 +262,7 @@
     return wrapper;
   }
 
+  /** Creates a semantic table in chunks so large grids do not block the UI. */
   async function createTable(rows, columns) {
     const table = document.createElement("table");
     table.dataset.editraBorder = "solid";
@@ -289,6 +310,7 @@
     return table;
   }
 
+  /** Creates, inserts, decorates, and selects a new table. */
   async function createAndInsertTable(core, rows, columns) {
     const table = await createTable(rows, columns);
     const wrapper = decorateTable(core, table);
@@ -297,6 +319,7 @@
     return table;
   }
 
+  /** Normalizes table columns and records one content/layout update. */
   function commit(core, table) {
     if (table?.isConnected) decorateTable(core, table);
     core.recordHistory();
@@ -304,6 +327,7 @@
     return true;
   }
 
+  /** Selects a table and exposes its resize and property controls. */
   function selectTable(core, state, options = {}) {
     const table =
       getTable(options) ||
@@ -327,6 +351,7 @@
     return table;
   }
 
+  /** Removes a table wrapper and places the caret in a safe paragraph. */
   function deleteTable(core, state, options = {}) {
     const table =
       getTable(options) ||
@@ -353,6 +378,7 @@
     return commit(core, null);
   }
 
+  /** Merges the active cell with an adjacent horizontal or vertical cell. */
   function mergeCells(core, options = {}) {
     const cell = getCell(options);
     const table = getTable(cell);
@@ -389,6 +415,7 @@
     return commit(core, table);
   }
 
+  /** Splits row and column spans back into individual editable cells. */
   function splitCell(core, options = {}) {
     const cell = getCell(options);
     const table = getTable(cell);
@@ -417,6 +444,7 @@
     return commit(core, table);
   }
 
+  /** Adds a row matching the table's current visual column count. */
   function addRow(core, options = {}) {
     const cell = getCell(options);
     const table = getTable(options) ?? getTable(cell);
@@ -434,6 +462,7 @@
     return commit(core, table);
   }
 
+  /** Deletes the active row or the complete table when it is the last row. */
   function deleteRow(core, options = {}) {
     const cell = getCell(options);
     const table = getTable(options) ?? getTable(cell);
@@ -447,6 +476,7 @@
     return commit(core, table);
   }
 
+  /** Adds a visual column across rows while respecting merged cells. */
   function addColumn(core, options = {}) {
     const cell = getCell(options);
     const table = getTable(options) ?? getTable(cell);
@@ -473,6 +503,7 @@
     return commit(core, table);
   }
 
+  /** Deletes a visual column and adjusts any cells that span across it. */
   function deleteColumn(core, options = {}) {
     const cell = getCell(options);
     const table = getTable(options) ?? getTable(cell);
@@ -491,6 +522,7 @@
     return commit(core, table);
   }
 
+  /** Applies table and cell border width/style settings. */
   function setTableBorder(core, options = {}) {
     const table = getTable(options);
     if (!table) return false;
@@ -512,6 +544,7 @@
     return element?.closest("table") ?? null;
   }
 
+  /** Applies a validated border color to the active table. */
   function setTableBorderColor(core, value = {}) {
     const options =
       typeof value === "string" ? { color: value } : value ?? {};
@@ -530,6 +563,7 @@
     return commit(core, table);
   }
 
+  /** Applies a validated background color to the active cell. */
   function setCellBackground(core, options = {}) {
     const cell = getCell(options);
     const table = getTable(cell);
@@ -550,6 +584,7 @@
     return commit(core, table);
   }
 
+  /** Aligns the active table within the document content area. */
   function setTableAlignment(core, options = {}) {
     const cell = getCell(options);
     const table = getTable(options) ?? getTable(cell);
@@ -710,6 +745,7 @@
     return picker;
   }
 
+  /** Inserts a configured table or opens the visual grid-size chooser. */
   function insertTable(core, options = {}) {
     const rows = Number(options.rows);
     const columns = Number(options.columns);
@@ -767,6 +803,7 @@
     state.contextMenu = menu;
   }
 
+  /** Installs table commands, interaction listeners, hydration, and cleanup. */
   function install(core) {
     if (installations.has(core)) return installations.get(core);
     const state = {
@@ -1163,6 +1200,7 @@
     return state;
   }
 
+  /** Plugin entry that installs table support and optionally inserts a table. */
   function TablePlugin(core, options) {
     install(core);
     return insertTable(core, options);

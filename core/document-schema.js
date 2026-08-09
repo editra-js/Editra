@@ -1,3 +1,10 @@
+/**
+ * Converts Editra HTML to and from the versioned structured document format.
+ *
+ * Imports are validated before DOM creation. Depth, node-count, text-size, tag,
+ * and attribute limits prevent malformed document data from exhausting the
+ * browser or bypassing the HTML security layer.
+ */
 (function (global) {
   "use strict";
 
@@ -17,15 +24,18 @@
   ).toLowerCase().split(/\s+/));
   const ATTRIBUTE_NAME = /^(?:[a-z_:][a-z0-9_.:-]*|data-[a-z0-9_.:-]+|aria-[a-z0-9_.:-]+)$/i;
 
+  /** Returns UTF-8 text size for structured-document limits. */
   function textBytes(value) {
     return new TextEncoder().encode(value).byteLength;
   }
 
   class EditraDocumentSchema {
+    /** Associates schema conversion with one editor and its security policy. */
     constructor(editor) {
       this.editor = editor;
     }
 
+    /** Validates schema identity, shape, limits, tags, and attributes. */
     validate(documentModel) {
       const errors = [];
       let nodes = 0;
@@ -87,6 +97,12 @@
       return Object.freeze({ valid: errors.length === 0, errors: Object.freeze(errors) });
     }
 
+    /**
+     * Converts sanitized editor HTML into the versioned tree representation.
+     * Attribute names are sorted to make saved output stable and easier to diff.
+     *
+     * @returns {object} Structured Editra document.
+     */
     export() {
       const template = document.createElement("template");
       template.innerHTML = this.editor.security.trustedHTML(
@@ -117,6 +133,14 @@
       };
     }
 
+    /**
+     * Validates and converts a structured document back to sanitized HTML.
+     * Style attributes are deferred so the shared security layer can inspect
+     * them before the browser applies layout-affecting declarations.
+     *
+     * @param {object} documentModel Structured Editra document.
+     * @returns {string} Sanitized HTML ready for `setCode()`.
+     */
     import(documentModel) {
       const outcome = this.validate(documentModel);
       if (!outcome.valid) {

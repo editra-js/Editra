@@ -64,6 +64,11 @@ await Editra.init({
 
 The package is published as `editra-js`. A local release archive can be verified with `npm run pack:check`.
 
+Editra remains a pure JavaScript library. The npm package also includes
+TypeScript declarations, so JavaScript and TypeScript projects receive
+IntelliSense for configuration, callbacks, commands, and editor methods without
+adding TypeScript to the browser runtime.
+
 ### CDN integration
 
 Currently published through the GitHub-backed jsDelivr endpoint:

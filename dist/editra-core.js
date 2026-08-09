@@ -1,3 +1,10 @@
+/**
+ * Editra's browser runtime and editor lifecycle.
+ *
+ * This module resolves built-in plugins, creates the editable surface and UI,
+ * coordinates commands and selection state, and owns cleanup. Plugins receive
+ * the core instance but must register their cleanup work with it.
+ */
 (function (global) {
   "use strict";
 
@@ -24,6 +31,8 @@
   }
   global[loaderPolicySymbol] = loaderPolicy;
 
+  // This registry is the single source used to resolve built-in plugin assets.
+  // Lazy plugins are downloaded only when their command is first requested.
   const PLUGIN_DEFINITIONS = Object.freeze({
     bold: {
       file: "plugins/bold.js",
@@ -548,7 +557,21 @@
     return promise;
   }
 
+/**
+ * Owns one Editra editor instance and its browser resources.
+ *
+ * Use {@link EditraCore.init} instead of calling the constructor directly. The
+ * initializer loads required assets, normalizes configuration, and guarantees
+ * that a host element has at most one live editor instance.
+ */
 class EditraCore {
+  /**
+   * Converts a user supplied theme name to the canonical public value.
+   *
+   * @param {unknown} value Theme name supplied by the host application.
+   * @returns {"Word"|"Classic"} The normalized theme name.
+   * @throws {RangeError} When the theme is not supported.
+   */
   static normalizeTheme(value) {
     const name = String(value ?? "Word").trim().toLowerCase();
     if (name === "word") return "Word";
@@ -558,6 +581,15 @@ class EditraCore {
     );
   }
 
+  /**
+   * Resolves the element that becomes contenteditable.
+   *
+   * A div is edited in place. A textarea stays as the form control while a
+   * separate editable surface is inserted beside it and synchronized.
+   *
+   * @param {HTMLElement} host Original div or textarea selected by the caller.
+   * @returns {object} Surface elements and the initial HTML value.
+   */
   static createEditorSurface(host) {
     if (!(host instanceof HTMLTextAreaElement)) {
       return { editor: host, host, initialHTML: host.innerHTML };
@@ -581,6 +613,17 @@ class EditraCore {
     };
   }
 
+  /**
+   * Creates or reuses an editor for the configured host element.
+   *
+   * Assets are loaded before construction so plugins never run against a
+   * partially initialized editor. Configuration-driven commands are applied
+   * after construction in the same order a user would apply them from the UI.
+   *
+   * @param {object} [config={}] Editor configuration including `selector`.
+   * @returns {Promise<EditraCore>} The ready editor instance.
+   * @throws {TypeError} When configuration or the target element is invalid.
+   */
   static async init(config = {}) {
     if (!config || typeof config !== "object" || Array.isArray(config)) {
       throw new TypeError("Editra.init requires a configuration object.");
@@ -742,6 +785,7 @@ class EditraCore {
     return instance;
   }
 
+  /** Measures initialization, rendering, input, history, and cleanup on a large document. */
   static async stressTest({ paragraphs = 10000 } = {}) {
     const host = document.createElement("div");
     host.style.cssText =
@@ -792,6 +836,12 @@ class EditraCore {
     return result;
   }
 
+  /**
+   * Resolves explicit, inferred, and required system plugins without duplicates.
+   *
+   * @param {object} options Normalized editor options.
+   * @returns {string[]} Plugin names in load order.
+   */
   static resolvePluginNames(options) {
     if (options.plugins !== undefined && !Array.isArray(options.plugins)) {
       throw new TypeError("plugins must be an array.");
@@ -880,6 +930,13 @@ class EditraCore {
     return uniqueNames;
   }
 
+  /**
+   * Builds one editor after its required scripts and styles have loaded.
+   *
+   * @param {HTMLElement} editor Element that becomes the editable surface.
+   * @param {object} options Normalized options with resolved plugin definitions.
+   * @param {object} [surface={}] Original host and textarea restoration state.
+   */
   constructor(editor, options, surface = {}) {
     this.editor = editor;
     this.host = surface.host ?? editor;
@@ -1036,6 +1093,7 @@ class EditraCore {
     this.emitChange();
   }
 
+  /** Applies contenteditable, accessibility, language, and theme attributes. */
   configureSurface() {
     this.editor.setAttribute("contenteditable", "true");
     this.editor.classList.add("editra-editor");
@@ -1060,6 +1118,7 @@ class EditraCore {
     this.editor.spellcheck = this.options.spellcheck ?? true;
   }
 
+  /** Creates page-layout observers and synchronizes page metrics with the UI. */
   configurePageLayout() {
     const workspace = this.toolbar.workspace;
     if (!workspace) return;
@@ -1096,6 +1155,7 @@ class EditraCore {
     this.refreshPageLayout();
   }
 
+  /** Returns a safe CSS dimension or a known fallback. */
   validEditorDimension(value, fallback) {
     const dimension =
       typeof value === "number" && Number.isFinite(value)
@@ -1106,6 +1166,7 @@ class EditraCore {
       : fallback;
   }
 
+  /** Converts a CSS dimension into measured browser pixels. */
   resolveEditorPixels(value, fallback) {
     const probe = document.createElement("span");
     probe.style.cssText =
@@ -1117,6 +1178,7 @@ class EditraCore {
     return pixels || Number.parseFloat(fallback);
   }
 
+  /** Measures the lowest visible document edge while ignoring editor-only UI. */
   measureDocumentContentHeight() {
     const editorRect = this.editor.getBoundingClientRect();
     const editorStyle = getComputedStyle(this.editor);
@@ -1150,6 +1212,7 @@ class EditraCore {
     return Math.ceil(bottom + paddingBottom);
   }
 
+  /** Recalculates page count, page guides, and page-change notifications. */
   refreshPageLayout() {
     if (this.destroyed || !this.pageGuides?.isConnected) return;
     const importedPages = [
@@ -1220,6 +1283,7 @@ class EditraCore {
     );
   }
 
+  /** Applies validated surface dimensions and refreshes page layout. */
   setEditorSize(width, height, settings = {}) {
     if (this.options.theme === "Word" && settings.standard !== true) {
       return false;
@@ -1259,10 +1323,12 @@ class EditraCore {
     };
   }
 
+  /** Backward-compatible helper that applies a custom editor size. */
   setPageSize(width, height) {
     return this.setEditorSize(width, height);
   }
 
+  /** Normalizes one page-margin value to a valid CSS length. */
   marginValue(value, fallback = 72) {
     const candidate =
       typeof value === "number" && Number.isFinite(value)
@@ -1273,6 +1339,7 @@ class EditraCore {
       : `${fallback}px`;
   }
 
+  /** Applies all four page margins and optionally refreshes pagination. */
   applyPageMargins(values = {}, refresh = true) {
     const previous = this.state.margins ?? {
       top: "72px",
@@ -1302,6 +1369,12 @@ class EditraCore {
     return { ...margins };
   }
 
+  /**
+   * Attaches all editor-owned browser listeners and observers.
+   * Every resource attached here has a matching release path in `destroy()`.
+   *
+   * @returns {void}
+   */
   bindEvents() {
     this.editor.addEventListener("input", this.handleInput);
     this.editor.addEventListener("paste", this.handlePaste);
@@ -1324,6 +1397,7 @@ class EditraCore {
     this.mediaObserver.observe(this.editor, { childList: true, subtree: true });
   }
 
+  /** Registers commands provided directly by the core rather than a plugin. */
   registerBuiltInCommands() {
     const register = (name, handler) =>
       this.registerCommand(name, handler, { source: "core" });
@@ -1458,6 +1532,7 @@ class EditraCore {
     );
   }
 
+  /** Opens an accessible help, about, shortcut, or feedback dialog. */
   openHelpDialog(type, options = {}) {
     const definitions = {
       accessibility: {
@@ -1589,6 +1664,7 @@ class EditraCore {
     return dialog;
   }
 
+  /** Opens a supported local document and imports it through a reviewed plugin. */
   openDocument() {
     const input = document.createElement("input");
     input.type = "file";
@@ -1663,6 +1739,7 @@ class EditraCore {
     return true;
   }
 
+  /** Downloads generated content and revokes its temporary object URL. */
   downloadFile(name, content, type) {
     const url = URL.createObjectURL(new Blob([content], { type }));
     const anchor = document.createElement("a");
@@ -1673,6 +1750,7 @@ class EditraCore {
     return true;
   }
 
+  /** Replaces matching text nodes without rewriting surrounding HTML elements. */
   replaceAllText(search, replacement) {
     const walker = document.createTreeWalker(
       this.editor,
@@ -1706,10 +1784,12 @@ class EditraCore {
     });
   }
 
+  /** Executes a formatting command and records the resulting document state. */
   applyFormat(type) {
     return this.executeCommand(type);
   }
 
+  /** Resolves a configured UI translation with a readable fallback. */
   translate(key, fallback = key) {
     const translations = this.options.translations?.[this.options.language];
     return translations && Object.hasOwn(translations, key)
@@ -1717,6 +1797,7 @@ class EditraCore {
       : String(fallback);
   }
 
+  /** Announces a short status message to assistive technology. */
   announce(message) {
     if (!this.liveRegion || this.destroyed) return;
     this.liveRegion.textContent = "";
@@ -1725,6 +1806,7 @@ class EditraCore {
     });
   }
 
+  /** Shows a temporary visual and accessible status notice. */
   showNotice(message, options = {}) {
     if (this.destroyed || !this.toolbar?.card) return null;
     clearTimeout(this.noticeTimer);
@@ -1746,19 +1828,31 @@ class EditraCore {
     return notice;
   }
 
+  /** Exposes the active HTML sanitizer to trusted host integrations. */
   sanitizeHTML(html, options = {}) {
     return this.security.sanitize(html, options);
   }
 
+  /** Performs a fetch after origin, method, headers, and CSRF checks. */
   async secureRequest(url, options = {}) {
     const request = this.security.validateRequest(url, options);
     return global.fetch(request.url, request.init);
   }
 
+  /** Loads one same-origin runtime script using the active integrity policy. */
   loadRuntimeScript(relativePath) {
     return loadScript(relativePath, this.security.config);
   }
 
+  /**
+   * Registers a command and returns an idempotent unregister function.
+   * Plugins should retain or register the returned function for cleanup.
+   *
+   * @param {string} name Public command name.
+   * @param {Function} handler Function invoked with command arguments.
+   * @param {object} [options={}] Source and plugin metadata for notifications.
+   * @returns {Function} Function that removes this exact registration.
+   */
   registerCommand(name, handler, options = {}) {
     if (typeof name !== "string" || !name.trim()) {
       throw new TypeError("Command name must be a non-empty string.");
@@ -1778,6 +1872,7 @@ class EditraCore {
     };
   }
 
+  /** Registers a plugin's primary command through the shared command lifecycle. */
   registerPluginCommand(plugin) {
     return this.registerCommand(
       plugin.name,
@@ -1786,6 +1881,12 @@ class EditraCore {
     );
   }
 
+  /**
+   * Loads and installs a lazy plugin the first time it is needed.
+   *
+   * @param {string} name Registered plugin name.
+   * @returns {Promise<object|false>} Resolved plugin definition or `false`.
+   */
   async ensurePlugin(name) {
     const plugin = this.plugins.get(name);
     if (!plugin) return false;
@@ -1804,6 +1905,7 @@ class EditraCore {
     return plugin;
   }
 
+  /** Loads the optional export runtime needed by a heavyweight command. */
   async ensureHeavyCommand(name) {
     const file = HEAVY_COMMAND_FILES[name];
     if (!file) return false;
@@ -1814,6 +1916,16 @@ class EditraCore {
     return this.commands.has(name);
   }
 
+  /**
+   * Executes a built-in, plugin, lazy, or host-provided command.
+   *
+   * Lazy commands may return a promise even when an already loaded command is
+   * synchronous. Callers may safely use `await` for either form.
+   *
+   * @param {string} name Command name.
+   * @param {...unknown} args Arguments forwarded to the command handler.
+   * @returns {unknown|Promise<unknown>|false} Command result or `false` when blocked.
+   */
   executeCommand(name, ...args) {
     if (this.destroyed || typeof name !== "string") return false;
     if (!this.security.permitCommand(name)) return false;
@@ -1853,6 +1965,7 @@ class EditraCore {
     return this.dispatchCommand(name, { args });
   }
 
+  /** Emits command completion to DOM listeners, callbacks, and the live region. */
   notifyCommand(name, args, result, command = {}) {
     const detail = {
       command: name,
@@ -1878,6 +1991,7 @@ class EditraCore {
     }
   }
 
+  /** Emits a normalized UI lifecycle event and its configured callback. */
   notifyUI(type, detail = {}) {
     const callback =
       type === "menuToggle"
@@ -1890,6 +2004,7 @@ class EditraCore {
     if (typeof callback === "function") callback(payload);
   }
 
+  /** Runs an installed plugin action and schedules state/history updates. */
   runPluginCommand(plugin, ...args) {
     if (!plugin || plugin.disabled || typeof plugin.action !== "function") {
       return false;
@@ -1904,6 +2019,7 @@ class EditraCore {
     return result ?? true;
   }
 
+  /** Offers an unknown command to host DOM listeners as an extension point. */
   dispatchCommand(name, detail = {}) {
     const event = new CustomEvent("editra:command", {
       bubbles: true,
@@ -1917,6 +2033,7 @@ class EditraCore {
     return !event.defaultPrevented;
   }
 
+  /** Wraps a native editing command with focus, history, and change handling. */
   execCommand(command, value = null) {
     const before = this.editor.innerHTML;
     const result = document.execCommand(command, false, value);
@@ -1976,6 +2093,7 @@ class EditraCore {
     return true;
   }
 
+  /** Inserts a validated image inside Editra's resizable media frame. */
   insertImage(url, metadata = {}) {
     if (!this.isSafeMediaUrl(url, true)) {
       throw new TypeError("A valid image source is required.");
@@ -2012,6 +2130,7 @@ class EditraCore {
     return this.insertNode(frame);
   }
 
+  /** Inserts a validated video source inside a resizable media frame. */
   insertVideo(url, metadata = {}) {
     if (!this.isSafeMediaUrl(url, false)) {
       throw new TypeError("A valid video source is required.");
@@ -2030,6 +2149,7 @@ class EditraCore {
     return wrapper;
   }
 
+  /** Inserts an approved external video embed in a restricted iframe. */
   insertVideoEmbed(url) {
     if (!this.security.isSafeUrl(url, { iframe: true })) {
       throw new TypeError("A valid embedded video source is required.");
@@ -2049,6 +2169,7 @@ class EditraCore {
     return this.insertNode(this.makeMediaResizable(iframe, "video"));
   }
 
+  /** Adds the accessible drag handle used by movable document objects. */
   ensureObjectMoveHandle(target, label = "object") {
     if (!(target instanceof Element)) return null;
     const existing = target.querySelector(
@@ -2068,6 +2189,7 @@ class EditraCore {
     return handle;
   }
 
+  /** Wraps media with resize and movement controls without changing its source. */
   makeMediaResizable(media, kind) {
     const existingFrame = media.closest?.(".editra-media-frame");
     if (existingFrame) {
@@ -2128,6 +2250,7 @@ class EditraCore {
     return frame;
   }
 
+  /** Resolves the movable document object associated with an event target. */
   draggableObject(target) {
     const element = target instanceof Element ? target : target?.parentElement;
     const frame = element?.closest(".editra-media-frame");
@@ -2141,6 +2264,7 @@ class EditraCore {
     return draggable && this.editor.contains(draggable) ? draggable : null;
   }
 
+  /** Starts native drag feedback for a selected movable object. */
   handleObjectDragStart(event) {
     if (event.target.closest?.(".editra-resize-handle")) {
       event.preventDefault();
@@ -2161,6 +2285,7 @@ class EditraCore {
     }
   }
 
+  /** Updates the visible insertion target during native object dragging. */
   handleObjectDragOver(event) {
     if (!this.draggedObject?.isConnected) return;
     event.preventDefault();
@@ -2174,6 +2299,7 @@ class EditraCore {
     );
   }
 
+  /** Resolves a caret range from viewport coordinates across browser APIs. */
   rangeFromPoint(x, y) {
     if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
     const position = document.caretPositionFromPoint?.(x, y);
@@ -2184,6 +2310,7 @@ class EditraCore {
     return range;
   }
 
+  /** Chooses a safe block-relative drop position for a movable object. */
   resolveObjectDropTarget(x, y, object = this.draggedObject) {
     const range = this.rangeFromPoint(x, y);
     if (!range || !this.isRangeInside(range)) return null;
@@ -2218,6 +2345,7 @@ class EditraCore {
     return { target: this.editor, position: "append" };
   }
 
+  /** Displays the temporary marker for the current object drop position. */
   showObjectDropTarget(placement) {
     if (
       this.objectDropTarget?.target === placement?.target &&
@@ -2235,6 +2363,7 @@ class EditraCore {
     }
   }
 
+  /** Removes all temporary object-drop markers and state. */
   clearObjectDropTarget() {
     const placement = this.objectDropTarget;
     if (placement?.target instanceof Element) {
@@ -2247,6 +2376,7 @@ class EditraCore {
     this.objectDropTarget = null;
   }
 
+  /** Creates a lightweight visual copy that follows pointer-based dragging. */
   createObjectDragGhost(object, pointerX, pointerY) {
     this.removeObjectDragGhost();
     const rect = object.getBoundingClientRect();
@@ -2289,6 +2419,7 @@ class EditraCore {
     return ghost;
   }
 
+  /** Moves the pointer drag preview without forcing document reflow. */
   updateObjectDragGhost(pointerX, pointerY) {
     const preview = this.objectDragGhost;
     if (!preview?.element.isConnected) return;
@@ -2298,11 +2429,13 @@ class EditraCore {
       `translate3d(${Math.round(deltaX)}px, ${Math.round(deltaY)}px, 0)`;
   }
 
+  /** Releases the temporary pointer drag preview. */
   removeObjectDragGhost() {
     this.objectDragGhost?.element.remove();
     this.objectDragGhost = null;
   }
 
+  /** Commits a native drag operation at the validated drop range. */
   handleObjectDrop(event) {
     const object = this.draggedObject;
     if (!object?.isConnected) return;
@@ -2321,6 +2454,7 @@ class EditraCore {
     this.handleObjectDragEnd();
   }
 
+  /** Clears native drag state whether the operation succeeded or was cancelled. */
   handleObjectDragEnd() {
     this.clearObjectDropTarget();
     this.removeObjectDragGhost();
@@ -2328,6 +2462,7 @@ class EditraCore {
     this.draggedObject = null;
   }
 
+  /** Moves the selected object by keyboard while preserving a valid DOM order. */
   moveSelectedObject(direction) {
     const object = this.selectedObject;
     if (!object?.isConnected || !this.editor.contains(object)) return false;
@@ -2381,6 +2516,7 @@ class EditraCore {
     return true;
   }
 
+  /** Inserts a dragged object at a resolved block or caret position. */
   placeDraggedObject(object, placement, range = null, pointerX = null) {
     if (!object?.isConnected || !placement?.target) return false;
     if (
@@ -2425,6 +2561,7 @@ class EditraCore {
     return true;
   }
 
+  /** Starts touch- and pointer-friendly object dragging with explicit cleanup. */
   beginObjectPointerDrag(event, object) {
     if (
       event.button !== 0 ||
@@ -2592,6 +2729,7 @@ class EditraCore {
     document.addEventListener("pointercancel", pointerCancel, true);
   }
 
+  /** Starts media resizing or selects a non-editable document object. */
   handleResizePointerDown(event) {
     const handle = event.target.closest?.(".editra-resize-handle");
     const frame = handle?.closest(".editra-media-frame");
@@ -2703,6 +2841,7 @@ class EditraCore {
     document.addEventListener("pointercancel", handleUp);
   }
 
+  /** Selects one document object and exposes its properties to the toolbar. */
   selectObject(element) {
     if (!(element instanceof Element) || !this.editor.contains(element)) {
       return false;
@@ -2723,6 +2862,7 @@ class EditraCore {
     return element;
   }
 
+  /** Removes visual and accessibility state from the selected object. */
   clearObjectSelection() {
     if (this.selectedObject) {
       this.selectedObject.classList.remove("is-object-selected");
@@ -2732,6 +2872,7 @@ class EditraCore {
     this.state.objectSelected = false;
   }
 
+  /** Deletes the selected object and creates a safe caret destination. */
   deleteSelectedObject() {
     const target = this.selectedObject;
     if (!target?.isConnected || !this.editor.contains(target)) return false;
@@ -2755,6 +2896,7 @@ class EditraCore {
     return true;
   }
 
+  /** Inserts a DOM node at the restored selection and records the change. */
   insertNode(node) {
     if (this.destroyed) return false;
 
@@ -2788,6 +2930,7 @@ class EditraCore {
     return node;
   }
 
+  /** Wraps the current selection in a validated link. */
   insertLink(options = {}) {
     const url = String(options.url || "").trim();
     if (!url || !this.security.isSafeUrl(url)) return false;
@@ -2815,6 +2958,7 @@ class EditraCore {
     return anchor;
   }
 
+  /** Opens the accessible link editor while preserving the original selection. */
   openLinkDialog(options = {}) {
     document
       .querySelector(".editra-media-dialog")
@@ -2914,6 +3058,7 @@ class EditraCore {
     return dialog;
   }
 
+  /** Requests a media URL from the host callback or the built-in dialog. */
   requestMediaUrl(kind) {
     if (typeof this.options.requestUrl === "function") {
       return this.options.requestUrl(kind, this);
@@ -2921,6 +3066,14 @@ class EditraCore {
     return window.prompt(`Enter the ${kind} URL:`)?.trim() ?? "";
   }
 
+  /**
+   * Registers cleanup owned by a plugin or optional editor feature.
+   * The returned function can release it early and prevents a second call from
+   * running during editor destruction.
+   *
+   * @param {Function} callback Cleanup function.
+   * @returns {Function} Idempotent function that runs and unregisters cleanup.
+   */
   registerCleanup(callback) {
     if (typeof callback !== "function") {
       throw new TypeError("Cleanup must be a function.");
@@ -2929,11 +3082,13 @@ class EditraCore {
     return () => this.cleanups.delete(callback);
   }
 
+  /** Tracks a temporary object URL until its node or editor is removed. */
   registerObjectUrl(url, node = null) {
     this.objectUrls.set(url, node);
     return url;
   }
 
+  /** Revokes temporary URLs whose document nodes are no longer connected. */
   releaseRemovedObjectUrls() {
     if (this.activeResizeFrame && !this.activeResizeFrame.isConnected) {
       this.activeResizeCleanup?.();
@@ -2946,6 +3101,7 @@ class EditraCore {
     });
   }
 
+  /** Restores interactive behavior on persisted media, tables, and plugin nodes. */
   rehydrate() {
     this.editor.querySelectorAll("a[href]").forEach((link) => {
       if (!link.title) link.title = "Ctrl+click to open link";
@@ -3018,6 +3174,7 @@ class EditraCore {
     }
   }
 
+  /** Validates, records, emits, and repaginates a user content change. */
   handleInput() {
     this.captureSelection();
     this.scheduleUpdate("input-state", () => {
@@ -3039,6 +3196,7 @@ class EditraCore {
     });
   }
 
+  /** Routes pasted images to the image plugin and inserts other paste as text. */
   handlePaste(event) {
     const clipboard = event.clipboardData;
     if (!clipboard) return;
@@ -3067,6 +3225,7 @@ class EditraCore {
     this.execCommand("insertText", clipboard.getData("text/plain"));
   }
 
+  /** Handles object movement/deletion and core keyboard shortcuts. */
   handleKeydown(event) {
     const focusedMovable = this.draggableObject(event.target);
     if (
@@ -3112,6 +3271,7 @@ class EditraCore {
     }
   }
 
+  /** Opens safe links only when the user uses the explicit modifier gesture. */
   handleEditorClick(event) {
     const link = event.target.closest?.("a[href]");
     if (!link || !this.editor.contains(link) || (!event.ctrlKey && !event.metaKey)) {
@@ -3129,6 +3289,7 @@ class EditraCore {
     global.open(new URL(url, document.baseURI).href, "_blank", "noopener,noreferrer");
   }
 
+  /** Captures an in-editor selection and updates formatting controls. */
   handleSelectionChange() {
     this.scheduleUpdate("selection", () => {
       this.captureSelection();
@@ -3136,6 +3297,7 @@ class EditraCore {
     });
   }
 
+  /** Emits the public focus callback with the current editor instance. */
   handleFocus(event) {
     this.state.focused = true;
     this.emitState();
@@ -3144,6 +3306,7 @@ class EditraCore {
     }
   }
 
+  /** Emits the public blur callback without discarding saved selection state. */
   handleBlur(event) {
     this.state.focused = false;
     this.emitState();
@@ -3152,6 +3315,7 @@ class EditraCore {
     }
   }
 
+  /** Restores textarea-backed content after its containing form resets. */
   handleFormReset() {
     setTimeout(() => {
       if (!this.destroyed && this.host instanceof HTMLTextAreaElement) {
@@ -3160,6 +3324,7 @@ class EditraCore {
     }, 0);
   }
 
+  /** Saves the current in-editor range so toolbar actions can restore it. */
   captureSelection() {
     const selection = window.getSelection();
     if (!selection || !selection.rangeCount) return;
@@ -3167,6 +3332,7 @@ class EditraCore {
     if (this.isRangeInside(range)) this.selection = range.cloneRange();
   }
 
+  /** Restores the last valid range after focus moved to editor controls. */
   restoreSelection() {
     if (!this.selection || !this.isRangeInside(this.selection)) return;
     const selection = window.getSelection();
@@ -3174,6 +3340,7 @@ class EditraCore {
     selection.addRange(this.selection);
   }
 
+  /** Reports whether both boundaries of a range belong to this editor. */
   isRangeInside(range) {
     return (
       this.editor.contains(range.commonAncestorContainer) ||
@@ -3181,6 +3348,14 @@ class EditraCore {
     );
   }
 
+  /**
+   * Stores a sanitized document snapshot for undo and redo.
+   * Consecutive identical snapshots are ignored and both count and byte limits
+   * are enforced to keep long editing sessions bounded.
+   *
+   * @param {boolean} [force=false] Store even when normal batching would skip.
+   * @returns {void}
+   */
   recordHistory(force = false) {
     const html = this.editor.innerHTML;
     if (!force && this.history[this.historyIndex] === html) return;
@@ -3204,6 +3379,7 @@ class EditraCore {
     this.emitState();
   }
 
+  /** Moves one step backward through sanitized document history. */
   undo() {
     if (this.destroyed || this.historyIndex <= 0) return false;
     this.historyIndex -= 1;
@@ -3211,6 +3387,7 @@ class EditraCore {
     return true;
   }
 
+  /** Moves one step forward through sanitized document history. */
   redo() {
     if (
       this.destroyed ||
@@ -3223,6 +3400,7 @@ class EditraCore {
     return true;
   }
 
+  /** Replaces live content with the selected history snapshot and rehydrates it. */
   restoreHistory() {
     const snapshot = this.history[this.historyIndex];
     this.scheduleUpdate("history", () => {
@@ -3238,6 +3416,7 @@ class EditraCore {
     });
   }
 
+  /** Places a collapsed selection at the end of the editable surface. */
   placeCaretAtEnd() {
     const range = document.createRange();
     range.selectNodeContents(this.editor);
@@ -3248,6 +3427,15 @@ class EditraCore {
     this.selection = range.cloneRange();
   }
 
+  /**
+   * Batches DOM-dependent work into the next animation frame.
+   * Reusing a key replaces stale work, which avoids repeated layout reads while
+   * the user is typing or resizing an object.
+   *
+   * @param {string} key Stable identifier for the pending task.
+   * @param {Function} task Work to run on the next frame.
+   * @returns {void}
+   */
   scheduleUpdate(key, task) {
     if (this.destroyed) return;
     this.pendingTasks.set(key, task);
@@ -3261,6 +3449,7 @@ class EditraCore {
     });
   }
 
+  /** Synchronizes textarea state and invokes the public change callback. */
   emitChange() {
     const html = this.serializeHTML();
     if (this.host instanceof HTMLTextAreaElement) {
@@ -3275,6 +3464,7 @@ class EditraCore {
     }
   }
 
+  /** Builds and publishes the current formatting, history, plugin, and page state. */
   emitState() {
     const queryState = (command) => {
       try {
@@ -3324,6 +3514,7 @@ class EditraCore {
     }
   }
 
+  /** Reads computed formatting and selected-object properties for toolbar state. */
   getSelectionFormattingState() {
     const liveSelection = global.getSelection();
     let range = null;
@@ -3486,26 +3677,38 @@ class EditraCore {
     };
   }
 
+  /** Validates media URLs under the active profile and data-image policy. */
   isSafeMediaUrl(url, allowImageData) {
     return this.security.isSafeUrl(url, { image: Boolean(allowImageData) });
   }
 
+  /** Returns document HTML using the established `getCode()` serialization path. */
   getHTML() {
     return this.getCode();
   }
 
+  /** Exports the current document through the versioned document schema. */
   getJSON() {
     return this.documentSchema.export();
   }
 
+  /** Validates structured document data without modifying editor content. */
   validateJSON(documentModel) {
     return this.documentSchema.validate(documentModel);
   }
 
+  /** Imports validated structured document data through the HTML setter. */
   setJSON(documentModel) {
     return this.setCode(this.documentSchema.import(documentModel));
   }
 
+  /**
+   * Returns persistable document HTML.
+   * Source-view text wins while code view is active; otherwise temporary editor
+   * controls are removed by `serializeHTML()`.
+   *
+   * @returns {string} Sanitized document HTML.
+   */
   getCode() {
     const source = this.toolbar?.card?.querySelector(".editra-code-view");
     return source
@@ -3515,6 +3718,7 @@ class EditraCore {
         : this.serializeHTML();
   }
 
+  /** Returns plain text from live content or the pending source-view HTML. */
   getText() {
     const source = this.toolbar?.card?.querySelector(".editra-code-view");
     if (!source && this.pendingCode === null) {
@@ -3529,6 +3733,12 @@ class EditraCore {
     return template.content.textContent ?? "";
   }
 
+  /**
+   * Returns a detached, normalized DOM clone of the current document.
+   * Editing handles and transient selection state are removed from the clone.
+   *
+   * @returns {HTMLElement} Detached formatted document root.
+   */
   getFormatted() {
     const clone = this.editor.cloneNode(false);
     clone.innerHTML = this.security.trustedHTML(
@@ -3553,6 +3763,13 @@ class EditraCore {
     return clone;
   }
 
+  /**
+   * Serializes the document without editor-only controls or selection markers.
+   * The clone is sanitized at this output boundary so stored HTML follows the
+   * same policy as imported and pasted content.
+   *
+   * @returns {string} Sanitized HTML suitable for persistence.
+   */
   serializeHTML() {
     const clone = this.editor.cloneNode(true);
     clone
@@ -3576,6 +3793,7 @@ class EditraCore {
     );
   }
 
+  /** Collects image and video metadata needed for durable host persistence. */
   getMediaData() {
     return {
       images: [...this.editor.querySelectorAll("img")].map((image) => ({
@@ -3600,6 +3818,7 @@ class EditraCore {
     };
   }
 
+  /** Applies page metrics embedded by DOCX import without changing document HTML. */
   syncImportedDocumentLayout() {
     const pages = [
       ...this.editor.querySelectorAll(
@@ -3692,6 +3911,12 @@ class EditraCore {
     this.pageGuideSignature = `docx:${pages.length}:${width}:${height}`;
   }
 
+  /**
+   * Replaces editor content with sanitized HTML and rehydrates interactive nodes.
+   *
+   * @param {string} html Untrusted HTML supplied by the host application.
+   * @returns {EditraCore|undefined} This instance, unless it was destroyed.
+   */
   setHTML(html) {
     if (this.destroyed) return;
     const code = String(
@@ -3721,6 +3946,7 @@ class EditraCore {
     return this;
   }
 
+  /** Replaces source HTML while keeping an active code view synchronized. */
   setCode(html) {
     if (this.destroyed) return;
     const code = String(
@@ -3749,34 +3975,46 @@ class EditraCore {
     return this;
   }
 
+  /** Delegates source-view visibility to the code-view plugin. */
   toggleCodeView(options) {
     return this.executeCommand("toggleCodeView", options);
   }
 
+  /** Validates and installs a community plugin through the ecosystem sandbox. */
   async installCommunityPlugin(manifest) {
     await this.ensurePlugin("ecosystem");
     return this.executeCommand("installCommunityPlugin", manifest);
   }
 
+  /** Removes one installed community plugin and its resources. */
   async uninstallCommunityPlugin(id) {
     await this.ensurePlugin("ecosystem");
     return this.executeCommand("uninstallCommunityPlugin", id);
   }
 
+  /** Returns immutable metadata for installed community plugins. */
   async getInstalledCommunityPlugins() {
     await this.ensurePlugin("ecosystem");
     return this.executeCommand("getInstalledCommunityPlugins");
   }
 
+  /** Checks a validated registry for compatible community plugin updates. */
   async checkCommunityPluginUpdates(registryUrl) {
     await this.ensurePlugin("ecosystem");
     return this.executeCommand("checkCommunityPluginUpdates", registryUrl);
   }
 
+  /** Focuses the editable surface when the instance is still active. */
   focus() {
     if (!this.destroyed) this.editor.focus();
   }
 
+  /**
+   * Releases every resource owned by this editor and restores its original host.
+   * Safe to call more than once.
+   *
+   * @returns {void}
+   */
   destroy() {
     if (this.destroyed) return;
     if (this.host instanceof HTMLTextAreaElement) {

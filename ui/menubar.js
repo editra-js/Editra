@@ -1,3 +1,8 @@
+/**
+ * Builds accessible editor menus and command pickers.
+ * Menus handle viewport positioning, keyboard navigation, and selection
+ * restoration. `destroy()` releases document listeners and open overlays.
+ */
 (function (global) {
   "use strict";
 
@@ -357,10 +362,12 @@
     "#7030a0",
   ]);
 
+  /** Normalizes labels and command names for configuration matching. */
   function normalize(value) {
     return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
   }
 
+  /** Applies host menu configuration without mutating the default definitions. */
   function resolveMenus(configuration) {
     if (!configuration || typeof configuration !== "object") return MENUS;
     return Object.entries(configuration).flatMap(([menuName, requestedItems]) => {
@@ -391,6 +398,7 @@
     });
   }
 
+  /** Removes leading, trailing, and repeated menu separators. */
   function trimSeparators(items) {
     const result = [];
     items.forEach((item) => {
@@ -401,6 +409,7 @@
     return result;
   }
 
+  /** Filters menus to commands available in the current editor. */
   function activeMenus(core, configuration) {
     return resolveMenus(configuration)
       .map((menu) => ({
@@ -423,6 +432,7 @@
   }
 
   class MenuBar {
+    /** Builds and binds the accessible menu bar for one editor. */
     constructor(core, card, configuration = null) {
       this.core = core;
       this.card = card;
@@ -478,6 +488,7 @@
       });
     }
 
+    /** Creates one menu trigger and its keyboard-navigable item list. */
     createMenu(menu, index) {
       const group = document.createElement("div");
       group.className = "editra-menu";
@@ -537,6 +548,7 @@
       return group;
     }
 
+    /** Captures editor selection before a menu control takes focus. */
     handlePointerDown(event) {
       if (event.target.closest("button")) {
         this.core.captureSelection();
@@ -544,6 +556,7 @@
       }
     }
 
+    /** Finds the toolbar control represented by a menu item. */
     controlFor(item) {
       return (
         MENU_CONTROLS[item?.dataset.command] ||
@@ -551,6 +564,7 @@
       );
     }
 
+    /** Opens a menu chooser when pointer users hover a chooser item. */
     handlePointerOver(event) {
       const item = event.target.closest(".editra-menu-item.has-submenu");
       if (!item || !this.openMenuList?.contains(item) || !this.openMenu) return;
@@ -561,6 +575,7 @@
       }
     }
 
+    /** Closes a chooser after the pointer leaves both item and overlay. */
     handlePointerOut(event) {
       const item =
         event.target.closest?.(".editra-menu-item.has-submenu") ||
@@ -580,6 +595,7 @@
       }, 140);
     }
 
+    /** Toggles menus, opens choosers, or executes the selected command. */
     handleClick(event) {
       const trigger = event.target.closest("[data-menu-index]");
       if (trigger && this.element.contains(trigger)) {
@@ -629,6 +645,7 @@
       }
     }
 
+    /** Opens an accessible value chooser for a configured menu command. */
     openChooser(item, control, options = {}) {
       if (this.chooserParent === item && this.chooser?.isConnected) return;
       const command = item.dataset.command;
@@ -732,6 +749,7 @@
       }
     }
 
+    /** Keeps the active chooser within the visible viewport. */
     positionChooser() {
       if (!this.chooser?.isConnected || !this.chooserParent?.isConnected) return;
       const viewport = window.visualViewport;
@@ -767,6 +785,7 @@
       this.chooser.style.top = `${Math.round(top)}px`;
     }
 
+    /** Removes the active chooser and all of its temporary listeners. */
     closeChooser() {
       clearTimeout(this.chooserCloseTimer);
       this.chooserCloseTimer = null;
@@ -783,6 +802,7 @@
       this.chooserParent = null;
     }
 
+    /** Opens the requested menu and closes any previously open menu. */
     toggleMenu(menu) {
       const shouldOpen = this.openMenu !== menu;
       this.closeMenus();
@@ -808,6 +828,7 @@
       });
     }
 
+    /** Repositions an open menu so it remains usable near viewport edges. */
     positionOpenMenu() {
       if (!this.openMenu) return;
       const trigger = this.openMenu.querySelector(".editra-menu-trigger");
@@ -857,6 +878,7 @@
       list.style.top = `${Math.round(top)}px`;
     }
 
+    /** Repositions open overlays after scrolling, resizing, or zooming. */
     handleViewportChange() {
       if (!this.openMenu && !this.chooser) return;
       requestAnimationFrame(() => {
@@ -865,6 +887,7 @@
       });
     }
 
+    /** Closes every menu and resets trigger accessibility state. */
     closeMenus() {
       if (!this.openMenu) return;
       this.closeChooser();
@@ -892,6 +915,7 @@
       });
     }
 
+    /** Rebuilds context-sensitive items from the latest editor state. */
     refreshContext() {
       if (!this.element?.isConnected) return;
       const hasTable = Boolean(this.core.editor.querySelector("table"));
@@ -910,6 +934,7 @@
         });
     }
 
+    /** Closes menus when a pointer action occurs outside menu UI. */
     handleDocumentPointer(event) {
       if (
         !this.element.contains(event.target) &&
@@ -921,6 +946,7 @@
       }
     }
 
+    /** Implements Escape and arrow-key menu navigation. */
     handleKeydown(event) {
       if (event.key === "Escape") {
         this.closeMenus();
@@ -942,6 +968,7 @@
       }
     }
 
+    /** Updates theme-specific menu labels and checked state. */
     refreshTheme(mode) {
       this.element.dataset.editraThemeMode = mode;
       this.element
@@ -966,6 +993,7 @@
       });
     }
 
+    /** Releases document, viewport, menu, and chooser resources. */
     destroy() {
       this.closeMenus();
       this.closeChooser();

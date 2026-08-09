@@ -1,3 +1,9 @@
+/**
+ * Iframe-side endpoint for an isolated Editra editor.
+ *
+ * Only operations in `OPERATIONS` can cross the message boundary. Every message
+ * is checked for channel, origin, source window, and size before it is handled.
+ */
 (function (global) {
   "use strict";
 
@@ -29,6 +35,7 @@
   let editor = null;
   let initialized = false;
 
+  /** Returns the serialized byte size used to enforce channel limits. */
   function bytes(value) {
     try {
       return new TextEncoder().encode(JSON.stringify(value)).byteLength;
@@ -37,6 +44,7 @@
     }
   }
 
+  /** Converts command results to values supported by structured cloning. */
   function cloneable(value) {
     if (value instanceof Node) return true;
     try {
@@ -48,6 +56,7 @@
     }
   }
 
+  /** Sends one bounded response or event to the verified parent origin. */
   function send(message) {
     const envelope = { source: "editra-isolation-frame", channel, ...message };
     if (bytes(envelope) > MAX_MESSAGE_BYTES) {
@@ -56,6 +65,7 @@
     global.parent.postMessage(envelope, parentOrigin);
   }
 
+  /** Validates configuration and creates the editor inside the isolated frame. */
   async function initialize(message) {
     if (initialized) throw new Error("Editra isolation frame is already initialized.");
     initialized = true;
@@ -82,6 +92,7 @@
     send({ type: "initialized" });
   }
 
+  /** Executes one allowlisted proxy operation and returns its cloneable result. */
   async function execute(message) {
     const requestId = String(message.requestId || "").slice(0, 240);
     const operation = String(message.operation || "");

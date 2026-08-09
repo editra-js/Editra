@@ -5,7 +5,104 @@
 1. Fork the repository in your Git hosting service.
 2. Clone your fork: `git clone <fork-url>`.
 3. Enter the repository and add the canonical Editra repository as `upstream`.
-4. Run `node tests/automation/verify-project.js` before changing code.
+4. Run `npm install` to install development and test tools.
+5. Run `node tests/automation/verify-project.js` before changing code.
+
+Start the local server with `npm start` if that script is available, or run
+`node serve.js`. Open `http://localhost:8080/examples/full.html` to exercise the
+complete editor. Browser modules must be served over HTTP; opening examples with
+`file://` prevents secure dynamic plugin loading.
+
+## Repository architecture
+
+- `index.js` and `index.mjs` are the CommonJS and ES module package entries.
+  They load the browser core on demand and keep both initialization call styles
+  compatible.
+- `core/` owns editor initialization, lifecycle, content security, serialization,
+  history, selection state, and structured document conversion.
+- `plugins/` contains independently loaded editor features. A plugin registers
+  commands during installation and must release every resource during cleanup.
+- `ui/` contains the toolbar, menu bar, icons, selection-preserving controls,
+  and shared Word-style interface CSS.
+- `themes/` contains the public Word and Classic theme entry points. Page size,
+  margin, and pagination behavior is coordinated with plugins rather than being
+  implemented by CSS alone.
+- `src/` contains optional distribution loaders and source-layout guidance. The
+  canonical readable implementation remains split across `core/`, `plugins/`,
+  `ui/`, and `themes/`.
+- `isolation/` contains the parent proxy and iframe endpoint used when the full
+  editor must run behind a checked `postMessage` boundary.
+- `tools/` contains build, integrity, SBOM, release, and repository-verification
+  scripts.
+- `tests/` contains unit contracts, browser security tests, Playwright coverage,
+  type declaration checks, and release automation.
+- `examples/` contains runnable integrations and feature-specific test pages.
+- `dist/` is generated distribution output. Do not edit it by hand.
+
+## Runtime flow
+
+Understanding the startup and shutdown sequence prevents most lifecycle bugs:
+
+1. The package entry normalizes either `Editra.init(config)` or
+   `Editra.init(selector, options)`.
+2. The entry loads `core/editor.js` from the configured asset base. Regulated
+   mode also verifies the expected integrity value.
+3. The core validates the host, security configuration, and requested plugins.
+4. Required scripts and styles load before the editor instance is constructed.
+5. The core creates or reuses the editable surface. A textarea is hidden and
+   synchronized with a separate contenteditable surface.
+6. Plugins register commands, UI controls are built, and editor events are bound.
+7. Content changes are batched, recorded in history, serialized through a clean
+   DOM clone, sanitized, and delivered through `onChange`.
+8. `destroy()` releases listeners, observers, plugin resources, timers, object
+   URLs, pending tasks, and UI. A textarea host is restored with its final HTML.
+
+## Adding or changing a built-in plugin
+
+1. Put the canonical implementation in `plugins/<name>.js`. Add a matching CSS
+   file only when the feature needs styles.
+2. Add the plugin definition and command routing in `core/editor.js`.
+3. Install commands through `core.registerCommand(name, handler, metadata)`.
+   Keep command names stable because examples and host applications use them.
+4. Register global listeners, observers, timers, overlays, and other resources
+   with `core.registerCleanup(callback)`.
+5. Keep document content separate from editor UI. Mark temporary controls with
+   `data-editra-ui` so serialization and export can remove them.
+6. Treat imported HTML, URLs, files, and messages as untrusted. Use the core
+   sanitizer and URL/request helpers instead of creating a separate policy.
+7. Add a unit or browser contract, a focused example, and user documentation.
+8. Run `npm run build` to regenerate distribution copies after source tests pass.
+
+For a host-defined command, call `editor.registerCommand()`. The returned
+function unregisters that exact command and should be called when the host
+feature is removed:
+
+```js
+const unregister = editor.registerCommand("insertProjectCode", (code) => {
+  const node = document.createElement("code");
+  node.textContent = String(code);
+  return editor.insertNode(node);
+});
+
+// Release the command when the integration is removed.
+unregister();
+```
+
+## Canonical and generated files
+
+Make changes in canonical source files and let repository tools create derived
+artifacts:
+
+- `core/`, `plugins/`, `ui/`, `themes/`, `index.js`, and `index.mjs` are source.
+- `dist/` is recreated by `tools/build-modular-distribution.js` and the Webpack
+  and minification steps.
+- `plugins/runtime-integrity.json` and its distributed copy are generated by
+  `tools/generate-runtime-integrity.js`.
+- `artifacts/editra-sbom.cdx.json` is generated by `tools/generate-sbom.js`.
+- Minified JavaScript and CSS must never be edited directly.
+
+Generated changes may appear after `npm run build`. Review them to confirm they
+match the intended source change, but do not repair generated output by hand.
 
 ## Branching strategy
 
@@ -23,11 +120,19 @@
 - Register every global listener with a matching cleanup.
 - Use accessible labels, keyboard behavior, and semantic HTML.
 - Preserve existing public commands and minimal initialization.
-- Start every source file with the required Editra ownership/version/license header.
+- Add a short module summary when a file's responsibility or security boundary
+  is not obvious. Do not add comments that merely repeat the code.
 
 ## Testing requirements
 
-- Run `node tests/automation/verify-project.js`.
+- Run `npm run test:types` after changing `index.d.ts` or a public API.
+- Run `npm run test:unit` for source, plugin, documentation, or packaging changes.
+- Run `npm run test:browser:installed` for DOM, selection, serialization,
+  security, or lifecycle changes.
+- Run `npm run test:cross-browser` for layout, input, menu, media, or pagination
+  changes that may differ between browser engines.
+- Run `npm run build` and `npm run pack:check` before requesting release review.
+- Run `node tests/automation/verify-project.js` for a quick repository check.
 - Run `node --check` for every changed JavaScript file.
 - Test light and dark themes.
 - Test plugin cleanup through `destroy()`.
@@ -47,6 +152,16 @@
 4. Update `version.prop` and `RELEASE_NOTES.md` only for an approved release.
 5. Confirm MIT-compatible licensing for new assets or dependencies.
 6. Request review from an Editra maintainer.
+
+Before requesting review, confirm that:
+
+- Public APIs and command names remain backward compatible.
+- A normal div host and a textarea host both work.
+- New listeners, observers, timers, object URLs, and overlays are released.
+- Untrusted HTML and URLs still pass through the shared security boundary.
+- Keyboard use, focus, labels, and reduced-motion behavior remain accessible.
+- Canonical source, generated distribution files, documentation, and tests agree.
+- No minified or generated artifact was manually edited.
 
 ## Plugin contribution workflow
 

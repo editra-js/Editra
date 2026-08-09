@@ -1,3 +1,10 @@
+/**
+ * Installs validated community plugins in capability-limited iframes.
+ *
+ * Community code never receives the Editra core or direct document DOM access.
+ * All requests cross a bounded message channel and require an allowed capability
+ * plus, for commands, an explicit command allowlist.
+ */
 (function (global) {
   "use strict";
 
@@ -12,10 +19,12 @@
     "ui.notify",
   ]);
 
+  /** Converts a semantic version to the numeric parts needed for comparison. */
   function versionParts(value) {
     return String(value).split(/[.-]/, 3).map((part) => Number(part) || 0);
   }
 
+  /** Compares two semantic versions without changing either value. */
   function compareVersions(left, right) {
     const a = versionParts(left);
     const b = versionParts(right);
@@ -25,11 +34,13 @@
     return 0;
   }
 
+  /** Checks Editra's supported minimum-version compatibility syntax. */
   function supportsVersion(range, current) {
     const match = String(range).trim().match(/^>=(\d+\.\d+\.\d+)$/);
     return Boolean(match && compareVersions(current, match[1]) >= 0);
   }
 
+  /** Reads and bounds a required text field from untrusted manifest data. */
   function requiredText(source, key, maximum) {
     const value = String(source?.[key] ?? "").trim();
     if (!value || value.length > maximum) {
@@ -38,6 +49,7 @@
     return value;
   }
 
+  /** Validates and freezes community-plugin metadata before any network access. */
   function validateManifest(core, input) {
     if (!input || typeof input !== "object" || Array.isArray(input)) {
       throw new TypeError("Community plugin metadata must be an object.");
@@ -93,6 +105,7 @@
     });
   }
 
+  /** Calculates the Subresource Integrity form of a SHA-256 digest. */
   async function sha256(value) {
     const bytes = new TextEncoder().encode(value);
     const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -100,6 +113,7 @@
     return `sha256-${btoa(binary)}`;
   }
 
+  /** Downloads a community entry and verifies its immutable integrity value. */
   async function verifyEntry(core, manifest) {
     if (!core.security.config.requireCommunityPluginIntegrity) return true;
     const response = await core.secureRequest(manifest.entry, {
@@ -116,6 +130,7 @@
     return true;
   }
 
+  /** Sends a bounded capability response to one installed plugin frame. */
   function response(frame, pluginId, requestId, result, error = null) {
     frame.contentWindow?.postMessage(
       {
@@ -130,6 +145,7 @@
     );
   }
 
+  /** Validates and handles one capability request from a known plugin frame. */
   async function handleRequest(core, installed, event) {
     const message = event.data;
     if (!message || message.source !== "editra-plugin") return;
@@ -191,6 +207,7 @@
     }
   }
 
+  /** Validates, verifies, and mounts a community plugin in a sandboxed iframe. */
   async function installPlugin(core, state, input) {
     if (!core.security.config.allowCommunityPlugins) {
       core.security.violation(
@@ -231,6 +248,7 @@
     return manifest;
   }
 
+  /** Removes a community frame, listeners, and stored installation metadata. */
   function uninstallPlugin(core, state, id) {
     const pluginId = String(id ?? "");
     const record = state.installed.get(pluginId);
@@ -246,6 +264,7 @@
     return true;
   }
 
+  /** Compares installed versions with a validated, origin-approved registry. */
   async function checkUpdates(core, state, registryUrl) {
     const response = await core.secureRequest(registryUrl || "plugins/registry.json");
     if (!response.ok) throw new Error(`Unable to load plugin registry: ${response.status}`);
@@ -263,6 +282,7 @@
     });
   }
 
+  /** Installs ecosystem commands and the shared message listener once. */
   function install(core) {
     if (installations.has(core)) return installations.get(core);
     const state = { installed: new Map(), unregister: [] };
@@ -292,6 +312,7 @@
     return state;
   }
 
+  /** Plugin entry that installs the ecosystem or adds one supplied manifest. */
   function EcosystemPlugin(core, manifest) {
     return installPlugin(core, install(core), manifest);
   }

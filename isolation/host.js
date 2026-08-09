@@ -1,3 +1,9 @@
+/**
+ * Parent-page proxy for running an entire Editra instance in an iframe.
+ *
+ * The proxy mirrors safe editor operations over a bounded, origin-checked
+ * postMessage channel and restores the original host when destroyed.
+ */
 (function (global) {
   "use strict";
 
@@ -5,6 +11,7 @@
   const MAX_PENDING_REQUESTS = 100;
   const REQUEST_TIMEOUT_MS = 30000;
 
+  /** Returns serialized message size, or infinity for uncloneable values. */
   function bytes(value) {
     try {
       const text = JSON.stringify(value);
@@ -14,6 +21,7 @@
     }
   }
 
+  /** Creates an unpredictable identifier that binds one host to one frame. */
   function channelId() {
     if (global.crypto?.randomUUID) return global.crypto.randomUUID();
     if (!global.crypto?.getRandomValues) {
@@ -24,11 +32,13 @@
     return Array.from(value, (part) => part.toString(16).padStart(8, "0")).join("");
   }
 
+  /** Reports whether iframe initialization requests the regulated profile. */
   function regulated(config) {
     return config.regulated === true ||
       String(config.security?.profile ?? "").toLowerCase() === "regulated";
   }
 
+  /** Removes DOM references and callbacks before configuration crosses the frame. */
   function serializableConfig(config) {
     const copy = {};
     Object.entries(config).forEach(([key, value]) => {
@@ -43,6 +53,7 @@
     return copy;
   }
 
+  /** Creates the iframe, checked message channel, and asynchronous editor proxy. */
   async function init(config) {
     if (!config || typeof config !== "object" || Array.isArray(config)) {
       throw new TypeError("Isolated Editra requires a configuration object.");
@@ -94,6 +105,7 @@
       rejectReady = reject;
     });
 
+    /** Sends one size-bounded message to the configured frame origin. */
     function send(message) {
       const envelope = { source: "editra-isolation-host", channel, ...message };
       if (bytes(envelope) > MAX_MESSAGE_BYTES) {
@@ -102,6 +114,8 @@
       frame.contentWindow?.postMessage(envelope, target.origin);
     }
 
+    // Reject pending requests before removing the frame so callers never retain
+    // promises that can no longer receive a response.
     function cleanup(reason = new Error("Editra isolated editor was destroyed.")) {
       if (destroyed) return;
       destroyed = true;
@@ -117,6 +131,7 @@
       if (host.editraInstance === proxy) delete host.editraInstance;
     }
 
+    /** Sends one bounded request and resolves it with the matching response. */
     function request(operation, args = []) {
       if (destroyed) return Promise.reject(new Error("Editra isolated editor is destroyed."));
       if (pending.size >= MAX_PENDING_REQUESTS) {
@@ -139,6 +154,8 @@
       }));
     }
 
+    // Validate window, origin, channel, and envelope identity before reading any
+    // message fields. A matching channel alone is not a security boundary.
     function onMessage(event) {
       if (
         event.source !== frame.contentWindow ||

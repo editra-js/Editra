@@ -1,3 +1,9 @@
+/**
+ * Builds the modular `dist` tree from canonical source directories.
+ *
+ * Do not edit copied files under `dist` directly. Update their source file and
+ * run `npm run build` so this tool recreates a consistent distribution.
+ */
 "use strict";
 
 const fs = require("node:fs");
@@ -11,6 +17,8 @@ const copyDirectory = (source, target) => {
 };
 
 fs.mkdirSync(dist, { recursive: true });
+// The source core lives one directory below the project root. Its distributed
+// copy lives at the root of `dist`, so its runtime asset base must be adjusted.
 const coreSource = fs
   .readFileSync(path.join(root, "core", "editor.js"), "utf8")
   .replace(

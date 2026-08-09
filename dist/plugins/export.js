@@ -1,12 +1,20 @@
+/**
+ * Page-fidelity HTML, Word, and browser-print export.
+ *
+ * Export works on cloned content so table splitting, repeated headers, and page
+ * wrappers never mutate the live editor or disturb the user's selection.
+ */
 (function (global) {
   "use strict";
 
   const installations = new WeakMap();
 
+  /** Yields to the browser before continuing expensive export measurement. */
   function nextFrame() {
     return new Promise((resolve) => requestAnimationFrame(resolve));
   }
 
+  /** Escapes dynamic header, footer, and title values for export markup. */
   function escapeHTML(value) {
     return String(value).replace(
       /[&<>"']/g,
@@ -21,6 +29,7 @@
     );
   }
 
+  /** Chooses a valid physical print dimension with a measured pixel fallback. */
   function printDimension(value, measured) {
     const dimension = String(value ?? "").trim();
     return /^\d+(?:\.\d+)?(?:px|in|cm|mm|q|pt|pc)$/i.test(dimension)
@@ -28,6 +37,7 @@
       : `${Math.round(measured * 100) / 100}px`;
   }
 
+  /** Measures document content height after accounting for page padding. */
   function coveredContentHeight(core, style) {
     const editorTop = core.editor.getBoundingClientRect().top;
     let bottom = Number.parseFloat(style.paddingTop) || 0;
@@ -46,6 +56,7 @@
     return Math.ceil(bottom + (Number.parseFloat(style.paddingBottom) || 0));
   }
 
+  /** Collects physical dimensions, margins, page count, and export mode. */
   function pageMetrics(core, options = {}) {
     const editorStyle = getComputedStyle(core.editor);
     const contentOnly = Boolean(
@@ -114,6 +125,7 @@
     };
   }
 
+  /** Returns a detached export node with all editor-only state removed. */
   function cleanClone(node) {
     const clone = node.cloneNode(true);
     if (clone.nodeType !== Node.ELEMENT_NODE) return clone;
@@ -146,6 +158,7 @@
     return clone;
   }
 
+  /** Reads a persisted header or footer definition from document metadata. */
   function readPart(core, part) {
     const source = core.editor.querySelector(
       `[data-editra-document-part="${part}"]`,
@@ -158,6 +171,10 @@
     }
   }
 
+  /**
+   * Divides a flowing table into page-specific clones while keeping one semantic
+   * header per segment. The live table is only measured and is never modified.
+   */
   function splitTableAcrossPages(
     core,
     node,
@@ -230,6 +247,7 @@
     return true;
   }
 
+  /** Resolves safe page, total-page, date, and custom fields in a document part. */
   function resolvePart(definition, page, pages) {
     if (!definition) return "";
     const values = {
@@ -245,6 +263,10 @@
     );
   }
 
+  /**
+   * Groups cloned document nodes by their measured physical page.
+   * Work is chunked to avoid freezing the browser during large exports.
+   */
   async function paginate(core, options = {}) {
     await nextFrame();
     core.refreshPageLayout();
@@ -298,6 +320,7 @@
     };
   }
 
+  /** Builds self-contained print CSS for the measured document dimensions. */
   function exportCSS(metrics) {
     const width = escapeHTML(metrics.widthCSS);
     const height = escapeHTML(metrics.heightCSS);
@@ -386,6 +409,7 @@
     `;
   }
 
+  /** Combines page clones, repeated parts, and print CSS into a complete document. */
   function documentHTML(
     core,
     pages,
@@ -410,6 +434,7 @@
     return `<!doctype html><html><head><meta charset="utf-8"><meta name="generator" content="Editra"><title>${escapeHTML(title)}</title><style>${exportCSS(metrics)}</style></head><body data-editra-page-size="${escapeHTML(metrics.pageSize)}" data-editra-orientation="${escapeHTML(metrics.orientation)}">${sections}</body></html>`;
   }
 
+  /** Creates the shared paginated representation used by every export format. */
   async function createExport(core, options = {}) {
     const result = await paginate(core, options);
     return {
@@ -424,6 +449,7 @@
     };
   }
 
+  /** Exports or downloads a self-contained page-aware HTML document. */
   async function exportHTML(core, options = {}) {
     const result = await createExport(core, options);
     if (options.download !== false) {
@@ -440,6 +466,7 @@
     };
   }
 
+  /** Exports Word-compatible HTML with physical page section metadata. */
   async function exportWord(core, options = {}) {
     const result = await createExport(core, options);
     const wordHTML = result.html.replace(
@@ -460,6 +487,7 @@
     };
   }
 
+  /** Opens a sandboxed print frame or returns page metadata for PDF workflows. */
   async function exportPDF(core, options = {}) {
     const result = await createExport(core, options);
     if (options.print === false) {
@@ -500,6 +528,7 @@
     return { format: "pdf", pageCount: result.metrics.pageCount };
   }
 
+  /** Routes a generic export request to PDF, Word, or HTML. */
   function exportDocument(core, options = {}) {
     const format = String(options.format || "html").toLowerCase();
     if (format === "pdf") return exportPDF(core, options);
@@ -507,6 +536,7 @@
     return exportHTML(core, options);
   }
 
+  /** Measures export pagination time and output size for large documents. */
   async function exportStressTest(core, options = {}) {
     const startedAt = performance.now();
     const result = await createExport(core, options);
@@ -519,6 +549,7 @@
     };
   }
 
+  /** Installs all export commands once and registers their cleanup. */
   function install(core) {
     if (installations.has(core)) return installations.get(core);
     const handlers = {
@@ -549,6 +580,7 @@
     return state;
   }
 
+  /** Plugin entry that installs commands and optionally starts an export. */
   function ExportPlugin(core, options) {
     install(core);
     return options === undefined ? true : exportDocument(core, options);
