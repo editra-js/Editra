@@ -100,7 +100,7 @@
   },
   "dependencies": {
     "dompurify": "3.4.13",
-    "jsbarcode": "3.11.6",
+    "jsbarcode": "3.12.3",
     "qrcode-generator": "2.0.4"
   }
 }
