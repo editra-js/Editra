@@ -82,6 +82,7 @@
     "test:browser:installed": "node tests/automation/browser-security.js",
     "test:cross-browser": "playwright test",
     "security:audit": "npm audit --audit-level=high",
+    "security:licenses": "node tools/validate-dependency-licenses.js",
     "security:integrity": "node tools/generate-runtime-integrity.js",
     "security:integrity:check": "node tools/generate-runtime-integrity.js --check",
     "security:sbom": "node tools/generate-sbom.js",
@@ -99,8 +100,8 @@
     "@fontsource/libre-barcode-39": "5.3.0",
     "@fontsource/libre-barcode-ean13-text": "5.3.0",
     "@playwright/test": "1.61.1",
-    "typescript": "^5.9.3",
-    "webpack": "5.109.0",
+    "typescript": "5.9.3",
+    "webpack": "5.109.2",
     "webpack-cli": "6.0.1"
   },
   "dependencies": {

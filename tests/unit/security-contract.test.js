@@ -14,7 +14,11 @@ const ecosystem = read("plugins/ecosystem.js");
 const collaboration = read("plugins/collaboration.js");
 const toolbar = read("ui/toolbar.js");
 const server = read("serve.js");
+const securityWorkflow = read(".github/workflows/security.yml");
+const releaseWorkflow = read(".github/workflows/release-security.yml");
+const licenseValidator = read("tools/validate-dependency-licenses.js");
 const packageMetadata = JSON.parse(read("package.json"));
+const lockMetadata = JSON.parse(read("package-lock.json"));
 const runtimeIntegrity = JSON.parse(read("plugins/runtime-integrity.json"));
 
 for (const token of [
@@ -63,6 +67,12 @@ assert.ok(toolbar.includes("../assets/icons/"));
 assert.ok(toolbar.includes('document.createElement("img")'));
 assert.ok(!toolbar.includes("svg.innerHTML"));
 assert.ok(server.includes("font-src 'self'"));
+assert.ok(securityWorkflow.includes("actions/dependency-review-action@v5"));
+assert.ok(securityWorkflow.includes("npm run security:licenses"));
+assert.ok(releaseWorkflow.includes("actions/attest-build-provenance@v4"));
+assert.ok(!securityWorkflow.includes("ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION"));
+assert.ok(!releaseWorkflow.includes("ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION"));
+assert.ok(licenseValidator.includes("AGPL-3.0-or-later"));
 assert.equal(packageMetadata.dependencies.dompurify, "3.4.13");
 assert.equal(packageMetadata.dependencies["qrcode-generator"], "2.0.4");
 assert.equal(packageMetadata.dependencies.jsbarcode, "3.11.6");
@@ -72,8 +82,24 @@ assert.equal(
   packageMetadata.devDependencies["@fontsource/libre-barcode-ean13-text"],
   "5.3.0",
 );
-assert.equal(packageMetadata.devDependencies.webpack, "5.109.0");
-assert.equal(packageMetadata.devDependencies["webpack-cli"], "6.0.1");
+for (const dependency of ["webpack", "webpack-cli"]) {
+  const declared = packageMetadata.devDependencies[dependency];
+  assert.match(
+    declared,
+    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/,
+    `${dependency} must use an exact version`,
+  );
+  assert.equal(
+    declared,
+    lockMetadata.packages[""].devDependencies[dependency],
+    `${dependency} must match the root lockfile declaration`,
+  );
+  assert.equal(
+    declared,
+    lockMetadata.packages[`node_modules/${dependency}`].version,
+    `${dependency} must match the installed lockfile version`,
+  );
+}
 assert.equal(runtimeIntegrity.schemaVersion, "1.0.0");
 assert.equal(runtimeIntegrity.algorithm, "sha256");
 for (const asset of [
