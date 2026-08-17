@@ -282,6 +282,16 @@
         ["landscape", "Landscape"],
       ]),
     }),
+    "case-change": Object.freeze({
+      type: "select",
+      label: "Case change",
+      options: Object.freeze([
+        ["lowercase", "lowercase"],
+        ["uppercase", "UPPERCASE"],
+        ["title", "Title Case"],
+        ["sentence", "Sentence case"],
+      ]),
+    }),
     bulletList: Object.freeze({
       type: "select",
       label: "Bullet style",
@@ -289,6 +299,10 @@
         ["disc", "Filled circle"],
         ["circle", "Hollow circle"],
         ["square", "Square"],
+        ["dash", "Dash"],
+        ["arrow", "Arrow"],
+        ["check", "Check mark"],
+        ["diamond", "Diamond"],
         ["none", "No marker"],
       ]),
     }),
@@ -297,10 +311,13 @@
       label: "Number style",
       options: Object.freeze([
         ["decimal", "1, 2, 3"],
+        ["decimal-leading-zero", "01, 02, 03"],
         ["lower-alpha", "a, b, c"],
         ["upper-alpha", "A, B, C"],
         ["lower-roman", "i, ii, iii"],
         ["upper-roman", "I, II, III"],
+        ["lower-greek", "α, β, γ"],
+        ["arabic-indic", "١, ٢, ٣"],
       ]),
     }),
     insertDateTime: Object.freeze({

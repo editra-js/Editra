@@ -1,8 +1,8 @@
 # Editra Release Notes
 
-## Version 1.1.1
+## Version 1.0.1
 
-Release date: 2026-08-09
+Release date: 2026-08-16
 
 ### Version 1.1.1 patch release
 

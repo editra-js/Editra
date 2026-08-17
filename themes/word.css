@@ -356,6 +356,104 @@ body {
   font-size: 0.67em;
 }
 
+/* Semantic formatting remains visible in both Word and importing Classic. */
+.editra-editor strong,
+.editra-editor b {
+  font-weight: 700;
+}
+
+.editra-editor em,
+.editra-editor i {
+  font-style: italic;
+}
+
+.editra-editor u {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.editra-editor s,
+.editra-editor strike {
+  text-decoration: line-through;
+}
+
+.editra-editor sup,
+.editra-editor sub {
+  font-size: 0.75em;
+  line-height: 0;
+}
+
+.editra-editor sup {
+  vertical-align: super;
+}
+
+.editra-editor sub {
+  vertical-align: sub;
+}
+
+.editra-editor ul,
+.editra-editor ol {
+  margin-block: 0.75em;
+  padding-inline-start: 2.25em;
+}
+
+.editra-editor ul {
+  list-style-type: disc;
+}
+
+.editra-editor ol {
+  list-style-type: decimal;
+}
+
+/* Restore real list items even when the host application uses a CSS reset. */
+.editra-editor ul > li,
+.editra-editor ol > li {
+  display: list-item;
+  list-style-position: outside;
+  list-style-type: inherit;
+}
+
+.editra-editor ul > li::marker,
+.editra-editor ol > li::marker {
+  color: currentColor;
+  content: normal;
+}
+
+/* Word-style symbol presets keep semantic UL markup and replace only markers. */
+.editra-editor ul[data-editra-list-style="dash"] > li::marker {
+  content: "–  ";
+}
+
+.editra-editor ul[data-editra-list-style="arrow"] > li::marker {
+  content: "➜  ";
+}
+
+.editra-editor ul[data-editra-list-style="check"] > li::marker {
+  content: "✓  ";
+}
+
+.editra-editor ul[data-editra-list-style="diamond"] > li::marker {
+  content: "◆  ";
+}
+
+.editra-editor li {
+  margin-block: 0.2em;
+}
+
+/* Blocks stay semantic when headings/paragraphs are combined with lists. */
+.editra-editor li > p {
+  margin-block: 0;
+}
+
+.editra-editor li > h1,
+.editra-editor li > h2,
+.editra-editor li > h3,
+.editra-editor li > h4,
+.editra-editor li > h5,
+.editra-editor li > h6 {
+  margin-block: 0.25em;
+}
+
 .editra-tab {
   display: inline-block;
   min-width: 2.5em;
@@ -394,7 +492,7 @@ body {
   accent-color: var(--editra-accent);
 }
 
-.editra-todo-item.is-complete > span {
+.editra-todo-item.is-complete > :not(input, ul, ol) {
   color: var(--editra-muted);
   text-decoration: line-through;
 }
@@ -741,12 +839,18 @@ body {
   outline: none;
   overflow: auto;
   caret-color: #1a4fa3;
-  color: transparent;
+  color: #252b36;
   background: transparent;
   font: 0.78rem/1.6 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  -webkit-text-fill-color: transparent;
+  -webkit-text-fill-color: currentColor;
   tab-size: 2;
   white-space: pre;
+}
+
+/* Hide textarea glyphs only while the synchronized colored mirror is ready. */
+.editra-code-editor.is-decorated .editra-code-view {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .editra-page-workspace {
@@ -821,6 +925,31 @@ body {
   text-align: left;
   text-indent: 0;
   white-space: nowrap;
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  transition: outline-color 120ms ease, background 120ms ease;
+}
+
+.editra-page-header-preview:hover,
+.editra-page-footer-preview:hover,
+.editra-page-header-preview:focus-visible,
+.editra-page-footer-preview:focus-visible {
+  border-radius: 2px;
+  outline: 1px dashed #7b8491;
+  outline-offset: 4px;
+}
+
+.editra-page-header-preview.is-editing,
+.editra-page-footer-preview.is-editing {
+  z-index: 2;
+  min-height: 1.5em;
+  overflow: visible;
+  border-radius: 3px;
+  outline: 2px solid var(--editra-accent);
+  outline-offset: 5px;
+  background: rgba(255, 255, 255, 0.92);
+  white-space: normal;
 }
 
 .editra-page-header-preview {
@@ -2044,6 +2173,74 @@ body {
   background: rgba(255, 254, 250, 0.98);
   box-shadow: 0 18px 50px rgba(35, 31, 25, 0.2);
   backdrop-filter: blur(16px);
+}
+
+.editra-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(20, 24, 31, 0.2);
+  backdrop-filter: blur(1px);
+}
+
+.editra-header-footer-form,
+.editra-header-footer-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.editra-header-footer-form label > span {
+  color: var(--editra-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.editra-header-footer-form textarea {
+  width: 100%;
+  min-height: 92px;
+  padding: 10px 11px;
+  resize: vertical;
+  border: 1px solid var(--editra-line);
+  border-radius: 8px;
+  outline: none;
+  color: var(--editra-ink);
+  background: var(--editra-paper);
+  font: 0.78rem/1.5 Inter, ui-sans-serif, sans-serif;
+}
+
+.editra-header-footer-form textarea:focus {
+  border-color: var(--editra-accent);
+  box-shadow: 0 0 0 3px var(--editra-accent-soft);
+}
+
+.editra-header-footer-hint {
+  margin: 2px 0 4px;
+  color: var(--editra-muted);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.editra-header-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.editra-header-footer-actions button {
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--editra-line);
+  border-radius: 8px;
+  color: var(--editra-ink);
+  background: var(--editra-paper);
+  font: 700 0.72rem Inter, ui-sans-serif, sans-serif;
+  cursor: pointer;
+}
+
+.editra-header-footer-actions button[type="submit"] {
+  color: #fff;
+  border-color: var(--editra-accent);
+  background: var(--editra-accent);
 }
 
 .editra-dialog-heading {

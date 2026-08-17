@@ -1,6 +1,8 @@
 (function (global) {
   "use strict";
 
+// Bold is a semantic inline command; the core supplies a DOM fallback when a
+// browser does not implement the native editing command.
 function BoldPlugin(core) {
   return core.execCommand("bold");
 }

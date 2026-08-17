@@ -1,6 +1,6 @@
 {
   "name": "editra-js",
-  "version": "1.1.1",
+  "version": "1.0.1",
   "description": "Word-style WYSIWYG Editor for the Web",
   "types": "./index.d.ts",
   "main": "index.js",

@@ -74,8 +74,14 @@
       this.buttons = new Map();
       this.controls = new Map();
       this.handleClick = this.handleClick.bind(this);
+      this.handleInput = this.handleInput.bind(this);
       this.handleChange = this.handleChange.bind(this);
+      this.handleFocusOut = this.handleFocusOut.bind(this);
       this.preserveSelection = this.preserveSelection.bind(this);
+      this.interactingControl = null;
+      this.pendingControlValues = new WeakMap();
+      this.controlsWithPointerSelection = new WeakSet();
+      this.pointerSelections = new WeakMap();
 
       this.element = document.createElement("div");
       this.element.className = "editra-toolbar";
@@ -143,9 +149,13 @@
       this.workspace.append(core.editor);
       this.card.append(this.element, this.workspace);
 
-      this.element.addEventListener("mousedown", this.preserveSelection);
+      // Capture on pointerdown, before mouse, pen, or touch focus can replace
+      // the document range. Every formatting control relies on this saved range.
+      this.element.addEventListener("pointerdown", this.preserveSelection);
       this.element.addEventListener("click", this.handleClick);
+      this.element.addEventListener("input", this.handleInput);
       this.element.addEventListener("change", this.handleChange);
+      this.element.addEventListener("focusout", this.handleFocusOut);
       core.notifyUI("toolbarBuild", {
         element: this.element,
         tools: [...this.buttons.keys()],
@@ -261,11 +271,23 @@
       return `${modifier}${key.toUpperCase()}`;
     }
 
-    /** Saves selection before a pointer action moves focus into the toolbar. */
+    /** Saves selection before a mouse, pen, or touch action moves toolbar focus. */
     preserveSelection(event) {
       const control = event.target.closest("[data-command]");
       if (!control || !this.element.contains(control)) return;
       this.core.captureSelection();
+      const stateControl = control.closest(".editra-color-tool") || control;
+      if (
+        stateControl.matches("select, .editra-color-tool")
+      ) {
+        // State updates may run while a native picker is open. Remember the
+        // active control so they cannot replace the user's pending choice.
+        this.interactingControl = stateControl;
+        this.controlsWithPointerSelection.add(stateControl);
+        if (this.core.selection && this.core.isRangeInside(this.core.selection)) {
+          this.pointerSelections.set(stateControl, this.core.selection.cloneRange());
+        }
+      }
       if (control.closest("button[data-command]")) event.preventDefault();
     }
 
@@ -296,12 +318,58 @@
       );
     }
 
+    /** Saves the value before a queued state refresh can rewrite the control. */
+    handleInput(event) {
+      const control = event.target.closest("[data-command]");
+      if (!control || !this.element.contains(control)) return;
+      const stateControl = control.closest(".editra-color-tool") || control;
+      this.interactingControl = stateControl;
+      this.pendingControlValues.set(stateControl, control.value);
+    }
+
     /** Executes the command associated with a select or color input. */
     handleChange(event) {
       const control = event.target.closest("[data-command]");
       if (!control || !this.element.contains(control)) return;
+      const stateControl = control.closest(".editra-color-tool") || control;
+      const value = this.pendingControlValues.get(stateControl) ?? control.value;
+      const hasPointerSelection = this.controlsWithPointerSelection.has(stateControl);
+      const pointerSelection = this.pointerSelections.get(stateControl) || null;
+      this.pendingControlValues.delete(stateControl);
+      this.controlsWithPointerSelection.delete(stateControl);
+      this.pointerSelections.delete(stateControl);
+      this.interactingControl = null;
+      // A native select can collapse the visible editor range while its popup
+      // is open. Never replace the range captured on pointerdown with that
+      // browser-created caret; it is the reason list/font options sometimes
+      // affected only the second line. Keyboard/programmatic changes without a
+      // pointer capture may still use their current live editor selection.
+      const selection = global.getSelection();
+      if (pointerSelection && this.core.isRangeInside(pointerSelection)) {
+        this.core.selection = pointerSelection.cloneRange();
+      } else if (
+        !hasPointerSelection &&
+        selection?.rangeCount &&
+        this.core.isRangeInside(selection.getRangeAt(0))
+      ) {
+        this.core.captureSelection();
+      }
       this.core.restoreSelection();
-      this.core.executeCommand(control.dataset.command, control.value);
+      this.core.executeCommand(control.dataset.command, value);
+    }
+
+    /** Releases a cancelled select/color interaction after focus moves away. */
+    handleFocusOut(event) {
+      if (
+        this.interactingControl &&
+        (this.interactingControl === event.target ||
+          this.interactingControl.contains?.(event.target))
+      ) {
+        this.pendingControlValues.delete(this.interactingControl);
+        this.controlsWithPointerSelection.delete(this.interactingControl);
+        this.pointerSelections.delete(this.interactingControl);
+        this.interactingControl = null;
+      }
     }
 
     /** Synchronizes enabled, pressed, selected, and property UI with editor state. */
@@ -316,6 +384,8 @@
         setAlignment: "alignment",
         setLineHeight: "lineHeight",
         setLanguage: "language",
+        setBulletListStyle: "bulletListStyle",
+        setNumberListStyle: "numberListStyle",
       };
       const activeKeyByCommand = {
         bold: "bold",
@@ -327,6 +397,9 @@
         blockQuote: "blockQuote",
         bulletList: "bulletList",
         numberList: "numberList",
+        toggleKeepTogether: "keepTogether",
+        KeepWithNext: "keepWithNext",
+        keepWithNext: "keepWithNext",
       };
       const comparable = (value) =>
         String(value ?? "")
@@ -364,12 +437,26 @@
         const stateKey = stateKeyByCommand[command];
         const detected = stateKey ? state[stateKey] : null;
         if (detected === null || detected === undefined || detected === "") return;
+        if (button === this.interactingControl) return;
         const definition = this.controls.get(command);
         if (definition) definition.value = detected;
         if (button instanceof HTMLSelectElement) {
-          const match = [...button.options].find(
+          let match = [...button.options].find(
             (option) => comparable(option.value) === comparable(detected),
           );
+          if (!match && command === "setFontSize") {
+            const detectedPixels = Number.parseFloat(String(detected));
+            if (Number.isFinite(detectedPixels) && /px$/i.test(String(detected))) {
+              // Browsers expose point sizes as fractional pixels (11pt becomes
+              // 14.6667px). Choose the nearest whole-pixel preset only when it
+              // is genuinely close, while leaving unsupported sizes blank.
+              match = [...button.options].find((option) => {
+                const optionPixels = Number.parseFloat(option.value);
+                return Number.isFinite(optionPixels) &&
+                  Math.abs(optionPixels - detectedPixels) <= 0.5;
+              });
+            }
+          }
           if (match) {
             button.value = match.value;
           } else {
@@ -399,9 +486,13 @@
 
     /** Releases toolbar listeners and removes the generated editor card. */
     destroy() {
-      this.element.removeEventListener("mousedown", this.preserveSelection);
+      this.element.removeEventListener("pointerdown", this.preserveSelection);
       this.element.removeEventListener("click", this.handleClick);
+      this.element.removeEventListener("input", this.handleInput);
       this.element.removeEventListener("change", this.handleChange);
+      this.element.removeEventListener("focusout", this.handleFocusOut);
+      this.interactingControl = null;
+      this.pendingControlValues = new WeakMap();
       this.buttons.clear();
       this.controls.clear();
 

@@ -120,7 +120,8 @@
       css: "plugins/formatting.css",
       label: "Text color",
       command: "setForeColor",
-      lazy: true,
+      // Core text controls are eager so the first toolbar interaction applies
+      // synchronously instead of depending on a just-in-time network fetch.
       toolbarItems: [
         { name: "foreColor", command: "setForeColor", label: "Text color", icon: "textColor", type: "color", value: "#25231f" },
         { name: "backgroundColor", command: "setBackgroundColor", aliases: ["backColor"], label: "Background color", icon: "palette", type: "color", value: "#fff2a8" },
@@ -137,10 +138,9 @@
       file: "plugins/fonts.js",
       label: "Font family",
       command: "setFontFamily",
-      lazy: true,
       toolbarItems: [
         { name: "fontFamily", command: "setFontFamily", label: "Font family", type: "select", value: "Calibri", options: [["Segoe UI", "Segoe UI"], ["Calibri", "Calibri"], ["Arial", "Arial"], ["Helvetica", "Helvetica"], ["Times New Roman", "Times New Roman"], ["Georgia", "Georgia"], ["Garamond", "Garamond"], ["Verdana", "Verdana"], ["Tahoma", "Tahoma"], ["Trebuchet MS", "Trebuchet MS"], ["Courier New", "Courier New"], ["Consolas", "Consolas"], ["Cambria", "Cambria"], ["Candara", "Candara"], ["Century Gothic", "Century Gothic"], ["Franklin Gothic Medium", "Franklin Gothic Medium"], ["Palatino Linotype", "Palatino Linotype"], ["Book Antiqua", "Book Antiqua"], ["Lucida Sans Unicode", "Lucida Sans Unicode"], ["Impact", "Impact"], ["Noto Sans", "Noto Sans"], ["Noto Serif", "Noto Serif"], ["Arial Unicode MS", "Arial Unicode MS"]] },
-        { name: "fontSize", command: "setFontSize", label: "Font size", type: "select", value: "12px", options: Array.from({ length: 29 }, (_, index) => [`${index + 8}px`, String(index + 8)]) },
+        { name: "fontSize", command: "setFontSize", label: "Font size", type: "select", value: "15px", options: Array.from({ length: 29 }, (_, index) => [`${index + 8}px`, String(index + 8)]) },
       ],
     },
     languages: {
@@ -176,7 +176,6 @@
       file: "plugins/headings.js",
       label: "Heading",
       command: "setHeading",
-      lazy: true,
       toolbarItems: [
         { name: "heading", command: "setHeading", label: "Heading", type: "select", value: "p", options: [["p", "Normal"], ["h1", "Heading 1"], ["h2", "Heading 2"], ["h3", "Heading 3"], ["h4", "Heading 4"], ["h5", "Heading 5"], ["h6", "Heading 6"]] },
       ],
@@ -185,10 +184,11 @@
       file: "plugins/lists.js",
       label: "Bullet list",
       command: "bulletList",
-      lazy: true,
       toolbarItems: [
         { name: "bulletList", command: "bulletList", label: "Bullet list", icon: "bulletList" },
+        { name: "bulletListStyle", command: "setBulletListStyle", label: "Bullet style", type: "select", value: "disc", options: [["disc", "● Filled circle"], ["circle", "○ Hollow circle"], ["square", "■ Square"], ["dash", "– Dash"], ["arrow", "➜ Arrow"], ["check", "✓ Check"], ["diamond", "◆ Diamond"], ["none", "No marker"]] },
         { name: "numberList", command: "numberList", label: "Number list", icon: "numberList" },
+        { name: "numberListStyle", command: "setNumberListStyle", label: "Number style", type: "select", value: "decimal", options: [["decimal", "1, 2, 3"], ["decimal-leading-zero", "01, 02, 03"], ["lower-alpha", "a, b, c"], ["upper-alpha", "A, B, C"], ["lower-roman", "i, ii, iii"], ["upper-roman", "I, II, III"], ["lower-greek", "α, β, γ"], ["arabic-indic", "١, ٢, ٣"]] },
         { name: "multilevelList", command: "multilevelList", label: "Multilevel list", icon: "multilevelList" },
         { name: "todoList", command: "todoList", label: "TODO list", icon: "todoList" },
         { name: "decreaseIndent", command: "decreaseIndent", label: "Decrease indent", icon: "outdent" },
@@ -226,7 +226,7 @@
       command: "toggleKeepTogether",
       toolbarItems: [
         { name: "keepTogether", command: "toggleKeepTogether", label: "Keep block together", icon: "keepTogether" },
-        { name: "keepWithNext", command: "KeepWithNext", label: "Keep with next", icon: "keepWithNext" },
+        { name: "keepWithNext", command: "keepWithNext", label: "Keep with next", icon: "keepWithNext" },
         { name: "paginationPageBreak", command: "InsertPageBreak", label: "Insert page break", icon: "pageBreak" },
       ],
     },
@@ -272,7 +272,6 @@
       command: "insertHeader",
       aliases: ["insertFooter", "removeHeader", "removeFooter"],
       hidden: true,
-      lazy: true,
     },
     pagesize: {
       file: "plugins/pagesize.js",
@@ -382,6 +381,8 @@
     formattingStressTest: "formatting",
     bulletList: "lists",
     numberList: "lists",
+    setBulletListStyle: "lists",
+    setNumberListStyle: "lists",
     multilevelList: "lists",
     todoList: "lists",
     increaseIndent: "lists",
@@ -852,10 +853,15 @@ class EditraCore {
         ? options.plugins
         : null;
     let requested = explicitPlugins ?? DEFAULT_PLUGINS;
+    const hasCustomToolbar =
+      typeof options.toolbar === "string" && options.toolbar.trim();
+    const hasCustomMenu = options.menu && typeof options.menu === "object";
+    // A custom toolbar only limits plugins when the menu is hidden. When the
+    // default menu is visible it still exposes Header, Headings, fonts, and the
+    // other standard tools, so their plugins must remain available.
     if (
       !explicitPlugins &&
-      ((typeof options.toolbar === "string" && options.toolbar.trim()) ||
-        (options.menu && typeof options.menu === "object"))
+      (hasCustomMenu || (hasCustomToolbar && options.showMenuBar === false))
     ) {
       const normalize = (value) =>
         String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -1409,6 +1415,59 @@ class EditraCore {
       this.scheduleUpdate("change", () => this.emitChange());
       return result;
     };
+    const changeCase = (value = "uppercase") => {
+      const mode = String(value || "uppercase").toLowerCase();
+      if (!["lowercase", "uppercase", "title", "sentence"].includes(mode)) {
+        return false;
+      }
+      this.restoreSelection();
+      const selection = global.getSelection();
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+      if (!range || range.collapsed || !this.isRangeInside(range)) return false;
+      const fragment = range.extractContents();
+      const textNodes = [];
+      const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+      if (!textNodes.length) return false;
+      let atWordStart = true;
+      let sentenceStarted = false;
+      textNodes.forEach((node) => {
+        const source = node.nodeValue;
+        if (mode === "lowercase") node.nodeValue = source.toLocaleLowerCase();
+        else if (mode === "uppercase") node.nodeValue = source.toLocaleUpperCase();
+        else if (mode === "title") {
+          node.nodeValue = [...source].map((character) => {
+            const wordCharacter = /[\p{L}\p{N}]/u.test(character);
+            const output = wordCharacter && atWordStart
+              ? character.toLocaleUpperCase()
+              : character.toLocaleLowerCase();
+            atWordStart = !wordCharacter;
+            return output;
+          }).join("");
+        } else {
+          node.nodeValue = [...source].map((character) => {
+            if (sentenceStarted || !/\p{L}/u.test(character)) {
+              return character.toLocaleLowerCase();
+            }
+            sentenceStarted = true;
+            return character.toLocaleUpperCase();
+          }).join("");
+        }
+      });
+      const inserted = [...fragment.childNodes];
+      range.insertNode(fragment);
+      range.setStartBefore(inserted[0]);
+      range.setEndAfter(inserted.at(-1));
+      selection.removeAllRanges();
+      selection.addRange(range);
+      this.selection = range.cloneRange();
+      this.recordHistory();
+      this.scheduleUpdate("case-change", () => {
+        this.emitChange();
+        this.emitState();
+      });
+      return true;
+    };
 
     register("undo", () => this.undo());
     register("redo", () => this.redo());
@@ -1521,7 +1580,7 @@ class EditraCore {
     register("alignment", () => exec("justifyLeft"));
     register("line-height", () => this.dispatchCommand("line-height"));
     register("indentation", () => exec("indent"));
-    register("case-change", () => this.dispatchCommand("case-change"));
+    register("case-change", (value) => changeCase(value));
     register("remove-format", () => exec("removeFormat"));
 
     ["template", "toc"].forEach((name) =>
@@ -1945,15 +2004,38 @@ class EditraCore {
 
     const plugin = this.plugins.get(name);
     if (plugin && !plugin.action) {
-      return this.ensurePlugin(name).then(() => this.executeCommand(name, ...args));
+      const savedRange = this.selection?.cloneRange() ?? null;
+      return this.ensurePlugin(name).then(() => {
+        if (savedRange && this.isRangeInside(savedRange)) {
+          this.selection = savedRange;
+          this.restoreSelection();
+        }
+        return this.executeCommand(name, ...args);
+      });
     }
 
     const pluginName = PLUGIN_COMMANDS[name];
     const commandPlugin = pluginName ? this.plugins.get(pluginName) : null;
     if (commandPlugin && !commandPlugin.action) {
-      return this.ensurePlugin(pluginName).then(() =>
-        this.executeCommand(name, ...args),
-      );
+      // Script loading yields to the browser, so retain the exact document
+      // range before toolbar focus or selectionchange events can replace it.
+      const savedRange = this.selection?.cloneRange() ?? null;
+      return this.ensurePlugin(pluginName).then(() => {
+        if (savedRange && this.isRangeInside(savedRange)) {
+          this.selection = savedRange;
+          this.restoreSelection();
+        }
+        return this.executeCommand(name, ...args);
+      });
+    }
+    // A cached plugin script can exist before a second editor is constructed.
+    // Re-run its idempotent installer when a secondary toolbar command is not
+    // registered yet; otherwise the command would fall through as a no-op.
+    if (commandPlugin && !this.commands.has(name)) {
+      const install = commandPlugin.action?.install;
+      if (typeof install === "function") install(this);
+      const installedCommand = this.commands.get(name);
+      if (installedCommand) return this.executeCommand(name, ...args);
     }
 
     if (HEAVY_COMMAND_FILES[name]) {
@@ -3527,11 +3609,24 @@ class EditraCore {
     }
     if (!range) return null;
 
+    let selectionNode = range.startContainer;
+    if (selectionNode.nodeType === Node.ELEMENT_NODE) {
+      // Range boundaries often point at an outer paragraph/span even when the
+      // selected characters live in a nested formatted span. Walk to the text
+      // leaf at the boundary so toolbar values reflect the visible formatting.
+      let boundary = selectionNode.childNodes[
+        Math.min(range.startOffset, Math.max(0, selectionNode.childNodes.length - 1))
+      ];
+      while (boundary?.nodeType === Node.ELEMENT_NODE && boundary.firstChild) {
+        boundary = boundary.firstChild;
+      }
+      if (boundary) selectionNode = boundary;
+    }
     let element = this.selectedObject?.isConnected
       ? this.selectedObject
-      : range.startContainer.nodeType === Node.ELEMENT_NODE
-        ? range.startContainer
-        : range.startContainer.parentElement;
+      : selectionNode.nodeType === Node.ELEMENT_NODE
+        ? selectionNode
+        : selectionNode.parentElement;
     if (element === this.editor && range.startContainer === this.editor) {
       element = this.editor.childNodes[range.startOffset]?.parentElement ||
         this.editor.childNodes[range.startOffset] || element;
@@ -3542,7 +3637,7 @@ class EditraCore {
 
     const style = getComputedStyle(element);
     const block = element.closest(
-      "p,div,h1,h2,h3,h4,h5,h6,li,blockquote,pre,td,th",
+      "p,div,h1,h2,h3,h4,h5,h6,li,blockquote,pre,td,th,table,figure,form,section,article",
     ) || this.editor;
     const blockStyle = getComputedStyle(block);
     const normalizeColor = (value) => {
@@ -3593,6 +3688,8 @@ class EditraCore {
           ? rawAlignment
           : "left";
     const activeLink = element.closest("a[href]");
+    const unorderedList = element.closest("ul");
+    const orderedList = element.closest("ol");
     const media = element.closest("[data-editra-media]");
     const selectedTable = element.matches("table")
       ? element
@@ -3672,8 +3769,14 @@ class EditraCore {
       superscript: verticalAlign === "super" || Boolean(element.closest("sup")),
       subscript: verticalAlign === "sub" || Boolean(element.closest("sub")),
       blockQuote: Boolean(element.closest("blockquote")),
-      bulletList: Boolean(element.closest("ul")),
-      numberList: Boolean(element.closest("ol")),
+      bulletList: Boolean(unorderedList),
+      numberList: Boolean(orderedList),
+      keepTogether: block.dataset.editraKeepTogether === "true",
+      keepWithNext: block.dataset.editraKeepWithNext === "true",
+      bulletListStyle: unorderedList?.dataset.editraListStyle ||
+        (unorderedList ? getComputedStyle(unorderedList).listStyleType : "disc"),
+      numberListStyle: orderedList?.dataset.editraListStyle ||
+        (orderedList ? getComputedStyle(orderedList).listStyleType : "decimal"),
     };
   }
 
@@ -4082,7 +4185,7 @@ class EditraCore {
   }
 }
 
-  EditraCore.VERSION = "1.1.1";
+  EditraCore.VERSION = "1.0.1";
   EditraCore.PRODUCT = "Editra";
   global.EditraCore = EditraCore;
   global.Editra = EditraCore;

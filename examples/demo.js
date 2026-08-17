@@ -49,6 +49,23 @@
     <div class="editra-page-break"></div>
     <h2>Closing page</h2>
     <p>Headers, footers, margins, and explicit page boundaries are retained by page-fidelity exports.</p>`;
+  const formattingCombinationsHTML = `
+    <h1 style="text-align:center"><span style="font-family:Georgia;color:#2468ac">Heading 1 + Georgia + color + center alignment</span></h1>
+    <p><strong>Bold</strong>, <em>italic</em>, <u>underline</u>, <s>strikethrough</s>, H<sub>2</sub>O, and x<sup>2</sup> remain independent.</p>
+    <h2 style="text-align:right;line-height:2"><span style="font-family:Arial;font-size:22px;background-color:#fff2a8">Heading 2 + font + size + highlight + right alignment</span></h2>
+    <ul data-editra-list-style="diamond" style="list-style-type:disc">
+      <li><h3><span style="font-family:Georgia;color:#157347">Heading 3 inside a diamond bullet list</span></h3></li>
+      <li><p><strong><em>Paragraph with combined bold and italic formatting</em></strong></p></li>
+    </ul>
+    <ol data-editra-list-style="upper-roman" style="list-style-type:upper-roman">
+      <li><h4 style="text-align:center"><u>Centered Heading 4 inside an upper-Roman list</u></h4></li>
+      <li><p><span style="color:#b42332;background-color:#dbeafe">Text and background colors together</span></p></li>
+    </ol>
+    <ul class="editra-todo-list">
+      <li class="editra-todo-item"><input type="checkbox" contenteditable="false" aria-label="Mark heading task complete"><h5>Heading 5 preserved inside a TODO item</h5></li>
+    </ul>
+    <blockquote><p><span style="font-family:Courier New">Block quote + font family</span></p></blockquote>
+    <p style="text-align:justify;line-height:1.85">Normal text restored after heading styles. This paragraph demonstrates justified alignment and a 1.85 line-height without losing inline formatting.</p>`;
 
   const definitions = {
     full: {
@@ -265,6 +282,11 @@
       },
       content: "<h2>Formatting controls</h2><p>Select this text and combine font, color, highlight, strikethrough, superscript, subscript, block quote, alignment, spacing, and Format Painter.</p>",
     },
+    "formatting-combinations": {
+      title: "Formatting Combination Matrix",
+      description: "A reproducible document combining headings, fonts, sizes, emphasis, colors, alignment, line height, bullet/number/TODO lists, and Normal text.",
+      content: formattingCombinationsHTML,
+    },
     headings: {
       title: "Semantic Headings",
       description: "Convert document blocks to paragraph or semantic H1â€“H6 elements.",
@@ -276,7 +298,7 @@
       description: "Styled bullet and number lists, multilevel lists, TODO items, and indentation.",
       config: {
         plugins: ["lists"],
-        toolbar: "bulletList numberList multilevelList todoList decreaseIndent increaseIndent | undo redo",
+        toolbar: "bulletList bulletListStyle numberList numberListStyle | multilevelList todoList decreaseIndent increaseIndent | undo redo",
         menu: { Format: ["Bullet List", "Number List", "Multilevel List", "TODO List", "Decrease Indent", "Increase Indent"] },
       },
       content: "<h2>List editing</h2><p>Select these lines and choose a list style.</p><p>First item<br>Second item<br>Third item</p>",

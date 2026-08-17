@@ -1,6 +1,6 @@
 # Editra security architecture
 
-Editra 1.1.1 treats initial HTML, paste, source view, imported content, collaboration updates, revisions, headers/footers, JSON documents, and export content as untrusted. These controls reduce integration risk; they are not a certification or a substitute for an independent assessment of the deployed application.
+Editra 1.0.1 treats initial HTML, paste, source view, imported content, collaboration updates, revisions, headers/footers, JSON documents, and export content as untrusted. These controls reduce integration risk; they are not a certification or a substitute for an independent assessment of the deployed application.
 
 ## Trust boundaries and data flow
 

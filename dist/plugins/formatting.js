@@ -49,12 +49,24 @@
     }
   }
 
+  /** Removes older copies of one property so the newest toolbar value wins. */
+  function clearNestedProperty(root, property) {
+    root.querySelectorAll?.("[style]").forEach((element) => {
+      element.style[property] = "";
+      if (property === "backgroundColor") {
+        element.classList.remove("editra-highlight");
+      }
+      if (!element.getAttribute("style")?.trim()) element.removeAttribute("style");
+    });
+  }
+
   function wrapInlineStyle(core, property, value, detail) {
     const range = selectionRange(core);
     if (!range) return false;
     const blocks = selectedBlocks(core).filter((block) => block !== core.editor);
     if (blocks.length > 1) {
       return batchBlocks(blocks, (block) => {
+          clearNestedProperty(block, property);
           block.style[property] = value;
           markTracked(core, block, detail);
         })
@@ -63,7 +75,11 @@
     const span = document.createElement("span");
     span.style[property] = value;
     markTracked(core, span, detail);
-    span.append(range.extractContents());
+    const contents = range.extractContents();
+    // A nested old value has higher visual priority than a new outer wrapper.
+    // Clear only the same property and preserve all unrelated formatting.
+    clearNestedProperty(contents, property);
+    span.append(contents);
     range.insertNode(span);
     const selected = document.createRange();
     selected.selectNodeContents(span);
@@ -92,6 +108,7 @@
     return wrapInlineStyle(core, "fontSize", size, `font-size:${size}`);
   }
 
+  // Changes the selected text color after validating the CSS color value.
   function setForeColor(core, value) {
     const color = validColor(
       value || promptValue("Text color:", "#25231f"),
@@ -100,6 +117,7 @@
     return wrapInlineStyle(core, "color", color, `color:${color}`);
   }
 
+  // Adds or removes the selected text's background fill.
   function setBackgroundColor(core, value) {
     const color = validColor(
       value || promptValue("Background color:", "#fff2a8"),
@@ -108,19 +126,28 @@
     if (color === "transparent") {
       const range = selectionRange(core);
       if (!range) return false;
-      const anchor =
+      let anchor =
         range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
           ? range.commonAncestorContainer
           : range.commonAncestorContainer.parentElement;
-      const styled = anchor?.closest("span[style]");
-      if (styled && core.editor.contains(styled)) {
-        styled.style.backgroundColor = "";
-        if (!styled.getAttribute("style")) {
-          styled.replaceWith(...styled.childNodes);
-        }
-        return commit(core);
+      const candidates = new Set(anchor?.querySelectorAll?.("[style]") ?? []);
+      for (let current = anchor; current && current !== core.editor; current = current.parentElement) {
+        candidates.add(current);
       }
-      return false;
+      let changed = false;
+      candidates.forEach((styled) => {
+        if (!core.editor.contains(styled)) return;
+        try {
+          if (!range.intersectsNode(styled)) return;
+        } catch {
+          return;
+        }
+        if (styled.style.backgroundColor) changed = true;
+        styled.style.backgroundColor = "";
+        styled.classList.remove("editra-highlight");
+        if (!styled.getAttribute("style")?.trim()) styled.removeAttribute("style");
+      });
+      return changed ? commit(core) : false;
     }
     return wrapInlineStyle(
       core,
@@ -130,6 +157,7 @@
     );
   }
 
+  // Uses a background span plus the highlight class for a visible marker effect.
   function highlightText(core, value) {
     const color = validColor(
       value || promptValue("Highlighter color:", "#fff176"),
@@ -259,6 +287,7 @@
     });
   }
 
+  // Aligns every selected block and supports left, center, right, and justify.
   async function setAlignment(core, value) {
     const requested = String(
       value || promptValue("Alignment: left, center, right or justify", "left"),

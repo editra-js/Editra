@@ -2,7 +2,6 @@
   "use strict";
 
   const installations = new WeakMap();
-  const fontSizeGuards = new WeakMap();
   const FONT_FAMILIES = Object.freeze([
     "Segoe UI",
     "Calibri",
@@ -62,16 +61,92 @@
       });
   }
 
+  /** Removes an older copy of one font property that would override a new one. */
+  function clearNestedProperty(root, property) {
+    root.querySelectorAll?.("[style]").forEach((element) => {
+      element.style[property] = "";
+      if (!element.getAttribute("style")?.trim()) element.removeAttribute("style");
+    });
+  }
+
+  /** Returns true when every selected text node already has the requested font. */
+  function rangeAlreadyStyled(range, property, value) {
+    const root = range.commonAncestorContainer;
+    const textNodes = [];
+    if (root.nodeType === Node.TEXT_NODE) {
+      textNodes.push(root);
+    } else {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+    }
+    const selectedText = textNodes.filter((node) => {
+      if (!node.nodeValue) return false;
+      try {
+        return range.intersectsNode(node);
+      } catch {
+        return false;
+      }
+    });
+    if (!selectedText.length) return false;
+    if (property === "fontSize") {
+      const expected = Number.parseFloat(value);
+      return selectedText.every((node) =>
+        Math.abs(Number.parseFloat(getComputedStyle(node.parentElement).fontSize) - expected) < 0.01,
+      );
+    }
+    const expected = String(value).split(",")[0].trim().replace(/^['"]|['"]$/g, "").toLowerCase();
+    return selectedText.every((node) =>
+      getComputedStyle(node.parentElement).fontFamily
+        .split(",")[0]
+        .trim()
+        .replace(/^['"]|['"]$/g, "")
+        .toLowerCase() === expected,
+    );
+  }
+
   function applyInline(core, property, value) {
     const range = selectionRange(core);
     if (!range) return false;
+    if (range.collapsed) {
+      const anchor =
+        range.startContainer.nodeType === Node.ELEMENT_NODE
+          ? range.startContainer
+          : range.startContainer.parentElement;
+      const block = anchor?.closest(
+        "p,div,h1,h2,h3,h4,h5,h6,li,blockquote,pre,td,th",
+      );
+      if (block && block !== core.editor && core.editor.contains(block)) {
+        // A caret-only toolbar action must produce an immediate visible result.
+        // Prefer the innermost inline run so an older nested font value cannot
+        // hide the new value; otherwise establish the style on the whole block.
+        const inline = anchor?.closest(
+          "span,a,strong,b,em,i,u,s,sup,sub,code",
+        );
+        const target = inline && block.contains(inline) ? inline : block;
+        target.style[property] = value;
+        if (core.state.trackChanges) {
+          target.classList.add("editra-change-format");
+          target.dataset.editraChange = "format";
+          target.dataset.changeDetail = `${property}:${value}`;
+        }
+        return commit(core);
+      }
+    }
+    // Repeating an already-applied command is a no-op instead of creating
+    // another wrapper, while the same value still applies to a new selection.
+    if (!range.collapsed && rangeAlreadyStyled(range, property, value)) {
+      return true;
+    }
     const blocks = selectedBlocks(core, range);
     if (blocks.length > 1) {
       return new Promise((resolve) => {
         let index = 0;
         const applyChunk = () => {
           const end = Math.min(index + 250, blocks.length);
-          for (; index < end; index += 1) blocks[index].style[property] = value;
+          for (; index < end; index += 1) {
+            clearNestedProperty(blocks[index], property);
+            blocks[index].style[property] = value;
+          }
           if (index < blocks.length) requestAnimationFrame(applyChunk);
           else resolve(commit(core));
         };
@@ -92,7 +167,11 @@
       range.setStart(marker, marker.length);
       range.collapse(true);
     } else {
-      span.append(range.extractContents());
+      const contents = range.extractContents();
+      // New direct formatting must win over an older nested span carrying the
+      // same property (for example 15px text changed to Heading then 24px).
+      clearNestedProperty(contents, property);
+      span.append(contents);
       range.insertNode(span);
       range.selectNodeContents(span);
     }
@@ -103,6 +182,7 @@
     return commit(core);
   }
 
+  // Applies one supported font family to the saved selection or current block.
   function setFontFamily(core, value) {
     const requested = String(value || "").trim();
     const family = FONT_FAMILIES.find(
@@ -112,16 +192,10 @@
     return applyInline(core, "fontFamily", `"${family}"`);
   }
 
+  // Applies a validated 8–36px size and ignores duplicate change events.
   function setFontSize(core, value) {
     const numeric = Number.parseInt(String(value || "").replace("px", ""), 10);
     if (!FONT_SIZES.includes(numeric)) return false;
-    const now = performance.now();
-    const previous = fontSizeGuards.get(core);
-    if (previous?.value === numeric && now - previous.time < 150) return true;
-    fontSizeGuards.set(core, { value: numeric, time: now });
-    requestAnimationFrame(() => {
-      if (fontSizeGuards.get(core)?.time === now) fontSizeGuards.delete(core);
-    });
     return applyInline(core, "fontSize", `${numeric}px`);
   }
 
@@ -167,7 +241,6 @@
     const state = { unregister };
     core.registerCleanup(() => {
       unregister.forEach((remove) => remove());
-      fontSizeGuards.delete(core);
       installations.delete(core);
     });
     installations.set(core, state);

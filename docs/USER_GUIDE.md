@@ -1,6 +1,6 @@
 # Editra User Guide
 
-Version 1.1.1
+Version 1.0.1
 
 ## Installation
 
@@ -48,8 +48,8 @@ The currently published GitHub-backed jsDelivr build is:
 ```html
 <div id="editra-editor"></div>
 <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.1.1/themes/word.css">
-<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.1.1/dist/editra.js"></script>
+      href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.1/themes/word.css">
+<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.1/dist/editra.js"></script>
 <script>
   await Editra.init({
     selector: "#editra-editor",
@@ -81,7 +81,7 @@ The equivalent unpkg links are:
 <script src="https://unpkg.com/editra-js/dist/editra.min.js"></script>
 ```
 
-Both npm CDNs must serve the complete release treeâ€”`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra-js@1.1.1/` instead of `/editra/` when deterministic production builds are required.
+Both npm CDNs must serve the complete release treeâ€”`dist/`, `core/`, `plugins/`, `ui/`, and `themes/`. Pin `/editra-js@1.0.1/` instead of `/editra/` when deterministic production builds are required.
 
 ### Local files
 
@@ -140,6 +140,7 @@ icons.
 
 Runnable examples:
 
+- [Formatting combination matrix](../examples/formatting-combinations.html)
 - [Native A4 page flow and print-ready HTML](../examples/native-page-flow.html)
 - [Word theme with a div host](../examples/word-theme.html)
 - [Word div with modular loading](../examples/word-div-modular.html)
@@ -301,14 +302,15 @@ Use 100% print scale and disable browser-supplied print headers/footers for best
 | Italic | Toggle emphasized text | [Italic](../examples/italic.html) |
 | Underline | Underline selected text | [Underline](../examples/underline.html) |
 | Undo / Redo | Move backward or forward through history | [Shortcuts](../examples/shortcuts.html) |
-| Font Family / Size | Choose predefined Word-style fonts and sizes 8â€“36 | [Formatting](../examples/formatting.html) |
+| Font Family / Size | Choose predefined Word-style fonts and sizes 8â€“36 | [Combination matrix](../examples/formatting-combinations.html) |
 | Heading | Convert blocks semantically to paragraph or H1â€“H6 | [Headings](../examples/headings.html) |
 | Text/Background Color | Apply foreground or background color | [Formatting](../examples/formatting.html) |
 | Highlighter | Apply a marker-style background | [Formatting](../examples/formatting.html) |
 | Strikethrough | Mark text as struck through | [Formatting](../examples/formatting.html) |
 | Alignment | Align blocks left, center, right, or justified | [Formatting](../examples/formatting.html) |
 | Line Height | Adjust selected block spacing | [Formatting](../examples/formatting.html) |
-| Bullet/Number/Multilevel/TODO Lists | Create and nest list structures | [Lists](../examples/lists.html) |
+| Bullet/Number style galleries | Choose circle, square, symbol, alphabetic, Roman, Greek, Arabic-Indic, and other marker presets | [Lists](../examples/lists.html) |
+| Bullet/Number/Multilevel/TODO Lists | Create, toggle, and nest list structures | [Lists](../examples/lists.html) |
 | Increase/Decrease Indent | Change list or block indentation | [Lists](../examples/lists.html) |
 | Table | Open the table-size grid | [Tables](../examples/tables.html) |
 | Table Border Color | Change the active table border | [Tables](../examples/tables.html) |

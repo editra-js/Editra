@@ -17,8 +17,8 @@ lock-in.
 
 Editra is an open-source WYSIWYG editor for the web, offering Word-style text editing, pagination control, tables, media embedding, and export to PDF/Word/HTML. Available via npm or CDN, it delivers enterprise-grade features with a clean, developer-friendly API.
 
-Editra is a modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.1.1 is licensed under the MIT License.
-Package version: 1.1.1
+Editra is a modular WYSIWYG document editor built with pure HTML, CSS, and JavaScript. Version 1.0.1 is licensed under the MIT License.
+Package version: 1.0.1
 
 ## Quick start
 
@@ -74,8 +74,8 @@ adding TypeScript to the browser runtime.
 Currently published through the GitHub-backed jsDelivr endpoint:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.1.1/themes/word.css">
-<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.1.1/dist/editra.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.1/themes/word.css">
+<script src="https://cdn.jsdelivr.net/gh/editra-js/Editra@v1.0.1/dist/editra.js"></script>
 <script>
   Editra.init({ selector: "#editra-editor", theme: "Word" });
 </script>

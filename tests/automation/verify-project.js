@@ -132,7 +132,7 @@ const examples = [
   "multipage", "header-footer", "page-sizes", "custom-print", "tables",
   "shortcuts", "minimal", "word-theme", "classic-theme", "help", "about", "bold",
   "italic", "underline", "ruler", "margins", "export", "theme", "image",
-  "video", "formatting", "headings", "lists", "structure", "code-view",
+  "video", "formatting", "formatting-combinations", "headings", "lists", "structure", "code-view",
   "productivity", "collaboration", "paste", "feedback-form", "pagination",
   "modular-loading", "plugin-marketplace", "word-div-modular", "word-textarea-modular",
   "classic-textarea-single",

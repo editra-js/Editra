@@ -1,6 +1,7 @@
 (function (global) {
   "use strict";
 
+// Underline uses the saved toolbar selection so focus changes never lose text.
 function UnderlinePlugin(core) {
   return core.execCommand("underline");
 }

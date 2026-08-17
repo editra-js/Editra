@@ -229,8 +229,8 @@ async function init(selector, options) {
 const Editra = Object.freeze({
   init,
   load,
-  version: "1.1.1",
-  packageVersion: "1.1.1",
+  version: "1.0.1",
+  packageVersion: "1.0.1",
 });
 
 export { init, load };

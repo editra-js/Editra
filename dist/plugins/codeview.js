@@ -60,7 +60,7 @@
     );
     if (sanitized !== state.textarea.value) {
       state.textarea.value = sanitized;
-      updateDecorations(state);
+      updateDecorations(core, state);
     }
     core.editor.innerHTML = core.security.trustedHTML(
       sanitized,
@@ -94,7 +94,7 @@
     return { format: "html-source", html: source };
   }
 
-  function updateDecorations(state, sourceChanged = true) {
+  function updateDecorations(core, state, sourceChanged = true) {
     if (!state.textarea || state.decorationFrame !== null) return;
     state.decorationFrame = requestAnimationFrame(() => {
       state.decorationFrame = null;
@@ -127,6 +127,9 @@
           prefix + highlightHTML(state.sourceLines.slice(start, end).join("\n")),
           "source highlighting",
         );
+        // Text becomes transparent only after the colored mirror is populated.
+        // If decoration ever fails, the textarea remains a readable fallback.
+        state.wrapper?.classList.add("is-decorated");
         state.highlightSignature = signature;
       }
       syncScroll(state);
@@ -257,7 +260,7 @@
     core.editor.after(wrapper);
     state.active = true;
     state.bindEditor();
-    updateDecorations(state);
+    updateDecorations(core, state);
     updateUI(core, state);
     state.textarea.focus({ preventScroll: true });
     return true;
@@ -350,7 +353,7 @@
     );
 
     function handleInput() {
-      updateDecorations(state);
+      updateDecorations(core, state);
       clearTimeout(state.inputTimer);
       state.inputTimer = global.setTimeout(() => {
         core.scheduleUpdate("codeview-sync", () => applySource(core, state));
@@ -361,7 +364,7 @@
       state.scrollFrame = requestAnimationFrame(() => {
         state.scrollFrame = null;
         syncScroll(state);
-        updateDecorations(state, false);
+        updateDecorations(core, state, false);
       });
     }
     function handleKeydown(event) {

@@ -32,6 +32,8 @@
     "[data-editra-graph]",
     "[data-editra-embedded]",
   ].join(",");
+  const CONTENT_BLOCK_SELECTOR =
+    "p,h1,h2,h3,h4,h5,h6,li,pre,blockquote,table,figure,form,div,section,article";
 
   const nextFrame = () =>
     new Promise((resolve) => requestAnimationFrame(resolve));
@@ -98,17 +100,67 @@
       : core.editor.querySelector(selector);
   }
 
-  /** Resolves the top-level document block containing the current selection. */
-  function directBlock(core, options = {}) {
-    let element = currentElement(
-      core,
-      "p,h1,h2,h3,h4,h5,h6,li,pre,blockquote,table,figure,form,div,section,article",
-      { ...options, fallbackToFirst: false },
-    );
-    while (element?.parentElement && element.parentElement !== core.editor) {
-      element = element.parentElement;
+  /** Wraps raw editor/cell text so paragraph pagination rules have a target. */
+  function promoteInlineSelection(core, range, element) {
+    const container = element?.closest?.("td,th") ||
+      (element === core.editor ? core.editor : null);
+    if (!container || (container !== core.editor && !core.editor.contains(container))) {
+      return null;
     }
-    return element?.parentElement === core.editor ? element : null;
+    let node = range.startContainer;
+    while (node?.parentNode && node.parentNode !== container) node = node.parentNode;
+    if (!node || node === container || !container.contains(node)) return null;
+    if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      !node.matches("span,b,strong,i,em,u,s,strike,sub,sup,a,mark,small,code,br")
+    ) return null;
+    const paragraph = document.createElement("p");
+    node.before(paragraph);
+    paragraph.append(node);
+    // Moving a selected text node can rebase the browser Range onto TD. Put
+    // the range back inside the new paragraph so the next pagination button
+    // continues to operate on the same cell text.
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(paragraph);
+    if (range.collapsed) nextRange.collapse(false);
+    const selection = global.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(nextRange);
+    core.selection = nextRange.cloneRange();
+    return paragraph;
+  }
+
+  /** Resolves the nearest selected content block without escaping a table cell. */
+  function directBlock(core, options = {}) {
+    if (options?.selector) {
+      const selected = core.editor.querySelector(options.selector);
+      if (selected?.matches(CONTENT_BLOCK_SELECTOR)) return selected;
+      const nested = selected?.querySelector(CONTENT_BLOCK_SELECTOR);
+      if (nested) return nested;
+    }
+    core.restoreSelection();
+    const selection = global.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    if (!range || !core.isRangeInside(range)) return null;
+    const node = range.startContainer;
+    let element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    if (element === core.editor && node === core.editor) {
+      const boundary = core.editor.childNodes[
+        Math.min(range.startOffset, Math.max(0, core.editor.childNodes.length - 1))
+      ];
+      element = boundary?.nodeType === Node.ELEMENT_NODE
+        ? boundary
+        : boundary?.parentElement || element;
+    }
+    const cell = element?.closest?.("td,th");
+    const block = element?.closest?.(CONTENT_BLOCK_SELECTOR);
+    // TABLE/DIV ancestors outside a cell are editor structure, not the text
+    // block chosen by the user. Promote direct cell text instead of flagging it.
+    if (cell && (!block || !cell.contains(block))) {
+      return promoteInlineSelection(core, range, element);
+    }
+    if (block && block !== core.editor && core.editor.contains(block)) return block;
+    return promoteInlineSelection(core, range, element);
   }
 
   /** Stores a pagination flag only when the target element exists. */
@@ -432,10 +484,16 @@
   function toggleKeepTogether(core, state, options = {}) {
     const block = directBlock(core, options);
     if (!block) return false;
-    return setKeepTogether(core, state, {
-      ...options,
-      enabled: block.dataset.editraKeepTogether !== "true",
-    });
+    // Use the block resolved before any raw text is promoted. Resolving again
+    // can lose a newly moved Range in some browsers and accidentally target
+    // the surrounding table instead of the paragraph created in its cell.
+    setBooleanAttribute(
+      block,
+      "data-editra-keep-together",
+      block.dataset.editraKeepTogether !== "true",
+    );
+    commit(core, state);
+    return block;
   }
 
   /** Keeps the selected block with its following sibling when both fit. */

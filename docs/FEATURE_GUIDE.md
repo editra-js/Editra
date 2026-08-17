@@ -38,8 +38,11 @@ light and dark backgrounds, and the selected mode and color persist in exports.
 Bullet List and Number List convert the selected blocks into `<ul>` and `<ol>`
 content. Repeating the active list command unwraps the list back into paragraphs.
 Choosing the other list type converts the existing list without duplicating its
-items. Multilevel List and indent commands change nesting; TODO List creates
-interactive checkbox items.
+items. Each main button has a separate Word-style gallery: bullets include
+circle, square, dash, arrow, check, diamond, and no-marker choices; numbering
+includes decimal, leading-zero, letters, Roman numerals, Greek, and Arabic-Indic.
+Changing a gallery choice never unwraps the list. Multilevel List and indent
+commands change nesting; TODO List creates interactive checkbox items.
 
 ## Tables
 
